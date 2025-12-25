@@ -1,0 +1,14 @@
+[Unit]
+Description=Solar Smart Clock
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/solar-clock
+ExecStart=/usr/bin/python3 /home/pi/solar-clock/clock.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
