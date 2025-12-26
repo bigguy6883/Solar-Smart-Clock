@@ -711,54 +711,97 @@ class SolarClock:
         return img
 
     def create_weather_frame(self):
-        """Weather forecast view"""
+        """Weather forecast view - improved readability"""
         img = Image.new("RGB", (WIDTH, HEIGHT), BLACK)
         draw = ImageDraw.Draw(img)
 
         # Header
-        draw.rectangle([(0, 0), (WIDTH, 45)], fill=BLUE)
-        draw.text((WIDTH//2 - 85, 8), "Weather Forecast", fill=WHITE, font=self.fonts["large"])
+        draw.rectangle([(0, 0), (WIDTH, 40)], fill=BLUE)
+        draw.text((WIDTH//2 - 50, 5), "Weather", fill=WHITE, font=self.fonts["large"])
 
-        # Current weather
-        weather = self.get_weather()
-        if weather:
-            w_clean = weather.encode('ascii', 'ignore').decode()
-            draw.text((15, 52), f"Now: {w_clean}", fill=WHITE, font=self.fonts["small"])
-
-        # Forecast from JSON - 4 days, each row 48px, starting at y=75
-        content_bottom = HEIGHT - NAV_BAR_HEIGHT - 5
         forecast = self.get_weather_forecast()
+
+        # Current conditions section
+        if forecast and 'current_condition' in forecast:
+            cc = forecast['current_condition'][0]
+            temp = cc.get('temp_F', '--')
+            feels = cc.get('FeelsLikeF', '--')
+            humidity = cc.get('humidity', '--')
+            wind_speed = cc.get('windspeedMiles', '--')
+            wind_dir = cc.get('winddir16Point', '')
+            desc = cc.get('weatherDesc', [{}])[0].get('value', '')[:18]
+
+            # Large temperature
+            draw.text((20, 45), f"{temp}", fill=WHITE, font=self.fonts["huge"])
+            draw.text((95, 55), "F", fill=GRAY, font=self.fonts["large"])
+
+            # Description
+            draw.text((20, 100), desc, fill=LIGHT_BLUE, font=self.fonts["small"])
+
+            # Details on right side
+            draw.text((150, 48), f"Feels {feels}F", fill=GRAY, font=self.fonts["small"])
+            draw.text((150, 68), f"Humidity {humidity}%", fill=LIGHT_BLUE, font=self.fonts["small"])
+            draw.text((150, 88), f"Wind {wind_speed}mph {wind_dir}", fill=GRAY, font=self.fonts["small"])
+
+        # Divider
+        draw.line([(15, 122), (465, 122)], fill=DARK_GRAY, width=1)
+
+        # 3-day forecast
         if forecast and 'weather' in forecast:
-            y = 75
-            row_height = 48
-            for i, day in enumerate(forecast['weather'][:4]):
-                if y + row_height > content_bottom:
-                    break
+            # Calculate card width for 3 cards with spacing
+            card_width = 150
+            card_height = 125
+            spacing = 8
+            start_x = 10
+            y = 128
+
+            for i, day in enumerate(forecast['weather'][:3]):
+                x = start_x + i * (card_width + spacing)
 
                 date = day.get('date', '')
                 max_temp = day.get('maxtempF', '--')
                 min_temp = day.get('mintempF', '--')
 
-                desc = ""
+                # Get rain chance and description
+                rain_chance = '0'
+                desc = ''
                 if 'hourly' in day and len(day['hourly']) > 4:
-                    desc = day['hourly'][4].get('weatherDesc', [{}])[0].get('value', '')[:14]
+                    h = day['hourly'][4]
+                    rain_chance = h.get('chanceofrain', '0')
+                    desc = h.get('weatherDesc', [{}])[0].get('value', '')[:12]
 
+                # Day name
                 try:
                     dt = datetime.datetime.strptime(date, "%Y-%m-%d")
-                    day_name = dt.strftime("%a")
+                    if i == 0:
+                        day_name = "Today"
+                    elif i == 1:
+                        day_name = "Tomorrow"
+                    else:
+                        day_name = dt.strftime("%A")[:3]
                 except:
                     day_name = f"Day {i+1}"
 
-                # Draw forecast row
-                draw.rounded_rectangle([(8, y), (472, y + 42)], radius=6, fill=DARK_GRAY)
-                draw.text((16, y + 8), day_name, fill=LIGHT_BLUE, font=self.fonts["med"])
-                draw.text((75, y + 8), f"H:{max_temp}F", fill=ORANGE, font=self.fonts["med"])
-                draw.text((165, y + 8), f"L:{min_temp}F", fill=LIGHT_BLUE, font=self.fonts["med"])
-                draw.text((260, y + 10), desc, fill=GRAY, font=self.fonts["small"])
+                # Card background
+                draw.rounded_rectangle([(x, y), (x + card_width, y + card_height)],
+                                      radius=8, fill=DARK_GRAY)
 
-                y += row_height
+                # Day name header
+                draw.text((x + 10, y + 5), day_name, fill=WHITE, font=self.fonts["med"])
+
+                # High/Low temps - large and clear
+                draw.text((x + 10, y + 32), f"{max_temp}", fill=ORANGE, font=self.fonts["large"])
+                draw.text((x + 55, y + 38), f"/{min_temp}", fill=LIGHT_BLUE, font=self.fonts["med"])
+
+                # Rain chance
+                rain_color = LIGHT_BLUE if int(rain_chance) > 30 else GRAY
+                draw.text((x + 10, y + 70), f"Rain {rain_chance}%", fill=rain_color, font=self.fonts["tiny"])
+
+                # Description
+                draw.text((x + 10, y + 88), desc, fill=GRAY, font=self.fonts["tiny"])
+
         else:
-            draw.text((20, 100), "Forecast unavailable", fill=GRAY, font=self.fonts["med"])
+            draw.text((20, 140), "Forecast unavailable", fill=GRAY, font=self.fonts["med"])
 
         # Navigation bar
         self.draw_nav_bar(draw)
