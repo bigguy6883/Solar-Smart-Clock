@@ -533,7 +533,7 @@ class SolarClock:
         draw.rectangle([(0, 0), (WIDTH, 80)], fill=hdr)
 
         # Time (centered)
-        time_str = now.strftime("%I:%M:%S %p")
+        time_str = now.strftime("%-I:%M:%S %p")
         bbox = draw.textbbox((0, 0), time_str, font=self.fonts["huge"])
         tw = bbox[2] - bbox[0]
         draw.text((WIDTH//2 - tw//2, 5), time_str, fill=WHITE, font=self.fonts["huge"])
@@ -638,7 +638,7 @@ class SolarClock:
             return None, None, None
 
     def create_sunpath_frame(self):
-        """Sun path chart with time to next event"""
+        """Sun path view - chart across top"""
         from zoneinfo import ZoneInfo
         tz = ZoneInfo(LOCATION.timezone)
         now = datetime.datetime.now(tz)
@@ -646,268 +646,279 @@ class SolarClock:
         img = Image.new("RGB", (WIDTH, HEIGHT), BLACK)
         draw = ImageDraw.Draw(img)
 
-        # Header
-        draw.rectangle([(0, 0), (WIDTH, 42)], fill=YELLOW)
-        draw.text((WIDTH//2 - 55, 6), "Sun Path", fill=BLACK, font=self.fonts["large"])
-
         sun_times = self.get_sun_times()
         elev, azim = self.get_solar_position()
 
-        # Sun path chart area
-        chart_cx = 160
-        chart_cy = 145
-        chart_radius = 85
+        # Header
+        draw.rectangle([(0, 0), (WIDTH, 42)], fill=ORANGE)
+        title = "Sun Path"
+        bbox = draw.textbbox((0, 0), title, font=self.fonts["large"])
+        draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 6), title, fill=WHITE, font=self.fonts["large"])
 
-        # Draw horizon line
-        draw.line([(chart_cx - chart_radius - 10, chart_cy),
-                   (chart_cx + chart_radius + 10, chart_cy)], fill=GRAY, width=2)
+        # SUN ARC CHART - Full width across top
+        chart_cx = WIDTH // 2
+        chart_cy = 115
+        chart_radius = 65
+        
+        # Chart background box
+        draw.rounded_rectangle([(10, 47), (WIDTH - 10, 150)], radius=8, fill=(15, 15, 25))
+        
+        # Horizon line - full width
+        horizon_y = 130
+        draw.line([(30, horizon_y), (WIDTH - 30, horizon_y)], fill=GRAY, width=2)
+        
+        # Twilight zone line (below horizon)
+        twilight_y = horizon_y + 12
+        draw.line([(30, twilight_y), (WIDTH - 30, twilight_y)], fill=(40, 40, 60), width=1)
+        
+        # E and W labels
+        draw.text((15, horizon_y - 10), "E", fill=WHITE, font=self.fonts["small"])
+        draw.text((WIDTH - 28, horizon_y - 10), "W", fill=WHITE, font=self.fonts["small"])
 
-        # Draw compass labels
-        draw.text((chart_cx - chart_radius - 25, chart_cy - 8), "E", fill=GRAY, font=self.fonts["tiny"])
-        draw.text((chart_cx + chart_radius + 12, chart_cy - 8), "W", fill=GRAY, font=self.fonts["tiny"])
-        draw.text((chart_cx - 5, chart_cy - chart_radius - 18), "N", fill=GRAY, font=self.fonts["tiny"])
-
-        # Draw elevation arcs (30, 60, 90 degrees)
-        for elev_line in [30, 60]:
-            r = int(chart_radius * (90 - elev_line) / 90)
-            draw.arc([(chart_cx - r, chart_cy - r), (chart_cx + r, chart_cy + r)],
-                    180, 0, fill=DARK_GRAY)
-
-        # Draw sun path arc for today
+        # Sun path arc for today
         if sun_times:
             sunrise = sun_times.get("sunrise")
             sunset = sun_times.get("sunset")
             noon = sun_times.get("noon")
 
             if sunrise and sunset and noon:
-                # Draw path as series of points
                 path_points = []
-                for hour_offset in range(-6, 7):
-                    check_time = noon + datetime.timedelta(hours=hour_offset)
+                for mins_offset in range(-360, 361, 10):
+                    check_time = noon + datetime.timedelta(minutes=mins_offset)
                     if sunrise <= check_time <= sunset:
                         try:
                             check_utc = check_time.astimezone(datetime.timezone.utc)
                             e = elevation(LOCATION.observer, check_utc)
                             a = azimuth(LOCATION.observer, check_utc)
-                            if e > 0:
-                                # Map azimuth to x (E=left, W=right)
-                                # Azimuth: 90=E, 180=S, 270=W
-                                norm_az = (a - 90) / 180  # 0 at E, 1 at W
-                                x = chart_cx - chart_radius + int(norm_az * 2 * chart_radius)
-                                # Map elevation to y (higher = further from horizon)
-                                y = chart_cy - int((e / 90) * chart_radius)
+                            if e >= 0:
+                                # Map azimuth to x position (full width)
+                                # Typical range: ~60-300 degrees
+                                norm_x = (a - 60) / 240
+                                x = 40 + int(norm_x * (WIDTH - 80))
+                                # Map elevation to y
+                                y = horizon_y - int((e / 90) * chart_radius)
                                 path_points.append((x, y))
                         except:
                             pass
 
+
                 # Draw path
                 if len(path_points) > 1:
                     for i in range(len(path_points) - 1):
-                        draw.line([path_points[i], path_points[i+1]], fill=ORANGE, width=3)
+                        draw.line([path_points[i], path_points[i+1]], fill=RED, width=3)
 
-                # Draw sun markers at key times
-                for event_time, marker_color, label in [
-                    (sunrise, YELLOW, "rise"),
-                    (noon, WHITE, "noon"),
-                    (sunset, ORANGE, "set")
-                ]:
+                # Solar noon marker
+                if noon:
                     try:
-                        evt_utc = event_time.astimezone(datetime.timezone.utc)
-                        e = elevation(LOCATION.observer, evt_utc)
-                        a = azimuth(LOCATION.observer, evt_utc)
-                        norm_az = (a - 90) / 180
-                        x = chart_cx - chart_radius + int(norm_az * 2 * chart_radius)
-                        y = chart_cy - int((max(0, e) / 90) * chart_radius)
-                        draw.ellipse([(x-4, y-4), (x+4, y+4)], fill=marker_color)
+                        noon_utc = noon.astimezone(datetime.timezone.utc)
+                        noon_elev = elevation(LOCATION.observer, noon_utc)
+                        noon_az = azimuth(LOCATION.observer, noon_utc)
+                        norm_x = (noon_az - 60) / 240
+                        nx = 40 + int(norm_x * (WIDTH - 80))
+                        ny = horizon_y - int((noon_elev / 90) * chart_radius)
+                        draw.ellipse([(nx-5, ny-5), (nx+5, ny+5)], fill=WHITE)
                     except:
                         pass
 
-        # Draw current sun position
-        if elev is not None and elev > 0:
-            norm_az = (azim - 90) / 180
-            x = chart_cx - chart_radius + int(norm_az * 2 * chart_radius)
-            y = chart_cy - int((elev / 90) * chart_radius)
-            # Sun glow
-            draw.ellipse([(x-12, y-12), (x+12, y+12)], fill=ORANGE)
-            draw.ellipse([(x-8, y-8), (x+8, y+8)], fill=YELLOW)
+        # Current sun position
+        if elev is not None and azim is not None and elev > -18:  # Show during twilight
+            norm_x = (azim - 60) / 240
+            x = 40 + int(norm_x * (WIDTH - 80))
+            y = horizon_y - int((elev / 90) * chart_radius)  # Negative elev goes below horizon
+            draw.ellipse([(x-10, y-10), (x+10, y+10)], fill=ORANGE)
+            draw.ellipse([(x-6, y-6), (x+6, y+6)], fill=YELLOW)
 
-        # Right side: Next event countdown
-        draw.text((310, 50), "Next Event", fill=WHITE, font=self.fonts["med"])
-
+        # BOTTOM SECTION - Countdown and event times
+        
+        # Next event countdown - left side
         next_event, time_delta, event_color = self.get_next_solar_event()
-
+        
+        draw.rounded_rectangle([(10, 152), (200, 235)], radius=8, fill=(25, 25, 35), outline=(60, 60, 80), width=1)
+        
         if next_event and time_delta:
-            # Event name
-            draw.text((310, 78), next_event, fill=event_color or WHITE, font=self.fonts["large"])
-
-            # Time remaining
+            evt_name = next_event.lower().replace(" (tomorrow)", "")
+            draw.text((20, 158), evt_name, fill=event_color or ORANGE, font=self.fonts["med"])
+            
             total_secs = int(time_delta.total_seconds())
             hours = total_secs // 3600
             mins = (total_secs % 3600) // 60
-            secs = total_secs % 60
-
-            if hours > 0:
-                countdown = f"{hours}h {mins}m"
-            else:
-                countdown = f"{mins}m {secs}s"
-
-            draw.text((310, 115), countdown, fill=WHITE, font=self.fonts["large"])
-
-            # Progress indicator
-            draw.text((310, 152), "until", fill=GRAY, font=self.fonts["tiny"])
+            
+            draw.text((20, 182), "in", fill=GRAY, font=self.fonts["small"])
+            draw.text((50, 178), f"{hours:02d}", fill=YELLOW, font=self.fonts["large"])
+            draw.text((95, 185), "h", fill=GRAY, font=self.fonts["small"])
+            draw.text((115, 178), f"{mins:02d}", fill=YELLOW, font=self.fonts["large"])
+            draw.text((160, 185), "m", fill=GRAY, font=self.fonts["small"])
+            
+            # Event time
+            for key in ["dawn", "sunrise", "noon", "sunset", "dusk"]:
+                if key in next_event.lower():
+                    evt_time = sun_times.get(key) if sun_times else None
+                    if evt_time:
+                        draw.text((20, 212), "@", fill=GRAY, font=self.fonts["small"])
+                        draw.text((40, 212), evt_time.strftime("%-I:%M %p"), fill=YELLOW, font=self.fonts["small"])
+                    break
         else:
-            draw.text((310, 80), "--", fill=GRAY, font=self.fonts["large"])
+            draw.text((20, 180), "--", fill=GRAY, font=self.fonts["large"])
 
-        # Event timeline at bottom
-        y_timeline = 185
-        draw.line([(15, y_timeline + 15), (295, y_timeline + 15)], fill=DARK_GRAY, width=2)
-
+        # Event times - right side box
+        draw.rounded_rectangle([(210, 152), (WIDTH - 10, 235)], radius=8, fill=(25, 25, 35), outline=(60, 60, 80), width=1)
+        draw.text((220, 158), "Today's Events", fill=GRAY, font=self.fonts["small"])
+        
         if sun_times:
-            events_list = [
+            events = [
                 ("dawn", "Dawn", LIGHT_BLUE),
                 ("sunrise", "Sunrise", YELLOW),
-                ("noon", "Noon", WHITE),
                 ("sunset", "Sunset", ORANGE),
                 ("dusk", "Dusk", PURPLE),
             ]
+            
+            y_pos = 178
+            for key, label, color in events:
+                evt_time = sun_times.get(key)
+                if evt_time:
+                    passed = evt_time <= now
+                    disp_color = (70, 70, 70) if passed else color
+                    draw.text((220, y_pos), label, fill=disp_color, font=self.fonts["tiny"])
+                    draw.text((280, y_pos), evt_time.strftime("%-I:%M %p"), fill=disp_color, font=self.fonts["tiny"])
+                    y_pos += 14
 
-            x_positions = [30, 85, 155, 210, 265]
-
-            for i, (key, label, color) in enumerate(events_list):
-                event_time = sun_times.get(key)
-                x = x_positions[i]
-
-                if event_time:
-                    # Check if this event has passed
-                    passed = event_time <= now
-                    display_color = DARK_GRAY if passed else color
-
-                    # Marker dot
-                    draw.ellipse([(x-4, y_timeline + 11), (x+4, y_timeline + 19)],
-                               fill=display_color)
-
-                    # Time
-                    time_str = event_time.strftime("%H:%M")
-                    draw.text((x - 15, y_timeline + 22), time_str,
-                             fill=display_color, font=self.fonts["micro"])
-
-                    # Label
-                    draw.text((x - 12, y_timeline - 2), label,
-                             fill=display_color, font=self.fonts["micro"])
-
-        # Current elevation/azimuth
-        if elev is not None:
-            status = "Up" if elev > 0 else "Down"
-            draw.text((310, 175), f"Elev: {elev:.1f} ({status})",
-                     fill=YELLOW if elev > 0 else GRAY, font=self.fonts["tiny"])
-            draw.text((310, 192), f"Azim: {azim:.1f}",
-                     fill=WHITE, font=self.fonts["tiny"])
-
-        # Draw time on chart
-        draw.text((310, 215), now.strftime("%I:%M %p"),
-                 fill=GRAY, font=self.fonts["small"])
-
-        # Navigation bar
         self.draw_nav_bar(draw)
-
         return img
 
     def create_weather_frame(self):
-        """Weather forecast view - improved readability"""
+        """Weather forecast view"""
         img = Image.new("RGB", (WIDTH, HEIGHT), BLACK)
         draw = ImageDraw.Draw(img)
 
         # Header
-        draw.rectangle([(0, 0), (WIDTH, 40)], fill=BLUE)
-        draw.text((WIDTH//2 - 50, 5), "Weather", fill=WHITE, font=self.fonts["large"])
+        draw.rectangle([(0, 0), (WIDTH, 42)], fill=BLUE)
+        title = "Weather"
+        bbox = draw.textbbox((0, 0), title, font=self.fonts["large"])
+        draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 6), title, fill=WHITE, font=self.fonts["large"])
 
         forecast = self.get_weather_forecast()
 
-        # Current conditions section
+        # LEFT SIDE - Current conditions
         if forecast and 'current_condition' in forecast:
             cc = forecast['current_condition'][0]
             temp = cc.get('temp_F', '--')
             feels = cc.get('FeelsLikeF', '--')
             humidity = cc.get('humidity', '--')
-            wind_speed = cc.get('windspeedMiles', '--')
-            wind_dir = cc.get('winddir16Point', '')
             desc = cc.get('weatherDesc', [{}])[0].get('value', '')[:18]
+            wind_speed = cc.get('windspeedMiles', '0')
+            wind_dir = cc.get('winddir16Point', 'N')
 
-            # Large temperature
-            draw.text((20, 45), f"{temp}", fill=WHITE, font=self.fonts["huge"])
-            draw.text((95, 55), "F", fill=GRAY, font=self.fonts["large"])
+            # Current box
+            draw.rounded_rectangle([(8, 48), (190, 165)], radius=8, fill=(25, 25, 35), outline=(70, 70, 90), width=1)
+            
+            draw.text((18, 55), f"{temp}°F", fill=WHITE, font=self.fonts["huge"])
+            draw.text((18, 110), desc, fill=LIGHT_BLUE, font=self.fonts["small"])
+            draw.text((18, 132), f"Feels {feels}° | {humidity}%", fill=GRAY, font=self.fonts["tiny"])
+            draw.text((18, 148), f"Wind {wind_speed}mph {wind_dir}", fill=GRAY, font=self.fonts["tiny"])
 
-            # Description
-            draw.text((20, 100), desc, fill=LIGHT_BLUE, font=self.fonts["small"])
+            # Compass box
+            draw.rounded_rectangle([(8, 172), (190, 235)], radius=8, fill=(25, 25, 35), outline=(70, 70, 90), width=1)
+            
+            compass_cx = 50
+            compass_cy = 203
+            compass_r = 22
+            
+            draw.ellipse([(compass_cx - compass_r, compass_cy - compass_r),
+                         (compass_cx + compass_r, compass_cy + compass_r)], outline=WHITE, width=1)
+            
+            draw.text((compass_cx - 3, compass_cy - compass_r - 10), "N", fill=WHITE, font=self.fonts["micro"])
+            draw.text((compass_cx - 3, compass_cy + compass_r + 2), "S", fill=WHITE, font=self.fonts["micro"])
+            draw.text((compass_cx - compass_r - 8, compass_cy - 4), "W", fill=WHITE, font=self.fonts["micro"])
+            draw.text((compass_cx + compass_r + 3, compass_cy - 4), "E", fill=WHITE, font=self.fonts["micro"])
+            
+            dir_angles = {
+                'N': 270, 'NNE': 292, 'NE': 315, 'ENE': 337,
+                'E': 0, 'ESE': 22, 'SE': 45, 'SSE': 67,
+                'S': 90, 'SSW': 112, 'SW': 135, 'WSW': 157,
+                'W': 180, 'WNW': 202, 'NW': 225, 'NNW': 247
+            }
+            import math
+            angle_deg = dir_angles.get(wind_dir, 0)
+            angle_rad = math.radians(angle_deg)
+            ax = compass_cx + int(18 * math.cos(angle_rad))
+            ay = compass_cy + int(18 * math.sin(angle_rad))
+            draw.line([(compass_cx, compass_cy), (ax, ay)], fill=YELLOW, width=3)
+            draw.ellipse([(ax - 3, ay - 3), (ax + 3, ay + 3)], fill=YELLOW)
+            
+            draw.text((90, 188), "Wind", fill=GRAY, font=self.fonts["tiny"])
+            draw.text((90, 202), f"{wind_speed}", fill=WHITE, font=self.fonts["large"])
+            draw.text((140, 210), "mph", fill=GRAY, font=self.fonts["tiny"])
 
-            # Details on right side
-            draw.text((150, 48), f"Feels {feels}F", fill=GRAY, font=self.fonts["small"])
-            draw.text((150, 68), f"Humidity {humidity}%", fill=LIGHT_BLUE, font=self.fonts["small"])
-            draw.text((150, 88), f"Wind {wind_speed}mph {wind_dir}", fill=GRAY, font=self.fonts["small"])
+        draw.text((15, 245), f"{LOCATION.name}", fill=GRAY, font=self.fonts["tiny"])
 
-        # Divider
-        draw.line([(15, 122), (465, 122)], fill=DARK_GRAY, width=1)
-
-        # 3-day forecast
+        # RIGHT SIDE - Forecast table (x: 200 to 470, width=270)
         if forecast and 'weather' in forecast:
-            # Calculate card width for 3 cards with spacing
-            card_width = 150
-            card_height = 125
-            spacing = 8
-            start_x = 10
-            y = 128
+            x = 200
+            
+            # Column positions spread evenly across 270px
+            col_day = x + 8
+            col_high = x + 100
+            col_low = x + 165
+            col_rain = x + 230
+            
+            y = 52
+            
+            # Headers
+            draw.text((col_day, y), "Day", fill=GRAY, font=self.fonts["tiny"])
+            draw.text((col_high, y), "High", fill=GRAY, font=self.fonts["tiny"])
+            draw.text((col_low, y), "Low", fill=GRAY, font=self.fonts["tiny"])
+            draw.text((col_rain, y), "Rain", fill=GRAY, font=self.fonts["tiny"])
+            
+            y += 18
+            draw.line([(x, y), (WIDTH - 10, y)], fill=GRAY, width=1)
+            y += 8
 
             for i, day in enumerate(forecast['weather'][:3]):
-                x = start_x + i * (card_width + spacing)
-
                 date = day.get('date', '')
                 max_temp = day.get('maxtempF', '--')
                 min_temp = day.get('mintempF', '--')
 
-                # Get rain chance and description
                 rain_chance = '0'
-                desc = ''
                 if 'hourly' in day and len(day['hourly']) > 4:
-                    h = day['hourly'][4]
-                    rain_chance = h.get('chanceofrain', '0')
-                    desc = h.get('weatherDesc', [{}])[0].get('value', '')[:12]
+                    rain_chance = day['hourly'][4].get('chanceofrain', '0')
 
-                # Day name
                 try:
                     dt = datetime.datetime.strptime(date, "%Y-%m-%d")
                     if i == 0:
                         day_name = "Today"
                     elif i == 1:
-                        day_name = "Tomorrow"
+                        day_name = "Tmrw"
                     else:
-                        day_name = dt.strftime("%A")[:3]
+                        day_name = dt.strftime("%a")
                 except:
-                    day_name = f"Day {i+1}"
+                    day_name = "--"
 
-                # Card background
-                draw.rounded_rectangle([(x, y), (x + card_width, y + card_height)],
-                                      radius=8, fill=DARK_GRAY)
+                row_y = y + i * 55
+                
+                # Row background
+                draw.rounded_rectangle([(x, row_y), (WIDTH - 10, row_y + 48)], 
+                                      radius=6, fill=(20, 20, 30))
 
-                # Day name header
-                draw.text((x + 10, y + 5), day_name, fill=WHITE, font=self.fonts["med"])
+                # Day name
+                draw.text((col_day, row_y + 14), day_name, fill=WHITE, font=self.fonts["med"])
 
-                # High/Low temps - large and clear
-                draw.text((x + 10, y + 32), f"{max_temp}", fill=ORANGE, font=self.fonts["large"])
-                draw.text((x + 55, y + 38), f"/{min_temp}", fill=LIGHT_BLUE, font=self.fonts["med"])
+                # High temp
+                draw.text((col_high, row_y + 14), max_temp + "°", fill=(255, 180, 50), font=self.fonts["med"])
 
-                # Rain chance
-                rain_color = LIGHT_BLUE if int(rain_chance) > 30 else GRAY
-                draw.text((x + 10, y + 70), f"Rain {rain_chance}%", fill=rain_color, font=self.fonts["tiny"])
+                # Low temp
+                draw.text((col_low, row_y + 14), min_temp + "°", fill=(100, 180, 255), font=self.fonts["med"])
 
-                # Description
-                draw.text((x + 10, y + 88), desc, fill=GRAY, font=self.fonts["tiny"])
+                # Rain %
+                rain_val = int(rain_chance) if rain_chance.isdigit() else 0
+                if rain_val > 50:
+                    rain_color = (100, 200, 255)
+                elif rain_val > 20:
+                    rain_color = (150, 180, 200)
+                else:
+                    rain_color = GRAY
+                draw.text((col_rain, row_y + 14), f"{rain_chance}%", fill=rain_color, font=self.fonts["med"])
 
-        else:
-            draw.text((20, 140), "Forecast unavailable", fill=GRAY, font=self.fonts["med"])
-
-        # Navigation bar
         self.draw_nav_bar(draw)
-
         return img
 
     def create_moon_frame(self):
@@ -917,7 +928,9 @@ class SolarClock:
 
         # Header
         draw.rectangle([(0, 0), (WIDTH, 45)], fill=PURPLE)
-        draw.text((WIDTH//2 - 65, 8), "Moon Phase", fill=WHITE, font=self.fonts["large"])
+        title = "Moon Phase"
+        bbox = draw.textbbox((0, 0), title, font=self.fonts["large"])
+        draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 8), title, fill=WHITE, font=self.fonts["large"])
 
         content_bottom = HEIGHT - NAV_BAR_HEIGHT - 5
         moon = self.get_moon_phase()
@@ -966,7 +979,9 @@ class SolarClock:
 
         # Header
         draw.rectangle([(0, 0), (WIDTH, 45)], fill=ORANGE)
-        draw.text((WIDTH//2 - 70, 8), "Solar Details", fill=WHITE, font=self.fonts["large"])
+        title = "Solar Details"
+        bbox = draw.textbbox((0, 0), title, font=self.fonts["large"])
+        draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 8), title, fill=WHITE, font=self.fonts["large"])
 
         sun_times = self.get_sun_times()
         elev, azim = self.get_solar_position()
@@ -1208,7 +1223,9 @@ class SolarClock:
 
         # Header
         draw.rectangle([(0, 0), (WIDTH, 42)], fill=YELLOW)
-        draw.text((WIDTH//2 - 60, 6), "Day Length", fill=BLACK, font=self.fonts["large"])
+        title = "Day Length"
+        bbox = draw.textbbox((0, 0), title, font=self.fonts["large"])
+        draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 6), title, fill=BLACK, font=self.fonts["large"])
 
         # Chart area
         chart_left = 45
@@ -1330,7 +1347,9 @@ class SolarClock:
 
         # Header
         draw.rectangle([(0, 0), (WIDTH, 42)], fill=ORANGE)
-        draw.text((WIDTH//2 - 55, 6), "Analemma", fill=BLACK, font=self.fonts["large"])
+        title = "Analemma"
+        bbox = draw.textbbox((0, 0), title, font=self.fonts["large"])
+        draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 6), title, fill=BLACK, font=self.fonts["large"])
 
         if not EPHEM_AVAILABLE:
             draw.text((100, 150), "ephem library required", fill=GRAY, font=self.fonts["med"])
