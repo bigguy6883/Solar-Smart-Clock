@@ -33,6 +33,9 @@ LOCATION = LocationInfo(
     latitude=34.6948,
     longitude=-84.4822
 )
+# OpenWeatherMap API (free tier) for Air Quality
+OPENWEATHER_API_KEY = "ac5189e6a0f50737d3145e449c96c5e6"
+
 
 # Display - LANDSCAPE
 WIDTH = 480
@@ -57,10 +60,18 @@ MOON_YELLOW = (255, 248, 220)
 NAV_BUTTON_COLOR = (60, 60, 60)
 NAV_BUTTON_ACTIVE = (80, 80, 80)
 
+# Air Quality Index colors
+AQI_GOOD = (0, 228, 0)
+AQI_MODERATE = (255, 255, 0)
+AQI_UNHEALTHY_SENSITIVE = (255, 126, 0)
+AQI_UNHEALTHY = (255, 0, 0)
+AQI_VERY_UNHEALTHY = (143, 63, 151)
+AQI_HAZARDOUS = (126, 0, 35)
+
 
 class ViewManager:
     """Manages navigation between views"""
-    VIEWS = ["clock", "sunpath", "weather", "moon", "solar"]
+    VIEWS = ["clock", "sunpath", "weather", "moon", "solar", "airquality", "daylength", "analemma"]
 
     def __init__(self):
         self.current_index = 0
@@ -233,10 +244,10 @@ class TouchHandler:
         # Check for horizontal swipe first (larger horizontal movement)
         if abs(delta_x) > self.swipe_threshold and abs(delta_x) > abs(delta_y):
             if delta_x > 0:
-                self.view_manager.next_view()  # Swipe right = next
+                self.view_manager.prev_view()  # Swipe right = prev
                 if self.debug: print(f"SWIPE RIGHT -> {self.view_manager.get_current()}", flush=True)
             else:
-                self.view_manager.prev_view()  # Swipe left = prev
+                self.view_manager.next_view()  # Swipe left = next
                 if self.debug: print(f"SWIPE LEFT -> {self.view_manager.get_current()}", flush=True)
             return
 
@@ -591,7 +602,7 @@ class SolarClock:
             event_names = [
                 ("dawn", "Dawn", LIGHT_BLUE),
                 ("sunrise", "Sunrise", YELLOW),
-                ("noon", "Solar Noon", WHITE),
+                ("noon", "Noon", WHITE),
                 ("sunset", "Sunset", ORANGE),
                 ("dusk", "Dusk", PURPLE),
             ]
@@ -754,9 +765,9 @@ class SolarClock:
         if sun_times:
             events_list = [
                 ("dawn", "Dawn", LIGHT_BLUE),
-                ("sunrise", "Rise", YELLOW),
+                ("sunrise", "Sunrise", YELLOW),
                 ("noon", "Noon", WHITE),
-                ("sunset", "Set", ORANGE),
+                ("sunset", "Sunset", ORANGE),
                 ("dusk", "Dusk", PURPLE),
             ]
 
@@ -917,7 +928,7 @@ class SolarClock:
             self.draw_moon(draw, 110, moon_cy, 55, moon['phase'])
 
             # Moon info on right side
-            draw.text((200, 60), moon['phase_name'], fill=MOON_YELLOW, font=self.fonts["large"])
+            draw.text((185, 60), moon['phase_name'], fill=MOON_YELLOW, font=self.fonts["med"])
             draw.text((200, 98), f"Illumination: {moon['illumination']:.1f}%",
                      fill=WHITE, font=self.fonts["med"])
 
@@ -1052,6 +1063,351 @@ class SolarClock:
 
         return img
 
+
+    def get_air_quality(self):
+        """Fetch air quality data from OpenWeatherMap"""
+        now = time.time()
+        if hasattr(self, 'aqi_data') and self.aqi_data and (now - self.aqi_last_update) < 1800:
+            return self.aqi_data
+        
+        try:
+            url = f"https://api.openweathermap.org/data/2.5/air_pollution?lat={LOCATION.latitude}&lon={LOCATION.longitude}&appid={OPENWEATHER_API_KEY}"
+            r = requests.get(url, timeout=10)
+            if r.status_code == 200:
+                data = r.json()
+                self.aqi_data = data
+                self.aqi_last_update = now
+                return data
+        except Exception as e:
+            print(f"AQI fetch error: {e}", flush=True)
+        
+        if not hasattr(self, 'aqi_data'):
+            self.aqi_data = None
+            self.aqi_last_update = 0
+        return self.aqi_data
+
+    def get_aqi_color(self, aqi):
+        """Get color for AQI level (1-5 scale from OpenWeatherMap)"""
+        colors = {
+            1: AQI_GOOD,
+            2: AQI_MODERATE,
+            3: AQI_UNHEALTHY_SENSITIVE,
+            4: AQI_UNHEALTHY,
+            5: AQI_VERY_UNHEALTHY
+        }
+        return colors.get(aqi, GRAY)
+
+    def get_aqi_label(self, aqi):
+        """Get label for AQI level"""
+        labels = {
+            1: "Good",
+            2: "Fair",
+            3: "Moderate",
+            4: "Poor",
+            5: "Very Poor"
+        }
+        return labels.get(aqi, "Unknown")
+
+    def create_airquality_frame(self):
+        """Air quality view with AQI and pollutants"""
+        img = Image.new("RGB", (WIDTH, HEIGHT), BLACK)
+        draw = ImageDraw.Draw(img)
+
+        aqi_data = self.get_air_quality()
+        
+        if aqi_data and 'list' in aqi_data and len(aqi_data['list']) > 0:
+            aqi_info = aqi_data['list'][0]
+            aqi = aqi_info['main']['aqi']
+            components = aqi_info['components']
+            aqi_color = self.get_aqi_color(aqi)
+            aqi_label = self.get_aqi_label(aqi)
+        else:
+            aqi = 0
+            components = {}
+            aqi_color = GRAY
+            aqi_label = "Waiting..."
+
+        # Header with AQI color
+        draw.rectangle([(0, 0), (WIDTH, 45)], fill=aqi_color if aqi > 0 else DARK_GRAY)
+        header_text = "Air Quality"
+        bbox = draw.textbbox((0, 0), header_text, font=self.fonts["large"])
+        tw = bbox[2] - bbox[0]
+        text_color = BLACK if aqi in [1, 2] else WHITE
+        draw.text((WIDTH//2 - tw//2, 8), header_text, fill=text_color, font=self.fonts["large"])
+
+        # Left side: Large AQI display
+        aqi_y = 55
+        draw.text((25, aqi_y), "AQI Level", fill=GRAY, font=self.fonts["small"])
+        aqi_str = str(aqi) if aqi > 0 else "--"
+        draw.text((25, aqi_y + 25), aqi_str, fill=aqi_color, font=self.fonts["huge"])
+        draw.text((25, aqi_y + 85), aqi_label, fill=aqi_color, font=self.fonts["large"])
+
+        # Right side: Pollutants - wider layout
+        poll_x = 160
+        poll_y = 55
+        bar_width = 155  # Wider bars
+        
+        draw.text((poll_x, poll_y), "Pollutants", fill=WHITE, font=self.fonts["med"])
+        
+        pollutants = [
+            ("PM2.5", components.get('pm2_5', 0), 75, "ug/m3"),
+            ("PM10", components.get('pm10', 0), 150, "ug/m3"),
+            ("O3", components.get('o3', 0), 180, "ug/m3"),
+            ("NO2", components.get('no2', 0), 200, "ug/m3"),
+            ("CO", components.get('co', 0) / 100, 100, "mg/m3"),
+        ]
+        
+        bar_y = poll_y + 28
+        bar_height = 20
+        
+        for name, value, max_val, unit in pollutants:
+            # Label
+            draw.text((poll_x, bar_y + 2), name, fill=WHITE, font=self.fonts["small"])
+            # Bar background
+            bar_x = poll_x + 75
+            draw.rectangle([(bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height)], fill=DARK_GRAY)
+            # Bar fill
+            if max_val > 0:
+                fill_width = min(int((value / max_val) * bar_width), bar_width)
+                if fill_width > 0:
+                    ratio = value / max_val
+                    bar_color = AQI_GOOD if ratio < 0.5 else (AQI_MODERATE if ratio < 0.75 else AQI_UNHEALTHY)
+                    draw.rectangle([(bar_x, bar_y), (bar_x + fill_width, bar_y + bar_height)], fill=bar_color)
+            # Value on bar
+            val_text = f"{value:.1f}"
+            draw.text((bar_x + 5, bar_y + 2), val_text, fill=WHITE, font=self.fonts["small"])
+            bar_y += 28
+
+        # Bottom info
+        info_y = HEIGHT - NAV_BAR_HEIGHT - 40
+        draw.text((25, info_y), f"{LOCATION.name}", fill=GRAY, font=self.fonts["small"])
+        if aqi == 0:
+            draw.text((200, info_y), "API key activating...", fill=ORANGE, font=self.fonts["small"])
+        elif hasattr(self, 'aqi_last_update') and self.aqi_last_update > 0:
+            update_time = datetime.datetime.fromtimestamp(self.aqi_last_update).strftime("%I:%M %p")
+            draw.text((200, info_y), f"Updated {update_time}", fill=GRAY, font=self.fonts["small"])
+
+        self.draw_nav_bar(draw)
+        return img
+
+    def calculate_day_length(self, date):
+        """Calculate day length for a specific date"""
+        try:
+            s = sun(LOCATION.observer, date=date, tzinfo=LOCATION.timezone)
+            sunrise = s['sunrise']
+            sunset = s['sunset']
+            day_length = (sunset - sunrise).total_seconds() / 3600
+            return day_length
+        except:
+            return 12.0  # Default to 12 hours if calculation fails
+
+    def create_daylength_frame(self):
+        """Day length chart for full year"""
+        img = Image.new("RGB", (WIDTH, HEIGHT), BLACK)
+        draw = ImageDraw.Draw(img)
+
+        # Header
+        draw.rectangle([(0, 0), (WIDTH, 42)], fill=YELLOW)
+        draw.text((WIDTH//2 - 60, 6), "Day Length", fill=BLACK, font=self.fonts["large"])
+
+        # Chart area
+        chart_left = 45
+        chart_right = WIDTH - 15
+        chart_top = 55
+        chart_bottom = HEIGHT - NAV_BAR_HEIGHT - 35
+        chart_width = chart_right - chart_left
+        chart_height = chart_bottom - chart_top
+
+        # Calculate day lengths for the year
+        today = datetime.date.today()
+        year = today.year
+        day_lengths = []
+        
+        for day_of_year in range(1, 366):
+            try:
+                date = datetime.date(year, 1, 1) + datetime.timedelta(days=day_of_year - 1)
+                dl = self.calculate_day_length(date)
+                day_lengths.append((day_of_year, dl, date))
+            except:
+                pass
+
+        if not day_lengths:
+            draw.text((100, 150), "No data available", fill=GRAY, font=self.fonts["med"])
+            self.draw_nav_bar(draw)
+            return img
+
+        # Find min/max for scaling
+        min_dl = min(dl for _, dl, _ in day_lengths)
+        max_dl = max(dl for _, dl, _ in day_lengths)
+        dl_range = max_dl - min_dl
+
+        # Draw Y axis labels (hours)
+        for hours in range(int(min_dl), int(max_dl) + 2, 2):
+            if min_dl <= hours <= max_dl:
+                y = chart_bottom - int((hours - min_dl) / dl_range * chart_height)
+                draw.text((5, y - 7), f"{hours}h", fill=GRAY, font=self.fonts["micro"])
+                draw.line([(chart_left, y), (chart_right, y)], fill=DARK_GRAY, width=1)
+
+        # Draw X axis labels (months)
+        months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
+        for i, m in enumerate(months):
+            x = chart_left + int((i + 0.5) * chart_width / 12)
+            draw.text((x - 4, chart_bottom + 5), m, fill=GRAY, font=self.fonts["micro"])
+
+        # Draw day length curve
+        points = []
+        for day_of_year, dl, date in day_lengths:
+            x = chart_left + int((day_of_year - 1) / 365 * chart_width)
+            y = chart_bottom - int((dl - min_dl) / dl_range * chart_height)
+            points.append((x, y))
+
+        # Draw curve
+        for i in range(len(points) - 1):
+            draw.line([points[i], points[i + 1]], fill=ORANGE, width=2)
+
+        # Mark solstices and equinoxes
+        special_days = [
+            (80, "Spring", LIGHT_BLUE),   # ~Mar 20
+            (172, "Summer", YELLOW),       # ~Jun 21
+            (266, "Fall", ORANGE),         # ~Sep 22
+            (355, "Winter", BLUE),         # ~Dec 21
+        ]
+        
+        for day_num, label, color in special_days:
+            if day_num <= len(day_lengths):
+                x = chart_left + int((day_num - 1) / 365 * chart_width)
+                draw.line([(x, chart_top), (x, chart_bottom)], fill=color, width=1)
+
+        # Mark today
+        today_day = today.timetuple().tm_yday
+        today_dl = self.calculate_day_length(today)
+        today_x = chart_left + int((today_day - 1) / 365 * chart_width)
+        today_y = chart_bottom - int((today_dl - min_dl) / dl_range * chart_height)
+        
+        draw.ellipse([(today_x - 5, today_y - 5), (today_x + 5, today_y + 5)], fill=WHITE, outline=YELLOW)
+
+        # Today's info
+        hours = int(today_dl)
+        mins = int((today_dl - hours) * 60)
+        draw.text((chart_left, chart_bottom + 18), f"Today: {hours}h {mins}m", fill=WHITE, font=self.fonts["small"])
+
+        self.draw_nav_bar(draw)
+        return img
+
+    def calculate_analemma_point(self, date):
+        """Calculate analemma point for a date (equation of time and declination)"""
+        if not EPHEM_AVAILABLE:
+            return None, None
+        
+        try:
+            obs = ephem.Observer()
+            obs.lat = str(LOCATION.latitude)
+            obs.lon = str(LOCATION.longitude)
+            obs.date = date.strftime('%Y/%m/%d 12:00:00')  # Solar noon
+            
+            s = ephem.Sun()
+            s.compute(obs)
+            
+            # Declination in degrees
+            decl = math.degrees(float(s.dec))
+            
+            # Equation of time (difference between solar and clock noon)
+            # Approximate using the sun's right ascension
+            ra = math.degrees(float(s.ra))
+            # Convert to hour angle offset (simplified equation of time)
+            day_of_year = date.timetuple().tm_yday
+            B = 2 * math.pi * (day_of_year - 81) / 365
+            eot = 9.87 * math.sin(2 * B) - 7.53 * math.cos(B) - 1.5 * math.sin(B)
+            
+            return eot, decl
+        except:
+            return None, None
+
+    def create_analemma_frame(self):
+        """Analemma chart showing sun position at noon throughout year"""
+        img = Image.new("RGB", (WIDTH, HEIGHT), BLACK)
+        draw = ImageDraw.Draw(img)
+
+        # Header
+        draw.rectangle([(0, 0), (WIDTH, 42)], fill=ORANGE)
+        draw.text((WIDTH//2 - 55, 6), "Analemma", fill=BLACK, font=self.fonts["large"])
+
+        if not EPHEM_AVAILABLE:
+            draw.text((100, 150), "ephem library required", fill=GRAY, font=self.fonts["med"])
+            self.draw_nav_bar(draw)
+            return img
+
+        # Chart area
+        chart_cx = WIDTH // 2
+        chart_cy = (HEIGHT - NAV_BAR_HEIGHT + 42) // 2
+        
+        # Scale: EoT is typically -15 to +15 minutes, declination -23.5 to +23.5 degrees
+        eot_scale = 8  # pixels per minute
+        decl_scale = 4  # pixels per degree
+
+        # Draw axes
+        # Vertical axis (declination)
+        draw.line([(chart_cx, 50), (chart_cx, HEIGHT - NAV_BAR_HEIGHT - 10)], fill=DARK_GRAY, width=1)
+        # Horizontal axis (equation of time)
+        draw.line([(50, chart_cy), (WIDTH - 50, chart_cy)], fill=DARK_GRAY, width=1)
+
+        # Axis labels
+        draw.text((chart_cx + 5, 48), "+23.5", fill=GRAY, font=self.fonts["micro"])
+        draw.text((chart_cx + 5, HEIGHT - NAV_BAR_HEIGHT - 20), "-23.5", fill=GRAY, font=self.fonts["micro"])
+        draw.text((55, chart_cy - 15), "-15m", fill=GRAY, font=self.fonts["micro"])
+        draw.text((WIDTH - 85, chart_cy - 15), "+15m", fill=GRAY, font=self.fonts["micro"])
+
+        # Calculate analemma points for the year
+        today = datetime.date.today()
+        year = today.year
+        points = []
+        month_points = {}
+        
+        for day_of_year in range(1, 366, 3):  # Every 3 days for smoother curve
+            try:
+                date = datetime.date(year, 1, 1) + datetime.timedelta(days=day_of_year - 1)
+                eot, decl = self.calculate_analemma_point(date)
+                if eot is not None:
+                    x = chart_cx + int(eot * eot_scale)
+                    y = chart_cy - int(decl * decl_scale)
+                    points.append((x, y, date))
+                    
+                    # Store first point of each month for labeling
+                    if date.day <= 3 and date.month not in month_points:
+                        month_points[date.month] = (x, y)
+            except:
+                pass
+
+        # Draw analemma curve
+        if len(points) > 1:
+            for i in range(len(points) - 1):
+                draw.line([(points[i][0], points[i][1]), (points[i + 1][0], points[i + 1][1])], fill=YELLOW, width=2)
+
+        # Draw month markers
+        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        for month, (x, y) in month_points.items():
+            draw.ellipse([(x - 4, y - 4), (x + 4, y + 4)], fill=WHITE)
+            # Position label to avoid overlap
+            label_x = x + 8 if x < chart_cx else x - 25
+            draw.text((label_x, y - 6), month_names[month - 1], fill=LIGHT_BLUE, font=self.fonts["micro"])
+
+        # Mark today's position
+        today_eot, today_decl = self.calculate_analemma_point(today)
+        if today_eot is not None:
+            today_x = chart_cx + int(today_eot * eot_scale)
+            today_y = chart_cy - int(today_decl * decl_scale)
+            draw.ellipse([(today_x - 6, today_y - 6), (today_x + 6, today_y + 6)], fill=ORANGE)
+            draw.ellipse([(today_x - 4, today_y - 4), (today_x + 4, today_y + 4)], fill=YELLOW)
+
+        # Info at bottom
+        if today_eot is not None:
+            info_y = HEIGHT - NAV_BAR_HEIGHT - 25
+            eot_str = f"+{today_eot:.1f}" if today_eot >= 0 else f"{today_eot:.1f}"
+            draw.text((20, info_y), f"Today: EoT {eot_str}min  Decl {today_decl:.1f}", fill=WHITE, font=self.fonts["tiny"])
+
+        self.draw_nav_bar(draw)
+        return img
+
     def create_frame(self):
         """Create current view frame"""
         view = self.view_manager.get_current()
@@ -1066,6 +1422,12 @@ class SolarClock:
             return self.create_moon_frame()
         elif view == "solar":
             return self.create_solar_frame()
+        elif view == "airquality":
+            return self.create_airquality_frame()
+        elif view == "daylength":
+            return self.create_daylength_frame()
+        elif view == "analemma":
+            return self.create_analemma_frame()
         else:
             return self.create_clock_frame()
 
