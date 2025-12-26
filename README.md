@@ -23,7 +23,7 @@ Navigate between five views using the **< >** buttons at the bottom of the scree
    - Day progress bar
    - Solar position (elevation/azimuth) with visual sun arc
 
-2. **Sun Path View** *(NEW)*
+2. **Sun Path View**
    - Visual sun trajectory chart showing path from East to West
    - Current sun position on the arc
    - **Countdown timer to next solar event** (dawn, sunrise, noon, sunset, dusk)
@@ -31,9 +31,12 @@ Navigate between five views using the **< >** buttons at the bottom of the scree
    - Passed events shown in gray, upcoming events in color
 
 3. **Weather Forecast View**
-   - Current conditions
-   - 4-day forecast with high/low temps
-   - Weather descriptions
+   - Large current temperature display
+   - Feels like temperature, humidity, wind speed/direction
+   - Current weather description
+   - 3-day forecast cards (Today, Tomorrow, Day 3)
+   - High/low temperatures per day
+   - Rain chance percentage
 
 4. **Moon Phase View**
    - Visual moon phase display
