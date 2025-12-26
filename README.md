@@ -13,7 +13,7 @@ This project was adapted from the original [Solar-Smart-Clock](https://github.co
 ## Features
 
 ### Multi-View Interface
-Swipe left/right on the touchscreen to navigate between four views:
+Navigate between five views using the **< >** buttons at the bottom of the screen, or swipe left/right on the touchscreen:
 
 1. **Clock View** (default)
    - Large, easy-to-read time with AM/PM indicator
@@ -23,19 +23,26 @@ Swipe left/right on the touchscreen to navigate between four views:
    - Day progress bar
    - Solar position (elevation/azimuth) with visual sun arc
 
-2. **Weather Forecast View**
+2. **Sun Path View** *(NEW)*
+   - Visual sun trajectory chart showing path from East to West
+   - Current sun position on the arc
+   - **Countdown timer to next solar event** (dawn, sunrise, noon, sunset, dusk)
+   - Event timeline with all daily solar events
+   - Passed events shown in gray, upcoming events in color
+
+3. **Weather Forecast View**
    - Current conditions
    - 4-day forecast with high/low temps
    - Weather descriptions
 
-3. **Moon Phase View**
+4. **Moon Phase View**
    - Visual moon phase display
    - Phase name (New, Waxing Crescent, Full, etc.)
    - Illumination percentage
    - Days until next new moon
    - Days until next full moon
 
-4. **Solar Details View**
+5. **Solar Details View**
    - Dawn and dusk times
    - Sunrise and sunset times
    - Solar noon
@@ -44,8 +51,9 @@ Swipe left/right on the touchscreen to navigate between four views:
    - Current solar elevation and azimuth
 
 ### Additional Features
+- **Navigation Buttons**: Tap < or > buttons at bottom to change views
 - **Touch Navigation**: Swipe left/right to change views
-- **Page Indicator**: Dots at bottom show current view position
+- **Page Indicator**: Dots at bottom show current view position (5 dots)
 - **Dynamic Themes**: Header colors change based on time of day
 - **Auto-start**: Runs automatically on boot via systemd service
 - **Landscape Display**: Optimized 480x320 landscape layout
@@ -157,16 +165,19 @@ sudo systemctl start solar-clock
 
 ## Usage
 
-### Touch Navigation
-- **Swipe Left**: Next view (Clock → Weather → Moon → Solar → Clock)
+### Navigation
+- **Tap < button**: Previous view
+- **Tap > button**: Next view
+- **Swipe Left**: Next view
 - **Swipe Right**: Previous view
 
 ### Views
 The page indicator dots at the bottom show which view is active:
 - Dot 1: Clock (main view)
-- Dot 2: Weather Forecast
-- Dot 3: Moon Phase
-- Dot 4: Solar Details
+- Dot 2: Sun Path (trajectory & countdown)
+- Dot 3: Weather Forecast
+- Dot 4: Moon Phase
+- Dot 5: Solar Details
 
 ## Service Management
 
@@ -195,8 +206,8 @@ journalctl -u solar-clock -f
 ## Technical Details
 
 ### Architecture
-- **ViewManager**: Handles navigation between the 4 views
-- **TouchHandler**: Threaded touch input processor using evdev
+- **ViewManager**: Handles navigation between the 5 views
+- **TouchHandler**: Threaded touch input processor using evdev (supports swipes and button taps)
 - **SolarClock**: Main class rendering frames to framebuffer
 
 ### Framebuffer Writing
