@@ -234,10 +234,10 @@ class TouchHandler:
         if abs(delta_x) > self.swipe_threshold and abs(delta_x) > abs(delta_y):
             if delta_x > 0:
                 self.view_manager.next_view()  # Swipe right = next
-                print(f"SWIPE RIGHT -> {self.view_manager.get_current()}", flush=True)
+                if self.debug: print(f"SWIPE RIGHT -> {self.view_manager.get_current()}", flush=True)
             else:
                 self.view_manager.prev_view()  # Swipe left = prev
-                print(f"SWIPE LEFT -> {self.view_manager.get_current()}", flush=True)
+                if self.debug: print(f"SWIPE LEFT -> {self.view_manager.get_current()}", flush=True)
             return
 
         # Check for tap (small movement, quick touch)
@@ -257,11 +257,11 @@ class TouchHandler:
         if screen_y >= HEIGHT - NAV_BAR_HEIGHT - 10:  # 10px tolerance for edge
             if screen_x < 80:  # Left button area (slightly larger hit area)
                 self.view_manager.prev_view()
-                print(f"TAP left button -> {self.view_manager.get_current()}", flush=True)
+                if self.debug: print(f"TAP left button -> {self.view_manager.get_current()}", flush=True)
                 return
             elif screen_x > WIDTH - 80:  # Right button area
                 self.view_manager.next_view()
-                print(f"TAP right button -> {self.view_manager.get_current()}", flush=True)
+                if self.debug: print(f"TAP right button -> {self.view_manager.get_current()}", flush=True)
                 return
             else:
                 if self.debug:
