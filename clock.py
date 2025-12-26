@@ -82,7 +82,7 @@ class ViewManager:
 
 
 class TouchHandler:
-    """Handles touch input for swipe and tap detection"""
+    """Handles touch input for swipe and tap detection with rotation support"""
 
     def __init__(self, view_manager, device_path="/dev/input/event0"):
         self.view_manager = view_manager
@@ -91,26 +91,66 @@ class TouchHandler:
         self.thread = None
         self.touch_start_x = None
         self.touch_start_y = None
-        self.swipe_threshold = 400  # Raw units for swipe
-        self.tap_threshold = 50     # Max movement for tap
-
-        # Button regions (in screen coordinates, will be mapped from raw)
-        # Raw touch is typically 0-4095, screen is 480x320
-        self.raw_to_screen_x = WIDTH / 4096
-        self.raw_to_screen_y = HEIGHT / 4096
+        self.touch_start_time = None
+        
+        # Touch calibration for 90-degree rotated display
+        # Raw touchscreen range
+        self.raw_min = 0
+        self.raw_max = 4095
+        
+        # For 90-degree rotation: swap X/Y and invert as needed
+        # These can be adjusted if touch is still misaligned
+        self.swap_xy = True          # Swap X and Y axes
+        self.invert_x = True        # Invert X after swap
+        self.invert_y = False         # Invert Y after swap
+        
+        # Gesture thresholds (in screen pixels, not raw units)
+        self.swipe_threshold = 60    # Minimum pixels for swipe
+        self.tap_threshold = 25      # Maximum movement for tap
+        self.tap_timeout = 0.5       # Maximum seconds for tap
+        
+        # Debug mode - set to True to see all touch coordinates
+        self.debug = False
+        
+    def _raw_to_screen(self, raw_x, raw_y):
+        """Convert raw touch coordinates to screen coordinates with rotation"""
+        # Normalize to 0-1 range
+        norm_x = (raw_x - self.raw_min) / (self.raw_max - self.raw_min)
+        norm_y = (raw_y - self.raw_min) / (self.raw_max - self.raw_min)
+        
+        # Apply axis swap for rotation
+        if self.swap_xy:
+            norm_x, norm_y = norm_y, norm_x
+        
+        # Apply inversions
+        if self.invert_x:
+            norm_x = 1.0 - norm_x
+        if self.invert_y:
+            norm_y = 1.0 - norm_y
+        
+        # Scale to screen dimensions
+        screen_x = int(norm_x * WIDTH)
+        screen_y = int(norm_y * HEIGHT)
+        
+        # Clamp to screen bounds
+        screen_x = max(0, min(WIDTH - 1, screen_x))
+        screen_y = max(0, min(HEIGHT - 1, screen_y))
+        
+        return screen_x, screen_y
 
     def start(self):
         if not TOUCH_AVAILABLE:
-            print("Touch not available (evdev not installed)")
+            print("Touch not available (evdev not installed)", flush=True)
             return
         try:
             self.device = InputDevice(self.device_path)
             self.running = True
             self.thread = threading.Thread(target=self._run, daemon=True)
             self.thread.start()
-            print(f"Touch handler started on {self.device_path}")
+            print(f"Touch handler started on {self.device_path}", flush=True)
+            print(f"  swap_xy={self.swap_xy}, invert_x={self.invert_x}, invert_y={self.invert_y}", flush=True)
         except Exception as e:
-            print(f"Could not start touch handler: {e}")
+            print(f"Could not start touch handler: {e}", flush=True)
 
     def stop(self):
         self.running = False
@@ -121,6 +161,7 @@ class TouchHandler:
         current_x = None
         current_y = None
         touching = False
+        need_start_coords = False  # Flag to capture first coords after touch down
 
         try:
             for event in self.device.read_loop():
@@ -132,52 +173,102 @@ class TouchHandler:
                         current_x = event.value
                     elif event.code == ecodes.ABS_Y:
                         current_y = event.value
+                    
+                    # Capture start coordinates from first ABS events after touch down
+                    if need_start_coords and current_x is not None and current_y is not None:
+                        self.touch_start_x = current_x
+                        self.touch_start_y = current_y
+                        self.touch_start_time = time.time()
+                        need_start_coords = False
+                        if self.debug:
+                            sx, sy = self._raw_to_screen(current_x, current_y)
+                            print(f"Touch START: raw=({current_x}, {current_y}) -> screen=({sx}, {sy})", flush=True)
 
                 elif event.type == ecodes.EV_KEY and event.code == ecodes.BTN_TOUCH:
                     if event.value == 1:  # Touch down
                         touching = True
-                        self.touch_start_x = current_x
-                        self.touch_start_y = current_y
+                        need_start_coords = True  # Wait for actual coordinates
+                        # Reset stale values
+                        current_x = None
+                        current_y = None
+                        if self.debug:
+                            print("Touch DOWN (waiting for coords...)", flush=True)
+                            
                     elif event.value == 0 and touching:  # Touch up
                         touching = False
+                        need_start_coords = False
                         if self.touch_start_x is not None and current_x is not None:
+                            if self.debug:
+                                sx, sy = self._raw_to_screen(current_x, current_y)
+                                print(f"Touch END: raw=({current_x}, {current_y}) -> screen=({sx}, {sy})", flush=True)
                             self._handle_touch(self.touch_start_x, self.touch_start_y,
                                              current_x, current_y)
+                        else:
+                            if self.debug:
+                                print("Touch UP ignored (missing coordinates)", flush=True)
                         self.touch_start_x = None
                         self.touch_start_y = None
+                        self.touch_start_time = None
+                        
         except Exception as e:
-            print(f"Touch handler error: {e}")
+            print(f"Touch handler error: {e}", flush=True)
 
-    def _handle_touch(self, start_x, start_y, end_x, end_y):
+
+    def _handle_touch(self, start_raw_x, start_raw_y, end_raw_x, end_raw_y):
+        """Handle a complete touch gesture (touch down to touch up)"""
+        # Convert to screen coordinates
+        start_x, start_y = self._raw_to_screen(start_raw_x, start_raw_y)
+        end_x, end_y = self._raw_to_screen(end_raw_x, end_raw_y)
+        
+        # Calculate deltas in screen space
         delta_x = end_x - start_x
         delta_y = end_y - start_y
+        
+        # Check touch duration
+        duration = time.time() - self.touch_start_time if self.touch_start_time else 0
+        
+        if self.debug:
+            print(f"Touch UP: screen=({end_x}, {end_y}) delta=({delta_x}, {delta_y}) dur={duration:.2f}s", flush=True)
 
-        # Check if it's a swipe (large horizontal movement)
-        if abs(delta_x) > self.swipe_threshold:
+        # Check for horizontal swipe first (larger horizontal movement)
+        if abs(delta_x) > self.swipe_threshold and abs(delta_x) > abs(delta_y):
             if delta_x > 0:
-                self.view_manager.prev_view()
-                print(f"Swipe right -> {self.view_manager.get_current()}")
+                self.view_manager.next_view()  # Swipe right = next
+                print(f"SWIPE RIGHT -> {self.view_manager.get_current()}", flush=True)
             else:
-                self.view_manager.next_view()
-                print(f"Swipe left -> {self.view_manager.get_current()}")
+                self.view_manager.prev_view()  # Swipe left = prev
+                print(f"SWIPE LEFT -> {self.view_manager.get_current()}", flush=True)
             return
 
-        # Check if it's a tap (small movement)
+        # Check for tap (small movement, quick touch)
         if abs(delta_x) < self.tap_threshold and abs(delta_y) < self.tap_threshold:
-            # Convert to screen coordinates
-            screen_x = int(end_x * self.raw_to_screen_x)
-            screen_y = int(end_y * self.raw_to_screen_y)
+            if duration < self.tap_timeout:
+                self._handle_tap(end_x, end_y)
+            else:
+                if self.debug:
+                    print(f"Tap too slow ({duration:.2f}s > {self.tap_timeout}s)", flush=True)
+        else:
+            if self.debug:
+                print(f"Movement too large for tap: ({abs(delta_x)}, {abs(delta_y)})", flush=True)
 
-            # Check if tap is in the nav bar area (bottom 40 pixels)
-            if screen_y >= HEIGHT - NAV_BAR_HEIGHT:
-                if screen_x < 70:  # Left button area
-                    self.view_manager.prev_view()
-                    print(f"Tap left button -> {self.view_manager.get_current()}")
-                elif screen_x > WIDTH - 70:  # Right button area
-                    self.view_manager.next_view()
-                    print(f"Tap right button -> {self.view_manager.get_current()}")
-
-
+    def _handle_tap(self, screen_x, screen_y):
+        """Handle a tap at the given screen coordinates"""
+        # Check if tap is in the nav bar area (bottom NAV_BAR_HEIGHT pixels)
+        if screen_y >= HEIGHT - NAV_BAR_HEIGHT - 10:  # 10px tolerance for edge
+            if screen_x < 80:  # Left button area (slightly larger hit area)
+                self.view_manager.prev_view()
+                print(f"TAP left button -> {self.view_manager.get_current()}", flush=True)
+                return
+            elif screen_x > WIDTH - 80:  # Right button area
+                self.view_manager.next_view()
+                print(f"TAP right button -> {self.view_manager.get_current()}", flush=True)
+                return
+            else:
+                if self.debug:
+                    print(f"Tap in nav bar but not on button: x={screen_x}", flush=True)
+        else:
+            if self.debug:
+                print(f"Tap outside nav bar: y={screen_y} (nav starts at {HEIGHT - NAV_BAR_HEIGHT})", flush=True)
 class SolarClock:
     def __init__(self):
         self.fb_device = "/dev/fb1"
