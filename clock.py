@@ -661,8 +661,8 @@ class SolarClock:
         # === LEFT SIDE: Sun times + Weather ===
         sun_times = self.get_sun_times()
         if sun_times:
-            sunrise = sun_times["sunrise"].strftime("%I:%M %p")
-            sunset = sun_times["sunset"].strftime("%I:%M %p")
+            sunrise = sun_times["sunrise"].strftime("%-I:%M %p")
+            sunset = sun_times["sunset"].strftime("%-I:%M %p")
             draw.text((15, 88), f"Rise: {sunrise}", fill=YELLOW, font=self.fonts["med"])
             draw.text((15, 114), f"Set:  {sunset}", fill=ORANGE, font=self.fonts["med"])
 
@@ -1176,9 +1176,9 @@ class SolarClock:
             dawn = sun_times.get("dawn")
             dusk = sun_times.get("dusk")
             if dawn and dusk:
-                draw.text((15, y), f"Dawn: {dawn.strftime('%I:%M %p')}",
+                draw.text((15, y), f"Dawn: {dawn.strftime('%-I:%M %p')}",
                          fill=LIGHT_BLUE, font=self.fonts["small"])
-                draw.text((250, y), f"Dusk: {dusk.strftime('%I:%M %p')}",
+                draw.text((250, y), f"Dusk: {dusk.strftime('%-I:%M %p')}",
                          fill=PURPLE, font=self.fonts["small"])
                 y += 22
 
@@ -1186,16 +1186,16 @@ class SolarClock:
             sunrise = sun_times.get("sunrise")
             sunset = sun_times.get("sunset")
             if sunrise and sunset:
-                draw.text((15, y), f"Sunrise: {sunrise.strftime('%I:%M %p')}",
+                draw.text((15, y), f"Sunrise: {sunrise.strftime('%-I:%M %p')}",
                          fill=YELLOW, font=self.fonts["small"])
-                draw.text((250, y), f"Sunset: {sunset.strftime('%I:%M %p')}",
+                draw.text((250, y), f"Sunset: {sunset.strftime('%-I:%M %p')}",
                          fill=ORANGE, font=self.fonts["small"])
                 y += 22
 
             # Solar noon and day length
             noon = sun_times.get("noon")
             if noon and sunrise and sunset:
-                draw.text((15, y), f"Solar Noon: {noon.strftime('%I:%M %p')}",
+                draw.text((15, y), f"Solar Noon: {noon.strftime('%-I:%M %p')}",
                          fill=WHITE, font=self.fonts["small"])
                 day_len = sunset - sunrise
                 hours = int(day_len.total_seconds() // 3600)
@@ -1391,7 +1391,7 @@ class SolarClock:
         if aqi == 0:
             draw.text((200, info_y), "API key activating...", fill=ORANGE, font=self.fonts["small"])
         elif hasattr(self, 'aqi_last_update') and self.aqi_last_update > 0:
-            update_time = datetime.datetime.fromtimestamp(self.aqi_last_update).strftime("%I:%M %p")
+            update_time = datetime.datetime.fromtimestamp(self.aqi_last_update).strftime("%-I:%M %p")
             draw.text((200, info_y), f"Updated {update_time}", fill=GRAY, font=self.fonts["small"])
 
         self.draw_nav_bar(draw)
