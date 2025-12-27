@@ -63,10 +63,12 @@ Navigate between eight views using the **< >** buttons at the bottom of the scre
    - Days until next full moon
 
 5. **Solar Details View**
-   - Left column: Dawn, sunrise, noon, sunset, dusk times, day length
-   - **Morning Golden Hour box** with start/end times and description
-   - **Evening Golden Hour box** with start/end times and description
-   - Current sun position (elevation and compass direction)
+   - Dawn/Dusk times with color coding (light blue/purple)
+   - Sunrise/Sunset times with color coding (yellow/orange)
+   - Solar noon time and total day length
+   - **Morning Golden Hour** box showing time range (±30 min around sunrise)
+   - **Evening Golden Hour** box showing time range (±30 min around sunset)
+   - Current sun position: elevation (with below horizon indicator) and azimuth
 
 6. **Air Quality View**
    - Current AQI level with color-coded header
