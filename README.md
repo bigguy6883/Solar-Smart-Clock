@@ -86,9 +86,10 @@ Navigate between eight views using the **< >** buttons at the bottom of the scre
 
 8. **Analemma View**
    - Figure-8 sun position chart showing noon sun position throughout year
-   - Seasonal color coding (Spring=green, Summer=yellow, Fall=orange, Winter=blue)
+   - Continuous closed curve with seasonal color transitions
+   - Asymmetric loops: larger bottom loop (winter) due to orbital eccentricity
    - Intuitive axis labels ("Sun early/late", "Summer/Winter")
-   - Today's position highlighted
+   - Today's position highlighted on curve
    - Info panel: Current sun timing (early/late) and path height
    - Season legend
 
