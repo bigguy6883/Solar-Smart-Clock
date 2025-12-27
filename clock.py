@@ -353,34 +353,99 @@ class SolarClock:
             return None, None
 
     def get_weather(self):
+        """Get current weather from OpenWeatherMap"""
         now = time.time()
         if self.weather_data and (now - self.weather_last_update) < 900:
             return self.weather_data
         try:
-            r = requests.get("https://wttr.in/Ellijay,GA?format=%c+%t+%h",
-                           timeout=10, headers={"User-Agent": "curl/7.0"})
+            url = f"https://api.openweathermap.org/data/2.5/weather?lat={LOCATION.latitude}&lon={LOCATION.longitude}&appid={OPENWEATHER_API_KEY}&units=imperial"
+            r = requests.get(url, timeout=10)
             if r.status_code == 200:
-                self.weather_data = r.text.strip()
+                data = r.json()
+                # Format similar to wttr.in output for compatibility
+                temp = data['main']['temp']
+                desc = data['weather'][0]['main']
+                humidity = data['main']['humidity']
+                self.weather_data = f"{desc} {temp:.0f}°F {humidity}%"
                 self.weather_last_update = now
-        except:
+        except Exception as e:
+            print(f"Weather fetch error: {e}", flush=True)
             if not self.weather_data:
                 self.weather_data = "--"
         return self.weather_data
 
     def get_weather_forecast(self):
-        """Get JSON weather data for forecast view"""
+        """Get weather forecast from OpenWeatherMap"""
         now = time.time()
         if self.weather_json and (now - self.weather_last_update) < 900:
             return self.weather_json
         try:
-            r = requests.get("https://wttr.in/Ellijay,GA?format=j1",
-                           timeout=10, headers={"User-Agent": "curl/7.0"})
-            if r.status_code == 200:
-                self.weather_json = r.json()
+            # Current weather
+            current_url = f"https://api.openweathermap.org/data/2.5/weather?lat={LOCATION.latitude}&lon={LOCATION.longitude}&appid={OPENWEATHER_API_KEY}&units=imperial"
+            current_r = requests.get(current_url, timeout=10)
+            
+            # 5-day forecast
+            forecast_url = f"https://api.openweathermap.org/data/2.5/forecast?lat={LOCATION.latitude}&lon={LOCATION.longitude}&appid={OPENWEATHER_API_KEY}&units=imperial"
+            forecast_r = requests.get(forecast_url, timeout=10)
+            
+            if current_r.status_code == 200 and forecast_r.status_code == 200:
+                current_data = current_r.json()
+                forecast_data = forecast_r.json()
+                
+                # Convert to wttr.in-like format for compatibility with existing view code
+                self.weather_json = self._convert_openweather_format(current_data, forecast_data)
                 self.weather_last_update = now
-        except:
-            pass
+        except Exception as e:
+            print(f"Forecast fetch error: {e}", flush=True)
         return self.weather_json
+
+    def _convert_openweather_format(self, current, forecast):
+        """Convert OpenWeatherMap response to wttr.in-like format"""
+        result = {
+            'current_condition': [{
+                'temp_F': str(int(current['main']['temp'])),
+                'FeelsLikeF': str(int(current['main']['feels_like'])),
+                'humidity': str(current['main']['humidity']),
+                'weatherDesc': [{'value': current['weather'][0]['description'].title()}],
+                'windspeedMiles': str(int(current['wind']['speed'])),
+                'winddir16Point': self._degrees_to_compass(current['wind'].get('deg', 0))
+            }],
+            'weather': []
+        }
+        
+        # Group forecast by day
+        daily = {}
+        for item in forecast['list']:
+            date = item['dt_txt'].split(' ')[0]
+            if date not in daily:
+                daily[date] = {'temps': [], 'rain': [], 'hourly': []}
+            daily[date]['temps'].append(item['main']['temp'])
+            # Check for rain probability
+            rain_chance = int(item.get('pop', 0) * 100)
+            daily[date]['rain'].append(rain_chance)
+            daily[date]['hourly'].append({
+                'chanceofrain': str(rain_chance),
+                'weatherDesc': [{'value': item['weather'][0]['description'].title()}]
+            })
+        
+        # Build daily forecast
+        for date, data in list(daily.items())[:4]:
+            day_data = {
+                'date': date,
+                'maxtempF': str(int(max(data['temps']))),
+                'mintempF': str(int(min(data['temps']))),
+                'hourly': data['hourly']
+            }
+            result['weather'].append(day_data)
+        
+        return result
+
+    def _degrees_to_compass(self, degrees):
+        """Convert wind degrees to 16-point compass direction"""
+        directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+                      'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+        idx = int((degrees + 11.25) / 22.5) % 16
+        return directions[idx]
 
 
     def get_solstice_equinox_dates(self, year):

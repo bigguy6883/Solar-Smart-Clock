@@ -10,10 +10,24 @@ A Raspberry Pi-powered smart clock displaying real-time solar data, weather, moo
 
 This project was adapted from the original [Solar-Smart-Clock](https://github.com/bigguy6883/Solar-Smart-Clock) Arduino/Pico W project to run on a Raspberry Pi Zero W with a Waveshare 3.5" SPI LCD display. The application renders directly to the Linux framebuffer, providing a lightweight solution without requiring a full desktop environment.
 
+## Screenshots
+
+| Clock | Sun Path | Weather |
+|:---:|:---:|:---:|
+| ![Clock](screenshots/1_clock.png) | ![Sun Path](screenshots/2_sunpath.png) | ![Weather](screenshots/3_weather.png) |
+
+| Moon Phase | Solar Details | Air Quality |
+|:---:|:---:|:---:|
+| ![Moon](screenshots/4_moon.png) | ![Solar](screenshots/5_solar.png) | ![Air Quality](screenshots/6_airquality.png) |
+
+| Day Length | Analemma |
+|:---:|:---:|
+| ![Day Length](screenshots/7_daylength.png) | ![Analemma](screenshots/8_analemma.png) |
+
 ## Features
 
 ### Multi-View Interface
-Navigate between five views using the **< >** buttons at the bottom of the screen, or swipe left/right on the touchscreen:
+Navigate between eight views using the **< >** buttons at the bottom of the screen, or swipe left/right on the touchscreen:
 
 1. **Clock View** (default)
    - Large, easy-to-read time with AM/PM indicator
@@ -32,11 +46,11 @@ Navigate between five views using the **< >** buttons at the bottom of the scree
 
 3. **Weather Forecast View**
    - Large current temperature display
-   - Feels like temperature, humidity, wind speed/direction
+   - Feels like temperature and humidity
    - Current weather description
-   - 3-day forecast cards (Today, Tomorrow, Day 3)
-   - High/low temperatures per day
-   - Rain chance percentage
+   - **Simplified wind display** with speed and direction
+   - 3-day forecast table (Today, Tomorrow, Day 3)
+   - High/low temperatures and rain chance per day
 
 4. **Moon Phase View**
    - Visual moon phase display
@@ -53,10 +67,32 @@ Navigate between five views using the **< >** buttons at the bottom of the scree
    - Golden hour times (morning and evening)
    - Current solar elevation and azimuth
 
+6. **Air Quality View**
+   - Current AQI level with color-coded status
+   - AQI label (Good, Fair, Moderate, Poor, Very Poor)
+   - Pollutant breakdown (PM2.5, PM10, O3, NO2, CO)
+   - Visual bar charts for each pollutant
+
+7. **Day Length View**
+   - Year-long day length chart
+   - **Solstice/equinox markers** with actual dates
+   - Today's position highlighted on curve
+   - **Daily trend indicator** (getting longer/shorter)
+   - **Min/max day lengths** with dates
+   - **Countdown to next solstice/equinox**
+
+8. **Analemma View**
+   - Figure-8 sun position chart for the year
+   - **Seasonal color coding** (Spring=green, Summer=yellow, Fall=orange, Winter=blue)
+   - **Intuitive labels** ("Sun early/late" instead of technical terms)
+   - Today's position highlighted
+   - Info panel showing sun timing and path height
+   - Season legend
+
 ### Additional Features
 - **Navigation Buttons**: Tap < or > buttons at bottom to change views
 - **Touch Navigation**: Swipe left/right to change views
-- **Page Indicator**: Dots at bottom show current view position (5 dots)
+- **Page Indicator**: Dots at bottom show current view position (8 dots)
 - **Dynamic Themes**: Header colors change based on time of day
 - **Auto-start**: Runs automatically on boot via systemd service
 - **Landscape Display**: Optimized 480x320 landscape layout
@@ -78,7 +114,7 @@ Navigate between five views using the **< >** buttons at the bottom of the scree
 - Python 3.x
 - Required packages:
   - python3-pil - Image processing
-  - python3-requests - Weather API calls
+  - python3-requests - API calls
   - astral - Sunrise/sunset calculations
   - ephem - Moon phase and astronomical calculations
   - evdev - Touch screen input handling
@@ -144,7 +180,7 @@ git clone https://github.com/bigguy6883/Solar-Smart-Clock.git solar-clock
 cd solar-clock
 ```
 
-### 5. Configure Location
+### 5. Configure Location and API Key
 
 Edit `clock.py` and update the LOCATION settings for your area:
 ```python
@@ -155,6 +191,11 @@ LOCATION = LocationInfo(
     latitude=34.6948,              # Your latitude
     longitude=-84.4822             # Your longitude
 )
+```
+
+Get a free API key from [OpenWeatherMap](https://openweathermap.org/api) (used for both weather and air quality data) and update:
+```python
+OPENWEATHER_API_KEY = "your_api_key_here"
 ```
 
 ### 6. Install Systemd Service
@@ -176,11 +217,14 @@ sudo systemctl start solar-clock
 
 ### Views
 The page indicator dots at the bottom show which view is active:
-- Dot 1: Clock (main view)
-- Dot 2: Sun Path (trajectory & countdown)
-- Dot 3: Weather Forecast
-- Dot 4: Moon Phase
-- Dot 5: Solar Details
+1. Clock (main view)
+2. Sun Path (trajectory & countdown)
+3. Weather Forecast
+4. Moon Phase
+5. Solar Details
+6. Air Quality
+7. Day Length
+8. Analemma
 
 ## Service Management
 
@@ -203,13 +247,14 @@ journalctl -u solar-clock -f
 ~/solar-clock/
 ├── clock.py              # Main application
 ├── solar-clock.service   # Systemd service file
+├── screenshots/          # View screenshots
 └── README.md             # This file
 ```
 
 ## Technical Details
 
 ### Architecture
-- **ViewManager**: Handles navigation between the 5 views
+- **ViewManager**: Handles navigation between the 8 views
 - **TouchHandler**: Threaded touch input processor using evdev (supports swipes and button taps)
 - **SolarClock**: Main class rendering frames to framebuffer
 
@@ -220,17 +265,9 @@ rgb565 = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
 ```
 
 ### External APIs
-- Weather: wttr.in (updates every 15 minutes)
-- Solar calculations: astral library (local computation)
-- Moon phase: ephem library (local computation)
-
-## Future Enhancements
-
-- [ ] Alarm functionality
-- [ ] Multiple location support
-- [ ] Custom color themes
-- [ ] Web configuration interface
-- [ ] Additional astronomical data (planets, ISS passes)
+- **Weather & Air Quality**: [OpenWeatherMap API](https://openweathermap.org/api) (free tier, updates every 15 minutes)
+- **Solar calculations**: astral library (local computation)
+- **Moon phase**: ephem library (local computation)
 
 ## License
 
@@ -241,5 +278,5 @@ MIT License - Feel free to modify and distribute.
 - Original concept: [Solar-Smart-Clock](https://github.com/bigguy6883/Solar-Smart-Clock)
 - Solar calculations: [Astral](https://github.com/sffjunkie/astral)
 - Moon calculations: [PyEphem](https://rhodesmill.org/pyephem/)
-- Weather data: [wttr.in](https://wttr.in)
+- Weather & Air Quality: [OpenWeatherMap](https://openweathermap.org/)
 - Display drivers: [Waveshare LCD-show](https://github.com/waveshare/LCD-show)
