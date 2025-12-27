@@ -38,11 +38,14 @@ Navigate between eight views using the **< >** buttons at the bottom of the scre
    - Solar position (elevation/azimuth) with visual sun arc
 
 2. **Sun Path View**
-   - Visual sun trajectory chart showing path from East to West
-   - Current sun position on the arc
-   - Countdown timer to next solar event (dawn, sunrise, noon, sunset, dusk)
-   - Event timeline with all daily solar events
-   - Passed events shown in gray, upcoming events in color
+   - Full 24-hour elevation chart from midnight to midnight
+   - Dynamic Y-axis range based on actual daily min/max elevation
+   - Color-coded sun path: yellow (day), orange (civil twilight), purple (nautical), gray (night)
+   - Twilight zone backgrounds showing civil, nautical, and astronomical regions
+   - Prominent sun icon with glow effect and rays at current position
+   - Event markers for dawn, sunrise, noon, sunset, and dusk
+   - Countdown to next solar event: "Dawn in Xh Ym" with event time
+   - Compact elevation/azimuth display
 
 3. **Weather Forecast View**
    - Large current temperature display
