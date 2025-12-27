@@ -382,6 +382,37 @@ class SolarClock:
             pass
         return self.weather_json
 
+
+    def get_solstice_equinox_dates(self, year):
+        """Get solstice and equinox dates for a year using ephem"""
+        if not EPHEM_AVAILABLE:
+            return {
+                'spring_equinox': datetime.date(year, 3, 20),
+                'summer_solstice': datetime.date(year, 6, 21),
+                'fall_equinox': datetime.date(year, 9, 22),
+                'winter_solstice': datetime.date(year, 12, 21),
+            }
+
+        try:
+            dates = {}
+            spring = ephem.next_vernal_equinox(f"{year}/1/1")
+            dates['spring_equinox'] = ephem.Date(spring).datetime().date()
+            summer = ephem.next_summer_solstice(f"{year}/1/1")
+            dates['summer_solstice'] = ephem.Date(summer).datetime().date()
+            fall = ephem.next_autumnal_equinox(f"{year}/1/1")
+            dates['fall_equinox'] = ephem.Date(fall).datetime().date()
+            winter = ephem.next_winter_solstice(f"{year}/1/1")
+            dates['winter_solstice'] = ephem.Date(winter).datetime().date()
+            return dates
+        except Exception as e:
+            print(f"Solstice/equinox calculation error: {e}", flush=True)
+            return {
+                'spring_equinox': datetime.date(year, 3, 20),
+                'summer_solstice': datetime.date(year, 6, 21),
+                'fall_equinox': datetime.date(year, 9, 22),
+                'winter_solstice': datetime.date(year, 12, 21),
+            }
+
     def get_moon_phase(self):
         """Calculate moon phase using ephem library"""
         if not EPHEM_AVAILABLE:
@@ -786,7 +817,7 @@ class SolarClock:
         return img
 
     def create_weather_frame(self):
-        """Weather forecast view"""
+        """Weather forecast view - simplified"""
         img = Image.new("RGB", (WIDTH, HEIGHT), BLACK)
         draw = ImageDraw.Draw(img)
 
@@ -808,67 +839,38 @@ class SolarClock:
             wind_speed = cc.get('windspeedMiles', '0')
             wind_dir = cc.get('winddir16Point', 'N')
 
-            # Current box
-            draw.rounded_rectangle([(8, 48), (190, 165)], radius=8, fill=(25, 25, 35), outline=(70, 70, 90), width=1)
-            
-            draw.text((18, 55), f"{temp}°F", fill=WHITE, font=self.fonts["huge"])
-            draw.text((18, 110), desc, fill=LIGHT_BLUE, font=self.fonts["small"])
-            draw.text((18, 132), f"Feels {feels}° | {humidity}%", fill=GRAY, font=self.fonts["tiny"])
-            draw.text((18, 148), f"Wind {wind_speed}mph {wind_dir}", fill=GRAY, font=self.fonts["tiny"])
+            # Current conditions box
+            draw.rounded_rectangle([(8, 48), (190, 145)], radius=8, fill=(25, 25, 35), outline=(70, 70, 90), width=1)
+            draw.text((18, 52), f"{temp}°F", fill=WHITE, font=self.fonts["huge"])
+            draw.text((18, 105), desc, fill=LIGHT_BLUE, font=self.fonts["small"])
+            draw.text((18, 125), f"Feels {feels}°", fill=GRAY, font=self.fonts["tiny"])
 
-            # Compass box
-            draw.rounded_rectangle([(8, 172), (190, 235)], radius=8, fill=(25, 25, 35), outline=(70, 70, 90), width=1)
-            
-            compass_cx = 50
-            compass_cy = 203
-            compass_r = 22
-            
-            draw.ellipse([(compass_cx - compass_r, compass_cy - compass_r),
-                         (compass_cx + compass_r, compass_cy + compass_r)], outline=WHITE, width=1)
-            
-            draw.text((compass_cx - 3, compass_cy - compass_r - 10), "N", fill=WHITE, font=self.fonts["micro"])
-            draw.text((compass_cx - 3, compass_cy + compass_r + 2), "S", fill=WHITE, font=self.fonts["micro"])
-            draw.text((compass_cx - compass_r - 8, compass_cy - 4), "W", fill=WHITE, font=self.fonts["micro"])
-            draw.text((compass_cx + compass_r + 3, compass_cy - 4), "E", fill=WHITE, font=self.fonts["micro"])
-            
-            dir_angles = {
-                'N': 270, 'NNE': 292, 'NE': 315, 'ENE': 337,
-                'E': 0, 'ESE': 22, 'SE': 45, 'SSE': 67,
-                'S': 90, 'SSW': 112, 'SW': 135, 'WSW': 157,
-                'W': 180, 'WNW': 202, 'NW': 225, 'NNW': 247
-            }
-            import math
-            angle_deg = dir_angles.get(wind_dir, 0)
-            angle_rad = math.radians(angle_deg)
-            ax = compass_cx + int(18 * math.cos(angle_rad))
-            ay = compass_cy + int(18 * math.sin(angle_rad))
-            draw.line([(compass_cx, compass_cy), (ax, ay)], fill=YELLOW, width=3)
-            draw.ellipse([(ax - 3, ay - 3), (ax + 3, ay + 3)], fill=YELLOW)
-            
-            draw.text((90, 188), "Wind", fill=GRAY, font=self.fonts["tiny"])
-            draw.text((90, 202), f"{wind_speed}", fill=WHITE, font=self.fonts["large"])
-            draw.text((140, 210), "mph", fill=GRAY, font=self.fonts["tiny"])
+            # Wind box - simplified
+            draw.rounded_rectangle([(8, 152), (190, 235)], radius=8, fill=(25, 25, 35), outline=(70, 70, 90), width=1)
+            draw.text((18, 158), "Wind", fill=GRAY, font=self.fonts["small"])
+            draw.text((18, 180), f"{wind_speed}", fill=WHITE, font=self.fonts["huge"])
+            draw.text((95, 195), "mph", fill=GRAY, font=self.fonts["small"])
+            draw.text((18, 215), f"From {wind_dir}", fill=YELLOW, font=self.fonts["small"])
+
+            # Humidity
+            draw.text((130, 125), f"{humidity}%", fill=LIGHT_BLUE, font=self.fonts["tiny"])
 
         draw.text((15, 245), f"{LOCATION.name}", fill=GRAY, font=self.fonts["tiny"])
 
-        # RIGHT SIDE - Forecast table (x: 200 to 470, width=270)
+        # RIGHT SIDE - Forecast table
         if forecast and 'weather' in forecast:
             x = 200
-            
-            # Column positions spread evenly across 270px
             col_day = x + 8
             col_high = x + 100
             col_low = x + 165
             col_rain = x + 230
-            
             y = 52
-            
-            # Headers
+
             draw.text((col_day, y), "Day", fill=GRAY, font=self.fonts["tiny"])
             draw.text((col_high, y), "High", fill=GRAY, font=self.fonts["tiny"])
             draw.text((col_low, y), "Low", fill=GRAY, font=self.fonts["tiny"])
             draw.text((col_rain, y), "Rain", fill=GRAY, font=self.fonts["tiny"])
-            
+
             y += 18
             draw.line([(x, y), (WIDTH - 10, y)], fill=GRAY, width=1)
             y += 8
@@ -894,21 +896,11 @@ class SolarClock:
                     day_name = "--"
 
                 row_y = y + i * 55
-                
-                # Row background
-                draw.rounded_rectangle([(x, row_y), (WIDTH - 10, row_y + 48)], 
-                                      radius=6, fill=(20, 20, 30))
-
-                # Day name
+                draw.rounded_rectangle([(x, row_y), (WIDTH - 10, row_y + 48)], radius=6, fill=(20, 20, 30))
                 draw.text((col_day, row_y + 14), day_name, fill=WHITE, font=self.fonts["med"])
-
-                # High temp
                 draw.text((col_high, row_y + 14), max_temp + "°", fill=(255, 180, 50), font=self.fonts["med"])
-
-                # Low temp
                 draw.text((col_low, row_y + 14), min_temp + "°", fill=(100, 180, 255), font=self.fonts["med"])
 
-                # Rain %
                 rain_val = int(rain_chance) if rain_chance.isdigit() else 0
                 if rain_val > 50:
                     rain_color = (100, 200, 255)
@@ -1217,7 +1209,7 @@ class SolarClock:
             return 12.0  # Default to 12 hours if calculation fails
 
     def create_daylength_frame(self):
-        """Day length chart for full year"""
+        """Day length chart for full year - with solstice/equinox info"""
         img = Image.new("RGB", (WIDTH, HEIGHT), BLACK)
         draw = ImageDraw.Draw(img)
 
@@ -1228,18 +1220,17 @@ class SolarClock:
         draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 6), title, fill=BLACK, font=self.fonts["large"])
 
         # Chart area
-        chart_left = 45
-        chart_right = WIDTH - 15
-        chart_top = 55
-        chart_bottom = HEIGHT - NAV_BAR_HEIGHT - 35
+        chart_left = 42
+        chart_right = WIDTH - 12
+        chart_top = 48
+        chart_bottom = 175
         chart_width = chart_right - chart_left
         chart_height = chart_bottom - chart_top
 
-        # Calculate day lengths for the year
         today = datetime.date.today()
         year = today.year
         day_lengths = []
-        
+
         for day_of_year in range(1, 366):
             try:
                 date = datetime.date(year, 1, 1) + datetime.timedelta(days=day_of_year - 1)
@@ -1249,27 +1240,50 @@ class SolarClock:
                 pass
 
         if not day_lengths:
-            draw.text((100, 150), "No data available", fill=GRAY, font=self.fonts["med"])
+            draw.text((100, 100), "No data available", fill=GRAY, font=self.fonts["med"])
             self.draw_nav_bar(draw)
             return img
 
-        # Find min/max for scaling
         min_dl = min(dl for _, dl, _ in day_lengths)
         max_dl = max(dl for _, dl, _ in day_lengths)
         dl_range = max_dl - min_dl
 
-        # Draw Y axis labels (hours)
+        min_entry = min(day_lengths, key=lambda x: x[1])
+        max_entry = max(day_lengths, key=lambda x: x[1])
+
+        # Chart background
+        draw.rounded_rectangle([(chart_left - 2, chart_top - 2),
+                                (chart_right + 2, chart_bottom + 2)],
+                               radius=4, fill=(15, 15, 25))
+
+        # Y axis labels
         for hours in range(int(min_dl), int(max_dl) + 2, 2):
             if min_dl <= hours <= max_dl:
                 y = chart_bottom - int((hours - min_dl) / dl_range * chart_height)
-                draw.text((5, y - 7), f"{hours}h", fill=GRAY, font=self.fonts["micro"])
-                draw.line([(chart_left, y), (chart_right, y)], fill=DARK_GRAY, width=1)
+                draw.text((5, y - 6), f"{hours}h", fill=GRAY, font=self.fonts["micro"])
+                draw.line([(chart_left, y), (chart_right, y)], fill=(40, 40, 50), width=1)
 
-        # Draw X axis labels (months)
+        # X axis months
         months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
         for i, m in enumerate(months):
             x = chart_left + int((i + 0.5) * chart_width / 12)
-            draw.text((x - 4, chart_bottom + 5), m, fill=GRAY, font=self.fonts["micro"])
+            draw.text((x - 3, chart_bottom + 3), m, fill=GRAY, font=self.fonts["micro"])
+
+        # Solstice/equinox dates
+        sol_eq = self.get_solstice_equinox_dates(year)
+        events = [
+            ('spring_equinox', 'Vernal', LIGHT_BLUE),
+            ('summer_solstice', 'Summer', YELLOW),
+            ('fall_equinox', 'Autumn', ORANGE),
+            ('winter_solstice', 'Winter', BLUE),
+        ]
+
+        # Draw vertical lines for solstice/equinox
+        for key, label, color in events:
+            evt_date = sol_eq[key]
+            day_num = evt_date.timetuple().tm_yday
+            x = chart_left + int((day_num - 1) / 365 * chart_width)
+            draw.line([(x, chart_top), (x, chart_bottom)], fill=color, width=2)
 
         # Draw day length curve
         points = []
@@ -1278,35 +1292,80 @@ class SolarClock:
             y = chart_bottom - int((dl - min_dl) / dl_range * chart_height)
             points.append((x, y))
 
-        # Draw curve
         for i in range(len(points) - 1):
             draw.line([points[i], points[i + 1]], fill=ORANGE, width=2)
-
-        # Mark solstices and equinoxes
-        special_days = [
-            (80, "Spring", LIGHT_BLUE),   # ~Mar 20
-            (172, "Summer", YELLOW),       # ~Jun 21
-            (266, "Fall", ORANGE),         # ~Sep 22
-            (355, "Winter", BLUE),         # ~Dec 21
-        ]
-        
-        for day_num, label, color in special_days:
-            if day_num <= len(day_lengths):
-                x = chart_left + int((day_num - 1) / 365 * chart_width)
-                draw.line([(x, chart_top), (x, chart_bottom)], fill=color, width=1)
 
         # Mark today
         today_day = today.timetuple().tm_yday
         today_dl = self.calculate_day_length(today)
         today_x = chart_left + int((today_day - 1) / 365 * chart_width)
         today_y = chart_bottom - int((today_dl - min_dl) / dl_range * chart_height)
-        
+        draw.ellipse([(today_x - 7, today_y - 7), (today_x + 7, today_y + 7)], fill=(80, 60, 0))
         draw.ellipse([(today_x - 5, today_y - 5), (today_x + 5, today_y + 5)], fill=WHITE, outline=YELLOW)
 
-        # Today's info
+        # === INFO PANEL ===
+        info_top = 185
+
+        # Today box
+        draw.rounded_rectangle([(8, info_top), (158, 235)], radius=6, fill=(25, 25, 35), outline=(60, 60, 80))
         hours = int(today_dl)
         mins = int((today_dl - hours) * 60)
-        draw.text((chart_left, chart_bottom + 18), f"Today: {hours}h {mins}m", fill=WHITE, font=self.fonts["small"])
+        draw.text((15, info_top + 5), "Today", fill=GRAY, font=self.fonts["small"])
+        draw.text((15, info_top + 23), f"{hours}h {mins}m", fill=WHITE, font=self.fonts["med"])
+
+        # Trend
+        yesterday = today - datetime.timedelta(days=1)
+        yesterday_dl = self.calculate_day_length(yesterday)
+        diff_mins = (today_dl - yesterday_dl) * 60
+        if diff_mins > 0.1:
+            trend_text = f"+{diff_mins:.1f}m/day"
+            trend_color = YELLOW
+        elif diff_mins < -0.1:
+            trend_text = f"{diff_mins:.1f}m/day"
+            trend_color = LIGHT_BLUE
+        else:
+            trend_text = "~0m/day"
+            trend_color = GRAY
+        draw.text((15, info_top + 48), trend_text, fill=trend_color, font=self.fonts["small"])
+
+        # Min/Max box
+        draw.rounded_rectangle([(165, info_top), (315, 235)], radius=6, fill=(25, 25, 35), outline=(60, 60, 80))
+        min_hours = int(min_dl)
+        min_mins = int((min_dl - min_hours) * 60)
+        draw.text((172, info_top + 5), "Shortest", fill=BLUE, font=self.fonts["tiny"])
+        draw.text((172, info_top + 18), f"{min_hours}h{min_mins}m", fill=WHITE, font=self.fonts["small"])
+        draw.text((172, info_top + 35), min_entry[2].strftime("%b %d"), fill=GRAY, font=self.fonts["tiny"])
+
+        max_hours = int(max_dl)
+        max_mins = int((max_dl - max_hours) * 60)
+        draw.text((245, info_top + 5), "Longest", fill=YELLOW, font=self.fonts["tiny"])
+        draw.text((245, info_top + 18), f"{max_hours}h{max_mins}m", fill=WHITE, font=self.fonts["small"])
+        draw.text((245, info_top + 35), max_entry[2].strftime("%b %d"), fill=GRAY, font=self.fonts["tiny"])
+
+        # Next event box
+        draw.rounded_rectangle([(322, info_top), (WIDTH - 8, 235)], radius=6, fill=(25, 25, 35), outline=(60, 60, 80))
+        next_event = None
+        next_event_name = None
+        next_event_color = None
+        for key, label, color in events:
+            evt_date = sol_eq[key]
+            if evt_date > today:
+                next_event = evt_date
+                next_event_name = label
+                next_event_color = color
+                break
+        if next_event is None:
+            next_year_events = self.get_solstice_equinox_dates(year + 1)
+            next_event = next_year_events['spring_equinox']
+            next_event_name = "Vernal"
+            next_event_color = LIGHT_BLUE
+
+        days_until = (next_event - today).days
+        draw.text((330, info_top + 5), "Next", fill=GRAY, font=self.fonts["tiny"])
+        draw.text((330, info_top + 18), next_event_name, fill=next_event_color, font=self.fonts["small"])
+        draw.text((330, info_top + 35), next_event.strftime("%b %d"), fill=WHITE, font=self.fonts["tiny"])
+        draw.text((410, info_top + 18), f"{days_until}", fill=next_event_color, font=self.fonts["med"])
+        draw.text((410, info_top + 42), "days", fill=GRAY, font=self.fonts["micro"])
 
         self.draw_nav_bar(draw)
         return img
@@ -1341,7 +1400,7 @@ class SolarClock:
             return None, None
 
     def create_analemma_frame(self):
-        """Analemma chart showing sun position at noon throughout year"""
+        """Analemma chart - improved with explanations and seasonal colors"""
         img = Image.new("RGB", (WIDTH, HEIGHT), BLACK)
         draw = ImageDraw.Draw(img)
 
@@ -1356,76 +1415,137 @@ class SolarClock:
             self.draw_nav_bar(draw)
             return img
 
-        # Chart area
-        chart_cx = WIDTH // 2
-        chart_cy = (HEIGHT - NAV_BAR_HEIGHT + 42) // 2
-        
-        # Scale: EoT is typically -15 to +15 minutes, declination -23.5 to +23.5 degrees
-        eot_scale = 8  # pixels per minute
-        decl_scale = 4  # pixels per degree
+        # Explanation subtitle
+        draw.text((WIDTH//2 - 115, 46), "Sun's noon position through the year", fill=GRAY, font=self.fonts["tiny"])
 
-        # Draw axes
-        # Vertical axis (declination)
-        draw.line([(chart_cx, 50), (chart_cx, HEIGHT - NAV_BAR_HEIGHT - 10)], fill=DARK_GRAY, width=1)
-        # Horizontal axis (equation of time)
-        draw.line([(50, chart_cy), (WIDTH - 50, chart_cy)], fill=DARK_GRAY, width=1)
+        # Chart area - shifted to allow info panel
+        chart_cx = 160
+        chart_cy = 155
 
-        # Axis labels
-        draw.text((chart_cx + 5, 48), "+23.5", fill=GRAY, font=self.fonts["micro"])
-        draw.text((chart_cx + 5, HEIGHT - NAV_BAR_HEIGHT - 20), "-23.5", fill=GRAY, font=self.fonts["micro"])
-        draw.text((55, chart_cy - 15), "-15m", fill=GRAY, font=self.fonts["micro"])
-        draw.text((WIDTH - 85, chart_cy - 15), "+15m", fill=GRAY, font=self.fonts["micro"])
+        eot_scale = 6
+        decl_scale = 3.5
 
-        # Calculate analemma points for the year
+        # Draw chart background
+        draw.rounded_rectangle([(20, 58), (300, 235)], radius=8, fill=(15, 15, 25))
+
+        # Draw axes with better labels
+        # Vertical axis (declination = sun height)
+        draw.line([(chart_cx, 65), (chart_cx, 230)], fill=(50, 50, 60), width=1)
+        # Horizontal axis (equation of time = sun fast/slow)
+        draw.line([(30, chart_cy), (290, chart_cy)], fill=(50, 50, 60), width=1)
+
+        # Simplified axis labels
+        draw.text((chart_cx + 5, 63), "Summer", fill=YELLOW, font=self.fonts["micro"])
+        draw.text((chart_cx + 5, 220), "Winter", fill=LIGHT_BLUE, font=self.fonts["micro"])
+        draw.text((25, chart_cy - 12), "Sun", fill=GRAY, font=self.fonts["micro"])
+        draw.text((25, chart_cy + 2), "early", fill=GRAY, font=self.fonts["micro"])
+        draw.text((260, chart_cy - 12), "Sun", fill=GRAY, font=self.fonts["micro"])
+        draw.text((260, chart_cy + 2), "late", fill=GRAY, font=self.fonts["micro"])
+
+        # Calculate analemma points with season info
         today = datetime.date.today()
         year = today.year
-        points = []
-        month_points = {}
-        
-        for day_of_year in range(1, 366, 3):  # Every 3 days for smoother curve
+        points_by_season = {'spring': [], 'summer': [], 'fall': [], 'winter': []}
+
+        # Season colors
+        season_colors = {
+            'spring': (100, 200, 100),  # Green
+            'summer': YELLOW,
+            'fall': ORANGE,
+            'winter': LIGHT_BLUE
+        }
+
+        sol_eq = self.get_solstice_equinox_dates(year)
+
+        for day_of_year in range(1, 366, 2):
             try:
                 date = datetime.date(year, 1, 1) + datetime.timedelta(days=day_of_year - 1)
                 eot, decl = self.calculate_analemma_point(date)
                 if eot is not None:
                     x = chart_cx + int(eot * eot_scale)
                     y = chart_cy - int(decl * decl_scale)
-                    points.append((x, y, date))
-                    
-                    # Store first point of each month for labeling
-                    if date.day <= 3 and date.month not in month_points:
-                        month_points[date.month] = (x, y)
+
+                    # Determine season
+                    if date < sol_eq['spring_equinox']:
+                        season = 'winter'
+                    elif date < sol_eq['summer_solstice']:
+                        season = 'spring'
+                    elif date < sol_eq['fall_equinox']:
+                        season = 'summer'
+                    elif date < sol_eq['winter_solstice']:
+                        season = 'fall'
+                    else:
+                        season = 'winter'
+
+                    points_by_season[season].append((x, y, date))
             except:
                 pass
 
-        # Draw analemma curve
-        if len(points) > 1:
-            for i in range(len(points) - 1):
-                draw.line([(points[i][0], points[i][1]), (points[i + 1][0], points[i + 1][1])], fill=YELLOW, width=2)
-
-        # Draw month markers
-        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-        for month, (x, y) in month_points.items():
-            draw.ellipse([(x - 4, y - 4), (x + 4, y + 4)], fill=WHITE)
-            # Position label to avoid overlap
-            label_x = x + 8 if x < chart_cx else x - 25
-            draw.text((label_x, y - 6), month_names[month - 1], fill=LIGHT_BLUE, font=self.fonts["micro"])
+        # Draw analemma curve by season
+        for season, points in points_by_season.items():
+            color = season_colors[season]
+            if len(points) > 1:
+                for i in range(len(points) - 1):
+                    draw.line([(points[i][0], points[i][1]),
+                              (points[i + 1][0], points[i + 1][1])],
+                             fill=color, width=3)
 
         # Mark today's position
         today_eot, today_decl = self.calculate_analemma_point(today)
         if today_eot is not None:
             today_x = chart_cx + int(today_eot * eot_scale)
             today_y = chart_cy - int(today_decl * decl_scale)
-            draw.ellipse([(today_x - 6, today_y - 6), (today_x + 6, today_y + 6)], fill=ORANGE)
-            draw.ellipse([(today_x - 4, today_y - 4), (today_x + 4, today_y + 4)], fill=YELLOW)
+            draw.ellipse([(today_x - 8, today_y - 8), (today_x + 8, today_y + 8)], fill=(80, 60, 0))
+            draw.ellipse([(today_x - 6, today_y - 6), (today_x + 6, today_y + 6)], fill=WHITE)
 
-        # Info at bottom
+        # Right panel - today's info
+        info_x = 310
+        draw.rounded_rectangle([(info_x, 58), (WIDTH - 8, 235)], radius=8, fill=(25, 25, 35), outline=(60, 60, 80))
+
+        draw.text((info_x + 10, 65), "Today", fill=WHITE, font=self.fonts["small"])
+
         if today_eot is not None:
-            info_y = HEIGHT - NAV_BAR_HEIGHT - 25
-            eot_str = f"+{today_eot:.1f}" if today_eot >= 0 else f"{today_eot:.1f}"
-            draw.text((20, info_y), f"Today: EoT {eot_str}min  Decl {today_decl:.1f}", fill=WHITE, font=self.fonts["tiny"])
+            # Sun early or late
+            if today_eot > 0.5:
+                timing = "late"
+                timing_color = ORANGE
+            elif today_eot < -0.5:
+                timing = "early"
+                timing_color = YELLOW
+            else:
+                timing = "on time"
+                timing_color = WHITE
+
+            draw.text((info_x + 10, 88), "Sun is", fill=GRAY, font=self.fonts["tiny"])
+            draw.text((info_x + 10, 103), f"{abs(today_eot):.1f} min", fill=timing_color, font=self.fonts["med"])
+            draw.text((info_x + 10, 128), timing, fill=timing_color, font=self.fonts["small"])
+
+            # Declination meaning
+            draw.line([(info_x + 10, 150), (WIDTH - 18, 150)], fill=DARK_GRAY, width=1)
+
+            if today_decl > 0:
+                height = "high"
+                height_color = YELLOW
+            else:
+                height = "low"
+                height_color = LIGHT_BLUE
+
+            draw.text((info_x + 10, 158), "Sun path", fill=GRAY, font=self.fonts["tiny"])
+            draw.text((info_x + 10, 173), height, fill=height_color, font=self.fonts["med"])
+            draw.text((info_x + 10, 198), f"{abs(today_decl):.1f}° {['S','N'][today_decl > 0]}", fill=GRAY, font=self.fonts["small"])
+
+        # Season legend at bottom
+        legend_y = 218
+        legend_items = [('Sp', (100, 200, 100)), ('Su', YELLOW), ('Fa', ORANGE), ('Wi', LIGHT_BLUE)]
+        lx = info_x + 10
+        for label, color in legend_items:
+            draw.ellipse([(lx, legend_y), (lx + 8, legend_y + 8)], fill=color)
+            draw.text((lx + 12, legend_y - 2), label, fill=GRAY, font=self.fonts["micro"])
+            lx += 35
 
         self.draw_nav_bar(draw)
         return img
+
 
     def create_frame(self):
         """Create current view frame"""
