@@ -337,17 +337,32 @@ class SolarClock:
             return None
 
     def get_golden_hour(self):
-        """Get golden hour times"""
+        """Get golden hour times - approximately 30 min before/after sunrise and sunset"""
         try:
-            today = datetime.date.today()
-            try:
-                morning = golden_hour(LOCATION.observer, today, direction=1, tzinfo=LOCATION.timezone)
-            except:
-                morning = None
-            try:
-                evening = golden_hour(LOCATION.observer, today, direction=-1, tzinfo=LOCATION.timezone)
-            except:
-                evening = None
+            sun_times = self.get_sun_times()
+            if not sun_times:
+                return None, None
+            
+            sunrise = sun_times.get("sunrise")
+            sunset = sun_times.get("sunset")
+            
+            morning = None
+            evening = None
+            
+            if sunrise:
+                # Morning golden hour: 30 min before to 30 min after sunrise
+                morning = (
+                    sunrise - datetime.timedelta(minutes=30),
+                    sunrise + datetime.timedelta(minutes=30)
+                )
+            
+            if sunset:
+                # Evening golden hour: 30 min before to 30 min after sunset
+                evening = (
+                    sunset - datetime.timedelta(minutes=30),
+                    sunset + datetime.timedelta(minutes=30)
+                )
+            
             return morning, evening
         except:
             return None, None
@@ -1194,23 +1209,33 @@ class SolarClock:
         draw.line([(15, y), (465, y)], fill=DARK_GRAY, width=1)
         y += 8
 
-        # Golden hour section
-        draw.text((15, y), "Golden Hour", fill=YELLOW, font=self.fonts["small"])
-        y += 20
-
+        # Golden hour section - two boxes
         morning_gh, evening_gh = self.get_golden_hour()
+        
+        box_w = 225
+        box_h = 50
+        
+        # Morning golden hour box
+        draw.rounded_rectangle([(10, y), (10 + box_w, y + box_h)], radius=6, fill=(40, 35, 20))
+        draw.text((18, y + 4), "Morning Golden", fill=YELLOW, font=self.fonts["small"])
         if morning_gh:
-            draw.text((15, y), f"AM: {morning_gh[0].strftime('%I:%M')}-{morning_gh[1].strftime('%I:%M')}",
-                     fill=ORANGE, font=self.fonts["tiny"])
+            start_t = morning_gh[0].strftime("%-I:%M %p").lower()
+            end_t = morning_gh[1].strftime("%-I:%M %p").lower()
+            draw.text((18, y + 26), f"{start_t} - {end_t}", fill=ORANGE, font=self.fonts["small"])
         else:
-            draw.text((15, y), "AM: --", fill=GRAY, font=self.fonts["tiny"])
-
+            draw.text((18, y + 26), "--", fill=GRAY, font=self.fonts["small"])
+        
+        # Evening golden hour box
+        draw.rounded_rectangle([(WIDTH - 10 - box_w, y), (WIDTH - 10, y + box_h)], radius=6, fill=(40, 30, 25))
+        draw.text((WIDTH - box_w, y + 4), "Evening Golden", fill=YELLOW, font=self.fonts["small"])
         if evening_gh:
-            draw.text((150, y), f"PM: {evening_gh[0].strftime('%I:%M')}-{evening_gh[1].strftime('%I:%M')}",
-                     fill=ORANGE, font=self.fonts["tiny"])
+            start_t = evening_gh[0].strftime("%-I:%M %p").lower()
+            end_t = evening_gh[1].strftime("%-I:%M %p").lower()
+            draw.text((WIDTH - box_w, y + 26), f"{start_t} - {end_t}", fill=ORANGE, font=self.fonts["small"])
         else:
-            draw.text((150, y), "PM: --", fill=GRAY, font=self.fonts["tiny"])
-        y += 20
+            draw.text((WIDTH - box_w, y + 26), "--", fill=GRAY, font=self.fonts["small"])
+        
+        y += box_h + 8
 
         # Separator
         y += 3
