@@ -40,7 +40,7 @@ Navigate between eight views using the **< >** buttons at the bottom of the scre
 2. **Sun Path View**
    - Visual sun trajectory chart showing path from East to West
    - Current sun position on the arc
-   - **Countdown timer to next solar event** (dawn, sunrise, noon, sunset, dusk)
+   - Countdown timer to next solar event (dawn, sunrise, noon, sunset, dusk)
    - Event timeline with all daily solar events
    - Passed events shown in gray, upcoming events in color
 
@@ -48,51 +48,49 @@ Navigate between eight views using the **< >** buttons at the bottom of the scre
    - Large current temperature display
    - Feels like temperature and humidity
    - Current weather description
-   - **Simplified wind display** with speed and direction
+   - Simplified wind display with speed and direction
    - 3-day forecast table (Today, Tomorrow, Day 3)
    - High/low temperatures and rain chance per day
 
 4. **Moon Phase View**
-   - Visual moon phase display
+   - Visual moon phase display with illumination
    - Phase name (New, Waxing Crescent, Full, etc.)
    - Illumination percentage
    - Days until next new moon
    - Days until next full moon
 
 5. **Solar Details View**
-   - Dawn and dusk times
-   - Sunrise and sunset times
-   - Solar noon
-   - Day length
-   - Golden hour times (morning and evening)
-   - Current solar elevation and azimuth
+   - Left column: Dawn, sunrise, noon, sunset, dusk times, day length
+   - **Morning Golden Hour box** with start/end times and description
+   - **Evening Golden Hour box** with start/end times and description
+   - Current sun position (elevation and compass direction)
 
 6. **Air Quality View**
-   - Current AQI level with color-coded status
+   - Current AQI level with color-coded header
    - AQI label (Good, Fair, Moderate, Poor, Very Poor)
    - Pollutant breakdown (PM2.5, PM10, O3, NO2, CO)
-   - Visual bar charts for each pollutant
+   - Visual bar charts for each pollutant level
 
 7. **Day Length View**
-   - Year-long day length chart
-   - **Solstice/equinox markers** with actual dates
+   - Year-long day length curve chart
+   - Solstice/equinox vertical markers with seasonal colors
    - Today's position highlighted on curve
-   - **Daily trend indicator** (getting longer/shorter)
-   - **Min/max day lengths** with dates
-   - **Countdown to next solstice/equinox**
+   - **Today box**: Current day length with daily trend (+/- minutes)
+   - **Min/Max box**: Shortest and longest days with dates
+   - **Next event box**: Countdown to next solstice/equinox
 
 8. **Analemma View**
-   - Figure-8 sun position chart for the year
-   - **Seasonal color coding** (Spring=green, Summer=yellow, Fall=orange, Winter=blue)
-   - **Intuitive labels** ("Sun early/late" instead of technical terms)
+   - Figure-8 sun position chart showing noon sun position throughout year
+   - Seasonal color coding (Spring=green, Summer=yellow, Fall=orange, Winter=blue)
+   - Intuitive axis labels ("Sun early/late", "Summer/Winter")
    - Today's position highlighted
-   - Info panel showing sun timing and path height
+   - Info panel: Current sun timing (early/late) and path height
    - Season legend
 
 ### Additional Features
 - **Navigation Buttons**: Tap < or > buttons at bottom to change views
 - **Touch Navigation**: Swipe left/right to change views
-- **Page Indicator**: Dots at bottom show current view position (8 dots)
+- **Page Indicator**: 8 dots at bottom show current view position
 - **Dynamic Themes**: Header colors change based on time of day
 - **Auto-start**: Runs automatically on boot via systemd service
 - **Landscape Display**: Optimized 480x320 landscape layout
@@ -106,7 +104,7 @@ Navigate between eight views using the **< >** buttons at the bottom of the scre
 | Display Controller | ILI9486 (SPI) |
 | Touch Controller | ADS7846 (SPI) |
 | Storage | MicroSD card (8GB+) |
-| Network | WiFi connection (for weather data) |
+| Network | WiFi connection (for weather/AQI data) |
 
 ## Software Requirements
 
@@ -116,7 +114,7 @@ Navigate between eight views using the **< >** buttons at the bottom of the scre
   - python3-pil - Image processing
   - python3-requests - API calls
   - astral - Sunrise/sunset calculations
-  - ephem - Moon phase and astronomical calculations
+  - ephem - Moon phase, solstice/equinox, and analemma calculations
   - evdev - Touch screen input handling
 
 ## Installation
@@ -193,10 +191,12 @@ LOCATION = LocationInfo(
 )
 ```
 
-Get a free API key from [OpenWeatherMap](https://openweathermap.org/api) (used for both weather and air quality data) and update:
+Get a free API key from [OpenWeatherMap](https://openweathermap.org/api) and update:
 ```python
 OPENWEATHER_API_KEY = "your_api_key_here"
 ```
+
+> **Note:** The free tier includes current weather, 5-day forecast, and air quality data.
 
 ### 6. Install Systemd Service
 
@@ -216,15 +216,16 @@ sudo systemctl start solar-clock
 - **Swipe Right**: Previous view
 
 ### Views
-The page indicator dots at the bottom show which view is active:
-1. Clock (main view)
-2. Sun Path (trajectory & countdown)
-3. Weather Forecast
-4. Moon Phase
-5. Solar Details
-6. Air Quality
-7. Day Length
-8. Analemma
+| # | View | Description |
+|---|------|-------------|
+| 1 | Clock | Main time display with weather and sun info |
+| 2 | Sun Path | Sun trajectory with next event countdown |
+| 3 | Weather | Current conditions and 3-day forecast |
+| 4 | Moon | Phase visualization and upcoming dates |
+| 5 | Solar | Detailed sun times and golden hours |
+| 6 | Air Quality | AQI and pollutant levels |
+| 7 | Day Length | Yearly chart with solstice/equinox info |
+| 8 | Analemma | Figure-8 sun position chart |
 
 ## Service Management
 
@@ -255,7 +256,7 @@ journalctl -u solar-clock -f
 
 ### Architecture
 - **ViewManager**: Handles navigation between the 8 views
-- **TouchHandler**: Threaded touch input processor using evdev (supports swipes and button taps)
+- **TouchHandler**: Threaded touch input processor using evdev
 - **SolarClock**: Main class rendering frames to framebuffer
 
 ### Framebuffer Writing
@@ -265,9 +266,17 @@ rgb565 = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
 ```
 
 ### External APIs
-- **Weather & Air Quality**: [OpenWeatherMap API](https://openweathermap.org/api) (free tier, updates every 15 minutes)
-- **Solar calculations**: astral library (local computation)
-- **Moon phase**: ephem library (local computation)
+| API | Used For | Update Interval |
+|-----|----------|-----------------|
+| OpenWeatherMap Current | Temperature, conditions, wind | 15 minutes |
+| OpenWeatherMap Forecast | 3-day forecast | 15 minutes |
+| OpenWeatherMap Air Pollution | AQI and pollutants | 30 minutes |
+
+### Local Calculations
+| Library | Used For |
+|---------|----------|
+| astral | Sunrise, sunset, dawn, dusk, golden hour, solar position |
+| ephem | Moon phase, solstice/equinox dates, analemma |
 
 ## License
 
@@ -275,8 +284,10 @@ MIT License - Feel free to modify and distribute.
 
 ## Credits
 
-- Original concept: [Solar-Smart-Clock](https://github.com/bigguy6883/Solar-Smart-Clock)
+- Code improvements: [Claude Code](https://claude.com/claude-code)
+- Original Arduino/Pico W version: [Solar-Smart-Clock](https://github.com/bigguy6883/Solar-Smart-Clock)
+
 - Solar calculations: [Astral](https://github.com/sffjunkie/astral)
-- Moon calculations: [PyEphem](https://rhodesmill.org/pyephem/)
-- Weather & Air Quality: [OpenWeatherMap](https://openweathermap.org/)
+- Moon & astronomical calculations: [PyEphem](https://rhodesmill.org/pyephem/)
+- Weather & Air Quality data: [OpenWeatherMap](https://openweathermap.org/)
 - Display drivers: [Waveshare LCD-show](https://github.com/waveshare/LCD-show)
