@@ -1040,7 +1040,7 @@ class SolarClock:
             draw.text((18, 158), "Wind", fill=GRAY, font=self.fonts["small"])
             draw.text((18, 180), f"{wind_speed}", fill=WHITE, font=self.fonts["huge"])
             draw.text((95, 195), "mph", fill=GRAY, font=self.fonts["small"])
-            draw.text((18, 215), f"From {wind_dir}", fill=YELLOW, font=self.fonts["small"])
+            draw.text((18, 215), f"{wind_dir}", fill=YELLOW, font=self.fonts["small"])
 
             # Humidity
             draw.text((130, 125), f"{humidity}%", fill=LIGHT_BLUE, font=self.fonts["tiny"])
@@ -1505,13 +1505,15 @@ class SolarClock:
 
         # === INFO PANEL ===
         info_top = 185
+        box_h = 68
 
-        # Today box
-        draw.rounded_rectangle([(8, info_top), (158, 235)], radius=6, fill=(25, 25, 35), outline=(60, 60, 80))
+        # Today box - compact
+        box1_w = 118
+        draw.rounded_rectangle([(8, info_top), (8 + box1_w, info_top + box_h)], radius=6, fill=(25, 25, 35), outline=(60, 60, 80))
         hours = int(today_dl)
         mins = int((today_dl - hours) * 60)
         draw.text((15, info_top + 5), "Today", fill=GRAY, font=self.fonts["small"])
-        draw.text((15, info_top + 23), f"{hours}h {mins}m", fill=WHITE, font=self.fonts["med"])
+        draw.text((15, info_top + 22), f"{hours}h {mins}m", fill=WHITE, font=self.fonts["med"])
 
         # Trend
         yesterday = today - datetime.timedelta(days=1)
@@ -1528,22 +1530,30 @@ class SolarClock:
             trend_color = GRAY
         draw.text((15, info_top + 48), trend_text, fill=trend_color, font=self.fonts["small"])
 
-        # Min/Max box
-        draw.rounded_rectangle([(165, info_top), (315, 235)], radius=6, fill=(25, 25, 35), outline=(60, 60, 80))
+        # Min/Max box - wider with side-by-side layout
+        box2_x = 8 + box1_w + 6
+        box2_w = 180
+        draw.rounded_rectangle([(box2_x, info_top), (box2_x + box2_w, info_top + box_h)], radius=6, fill=(25, 25, 35), outline=(60, 60, 80))
+        
+        # Shortest column
         min_hours = int(min_dl)
         min_mins = int((min_dl - min_hours) * 60)
-        draw.text((172, info_top + 5), "Shortest", fill=BLUE, font=self.fonts["tiny"])
-        draw.text((172, info_top + 18), f"{min_hours}h{min_mins}m", fill=WHITE, font=self.fonts["small"])
-        draw.text((172, info_top + 35), min_entry[2].strftime("%b %d"), fill=GRAY, font=self.fonts["tiny"])
-
+        col1_x = box2_x + 8
+        draw.text((col1_x, info_top + 5), "Shortest", fill=BLUE, font=self.fonts["tiny"])
+        draw.text((col1_x, info_top + 20), f"{min_hours}h {min_mins}m", fill=WHITE, font=self.fonts["small"])
+        draw.text((col1_x, info_top + 40), min_entry[2].strftime("%b %d"), fill=GRAY, font=self.fonts["tiny"])
+        
+        # Longest column
         max_hours = int(max_dl)
         max_mins = int((max_dl - max_hours) * 60)
-        draw.text((245, info_top + 5), "Longest", fill=YELLOW, font=self.fonts["tiny"])
-        draw.text((245, info_top + 18), f"{max_hours}h{max_mins}m", fill=WHITE, font=self.fonts["small"])
-        draw.text((245, info_top + 35), max_entry[2].strftime("%b %d"), fill=GRAY, font=self.fonts["tiny"])
+        col2_x = box2_x + 95
+        draw.text((col2_x, info_top + 5), "Longest", fill=YELLOW, font=self.fonts["tiny"])
+        draw.text((col2_x, info_top + 20), f"{max_hours}h {max_mins}m", fill=WHITE, font=self.fonts["small"])
+        draw.text((col2_x, info_top + 40), max_entry[2].strftime("%b %d"), fill=GRAY, font=self.fonts["tiny"])
 
         # Next event box
-        draw.rounded_rectangle([(322, info_top), (WIDTH - 8, 235)], radius=6, fill=(25, 25, 35), outline=(60, 60, 80))
+        box3_x = box2_x + box2_w + 6
+        draw.rounded_rectangle([(box3_x, info_top), (WIDTH - 8, info_top + box_h)], radius=6, fill=(25, 25, 35), outline=(60, 60, 80))
         next_event = None
         next_event_name = None
         next_event_color = None
@@ -1561,11 +1571,15 @@ class SolarClock:
             next_event_color = LIGHT_BLUE
 
         days_until = (next_event - today).days
-        draw.text((330, info_top + 5), "Next", fill=GRAY, font=self.fonts["tiny"])
-        draw.text((330, info_top + 18), next_event_name, fill=next_event_color, font=self.fonts["small"])
-        draw.text((330, info_top + 35), next_event.strftime("%b %d"), fill=WHITE, font=self.fonts["tiny"])
-        draw.text((410, info_top + 18), f"{days_until}", fill=next_event_color, font=self.fonts["med"])
-        draw.text((410, info_top + 42), "days", fill=GRAY, font=self.fonts["micro"])
+        draw.text((box3_x + 8, info_top + 5), "Next", fill=GRAY, font=self.fonts["tiny"])
+        draw.text((box3_x + 8, info_top + 20), next_event_name, fill=next_event_color, font=self.fonts["small"])
+        draw.text((box3_x + 8, info_top + 40), next_event.strftime("%b %d"), fill=WHITE, font=self.fonts["tiny"])
+        # Days count on right side
+        days_str = str(days_until)
+        bbox = draw.textbbox((0, 0), days_str, font=self.fonts["med"])
+        days_w = bbox[2] - bbox[0]
+        draw.text((WIDTH - 16 - days_w, info_top + 14), days_str, fill=next_event_color, font=self.fonts["med"])
+        draw.text((WIDTH - 16 - days_w, info_top + 42), "days", fill=GRAY, font=self.fonts["tiny"])
 
         self.draw_nav_bar(draw)
         return img
@@ -1642,11 +1656,11 @@ class SolarClock:
         draw.text((260, chart_cy - 12), "Sun", fill=GRAY, font=self.fonts["micro"])
         draw.text((260, chart_cy + 2), "late", fill=GRAY, font=self.fonts["micro"])
 
-        # Calculate analemma points with season info
+        # Calculate analemma points as continuous curve
         today = datetime.date.today()
         year = today.year
-        points_by_season = {'spring': [], 'summer': [], 'fall': [], 'winter': []}
-
+        sol_eq = self.get_solstice_equinox_dates(year)
+        
         # Season colors
         season_colors = {
             'spring': (100, 200, 100),  # Green
@@ -1654,9 +1668,21 @@ class SolarClock:
             'fall': ORANGE,
             'winter': LIGHT_BLUE
         }
-
-        sol_eq = self.get_solstice_equinox_dates(year)
-
+        
+        def get_season(date):
+            if date < sol_eq['spring_equinox']:
+                return 'winter'
+            elif date < sol_eq['summer_solstice']:
+                return 'spring'
+            elif date < sol_eq['fall_equinox']:
+                return 'summer'
+            elif date < sol_eq['winter_solstice']:
+                return 'fall'
+            else:
+                return 'winter'
+        
+        # Collect all points in order
+        all_points = []
         for day_of_year in range(1, 366, 2):
             try:
                 date = datetime.date(year, 1, 1) + datetime.timedelta(days=day_of_year - 1)
@@ -1664,31 +1690,22 @@ class SolarClock:
                 if eot is not None:
                     x = chart_cx + int(eot * eot_scale)
                     y = chart_cy - int(decl * decl_scale)
-
-                    # Determine season
-                    if date < sol_eq['spring_equinox']:
-                        season = 'winter'
-                    elif date < sol_eq['summer_solstice']:
-                        season = 'spring'
-                    elif date < sol_eq['fall_equinox']:
-                        season = 'summer'
-                    elif date < sol_eq['winter_solstice']:
-                        season = 'fall'
-                    else:
-                        season = 'winter'
-
-                    points_by_season[season].append((x, y, date))
+                    season = get_season(date)
+                    all_points.append((x, y, date, season))
             except:
                 pass
-
-        # Draw analemma curve by season
-        for season, points in points_by_season.items():
-            color = season_colors[season]
-            if len(points) > 1:
-                for i in range(len(points) - 1):
-                    draw.line([(points[i][0], points[i][1]),
-                              (points[i + 1][0], points[i + 1][1])],
-                             fill=color, width=3)
+        
+        # Draw as continuous curve with season colors
+        if len(all_points) > 1:
+            for i in range(len(all_points) - 1):
+                x1, y1, date1, season1 = all_points[i]
+                x2, y2, date2, season2 = all_points[i + 1]
+                color = season_colors[season1]
+                draw.line([(x1, y1), (x2, y2)], fill=color, width=3)
+            # Close the loop - connect last point to first
+            x1, y1, _, season1 = all_points[-1]
+            x2, y2, _, _ = all_points[0]
+            draw.line([(x1, y1), (x2, y2)], fill=season_colors[season1], width=3)
 
         # Mark today's position
         today_eot, today_decl = self.calculate_analemma_point(today)
