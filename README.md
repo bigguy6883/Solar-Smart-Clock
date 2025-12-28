@@ -12,76 +12,24 @@ This project was adapted from the original [Solar-Smart-Clock](https://github.co
 
 ## Screenshots
 
-| Clock | Sun Path | Weather |
+| Clock | Weather | Air Quality |
 |:---:|:---:|:---:|
-| ![Clock](screenshots/1_clock.png) | ![Sun Path](screenshots/2_sunpath.png) | ![Weather](screenshots/3_weather.png) |
+| ![Clock](screenshots/1_clock.png) | ![Weather](screenshots/2_weather.png) | ![Air Quality](screenshots/3_airquality.png) |
 
-| Moon Phase | Solar Details | Air Quality |
+| Sun Path | Day Length | Solar Details |
 |:---:|:---:|:---:|
-| ![Moon](screenshots/4_moon.png) | ![Solar](screenshots/5_solar.png) | ![Air Quality](screenshots/6_airquality.png) |
+| ![Sun Path](screenshots/4_sunpath.png) | ![Day Length](screenshots/5_daylength.png) | ![Solar](screenshots/6_solar.png) |
 
-| Day Length | Analemma |
+| Moon Phase | Analemma |
 |:---:|:---:|
-| ![Day Length](screenshots/7_daylength.png) | ![Analemma](screenshots/8_analemma.png) |
+| ![Moon](screenshots/7_moon.png) | ![Analemma](screenshots/8_analemma.png) |
 
 ## Features
 
 ### Multi-View Interface
-Navigate between eight views using the **< >** buttons at the bottom of the screen, or swipe left/right on the touchscreen:
+Navigate between eight views using the **< >** buttons at the bottom of the screen, or swipe left/right on the touchscreen. Views are grouped logically: time/weather, solar information, then celestial.
 
-1. **Clock View** (default)
-   - Large, easy-to-read time with AM/PM indicator
-   - Full date with day of week
-   - Styled info boxes with dark backgrounds
-   - Sunrise/sunset times with mini sun icons and day length
-   - Current weather with color-coded conditions (rain=blue, clear=yellow, clouds=gray)
-   - Day progress bar
-   - Enhanced sun arc with glow effect and rays (shows below-horizon position at night)
-   - Next solar event countdown (e.g., "Sunrise in 2h 15m")
-
-2. **Sun Path View**
-   - Full 24-hour elevation chart from midnight to midnight
-   - Dynamic Y-axis range based on actual daily min/max elevation
-   - Color-coded sun path: yellow (day), orange (civil twilight), purple (nautical), gray (night)
-   - Twilight zone backgrounds showing civil, nautical, and astronomical regions
-   - Prominent sun icon with glow effect and rays at current position
-   - Event markers for dawn, sunrise, noon, sunset, and dusk
-   - Countdown to next solar event: "Dawn in Xh Ym" with event time
-   - Compact elevation/azimuth display
-
-3. **Weather Forecast View**
-   - Large current temperature display
-   - Weather icon (sun, clouds, rain, snow, thunderstorm)
-   - Feels like temperature and humidity
-   - Color-coded weather description
-   - Simplified wind display with speed and direction
-   - 3-day forecast table (Today, Tomorrow, Day 3)
-   - High/low temperatures with rain drop icon for >50% chance
-
-4. **Moon Phase View**
-   - Visual moon phase display with illumination
-   - Phase name (New, Waxing Crescent, Full, etc.)
-   - Illumination percentage with progress bar
-   - Moonrise and moonset times
-   - Days until next new moon
-   - Days until next full moon
-   - Lunar cycle progress bar
-
-5. **Solar Details View**
-   - Dawn/Dusk times with color coding (light blue/purple)
-   - Sunrise/Sunset times with color coding (yellow/orange)
-   - Solar noon time and total day length
-   - **Morning Golden Hour** box showing time range (±30 min around sunrise)
-   - **Evening Golden Hour** box showing time range (±30 min around sunset)
-   - Current sun position: elevation (with below horizon indicator) and azimuth
-
-6. **Air Quality View**
-   - Current AQI level with color-coded header
-   - AQI label (Good, Fair, Moderate, Poor, Very Poor)
-   - Pollutant breakdown (PM2.5, PM10, O3, NO2, CO)
-   - Visual bar charts for each pollutant level
-
-7. **Day Length View**
+5. **Day Length View**
    - Year-long day length curve chart
    - Solstice/equinox vertical markers with seasonal colors
    - Today's position highlighted on curve
@@ -89,15 +37,14 @@ Navigate between eight views using the **< >** buttons at the bottom of the scre
    - **Min/Max box**: Shortest and longest days with dates
    - **Next event box**: Countdown to next solstice/equinox
 
-8. **Analemma View**
-   - Figure-8 sun position chart showing noon sun position throughout year
-   - Continuous closed curve with seasonal color transitions
-   - Asymmetric loops: larger bottom loop (winter) due to orbital eccentricity
-   - Intuitive axis labels ("Sun early/late", "Summer/Winter")
-   - Today's position highlighted on curve
-   - Info panel: Current sun timing (early/late) and path height
-   - Season legend
-
+7. **Moon Phase View**
+   - Visual moon phase display with illumination
+   - Phase name (New, Waxing Crescent, Full, etc.)
+   - Illumination percentage with progress bar
+   - Moonrise and moonset times
+   - Days until next new moon
+   - Days until next full moon
+   - Lunar cycle progress bar
 ### Additional Features
 - **Navigation Buttons**: Tap < or > buttons at bottom to change views
 - **Touch Navigation**: Swipe left/right to change views
@@ -230,12 +177,12 @@ sudo systemctl start solar-clock
 | # | View | Description |
 |---|------|-------------|
 | 1 | Clock | Main time display with weather and sun info |
-| 2 | Sun Path | Sun trajectory with next event countdown |
-| 3 | Weather | Current conditions and 3-day forecast |
-| 4 | Moon | Phase visualization and upcoming dates |
-| 5 | Solar | Detailed sun times and golden hours |
-| 6 | Air Quality | AQI and pollutant levels |
-| 7 | Day Length | Yearly chart with solstice/equinox info |
+| 2 | Weather | Current conditions and 3-day forecast |
+| 3 | Air Quality | AQI and pollutant levels |
+| 4 | Sun Path | Sun trajectory with next event countdown |
+| 5 | Day Length | Yearly chart with solstice/equinox info |
+| 6 | Solar | Detailed sun times and golden hours |
+| 7 | Moon | Phase visualization and upcoming dates |
 | 8 | Analemma | Figure-8 sun position chart |
 
 ## Service Management
