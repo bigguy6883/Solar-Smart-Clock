@@ -6,6 +6,7 @@ After=network.target
 Type=simple
 User=pi
 WorkingDirectory=/home/pi/solar-clock
+Environment=OPENWEATHER_API_KEY=ac5189e6a0f50737d3145e449c96c5e6
 ExecStart=/usr/bin/python3 /home/pi/solar-clock/clock.py
 Restart=always
 RestartSec=5

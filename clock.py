@@ -34,7 +34,7 @@ LOCATION = LocationInfo(
     longitude=-84.4822
 )
 # OpenWeatherMap API (free tier) for Air Quality
-OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY", "ac5189e6a0f50737d3145e449c96c5e6")
+OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY")
 
 
 # Display - LANDSCAPE
