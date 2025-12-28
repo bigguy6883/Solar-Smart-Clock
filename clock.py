@@ -895,11 +895,23 @@ class SolarClock:
         chart_box_top = header_h + 4  # 36
         chart_box_bottom = bottom_y - 4  # 214
 
-        # Header
+        # Header with time and date
         draw.rectangle([(0, 0), (WIDTH, header_h)], fill=ORANGE)
         title = "Sun Path"
         bbox = draw.textbbox((0, 0), title, font=self.fonts["med"])
-        draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 4), title, fill=WHITE, font=self.fonts["med"])
+        draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 2), title, fill=WHITE, font=self.fonts["med"])
+        
+        # Current time and date
+        time_str = now.strftime("%-I:%M %p")
+        date_str = now.strftime("%a %b %-d")
+        draw.text((10, 6), time_str, fill=WHITE, font=self.fonts["small"])
+        draw.text((10, 24), date_str, fill=WHITE, font=self.fonts["tiny"])
+        
+        # Position info on right side of header
+        if elev is not None and azim is not None:
+            pos_str = f"El {elev:.0f}° Az {azim:.0f}°"
+            bbox2 = draw.textbbox((0, 0), pos_str, font=self.fonts["tiny"])
+            draw.text((WIDTH - 10 - (bbox2[2] - bbox2[0]), 26), pos_str, fill=WHITE, font=self.fonts["tiny"])
 
         # Chart area with margins for labels
         margin_left = 32
@@ -1332,8 +1344,8 @@ class SolarClock:
                     draw.text((20, 234), rise_str, fill=LIGHT_GRAY, font=self.fonts["small"])
                 if moon_set:
                     set_str = moon_set.strftime("%-I:%M %p")
-                    draw.text((95, 218), "Set", fill=GRAY, font=self.fonts["tiny"])
-                    draw.text((95, 234), set_str, fill=LIGHT_GRAY, font=self.fonts["small"])
+                    draw.text((110, 218), "Set", fill=GRAY, font=self.fonts["tiny"])
+                    draw.text((110, 234), set_str, fill=LIGHT_GRAY, font=self.fonts["small"])
 
             # RIGHT SIDE - Moon info box
             draw.rounded_rectangle([(185, 50), (WIDTH - 10, 270)], radius=8, fill=(25, 25, 35), outline=(60, 60, 80))
@@ -1868,16 +1880,16 @@ class SolarClock:
         decl_scale = 3.5
 
         # Draw chart background
-        draw.rounded_rectangle([(20, 56), (298, 235)], radius=8, fill=(15, 15, 25))
+        draw.rounded_rectangle([(20, 60), (298, 235)], radius=8, fill=(15, 15, 25))
 
         # Draw axes with better labels
         # Vertical axis (declination = sun height)
-        draw.line([(chart_cx, 65), (chart_cx, 230)], fill=(50, 50, 60), width=1)
+        draw.line([(chart_cx, 68), (chart_cx, 230)], fill=(50, 50, 60), width=1)
         # Horizontal axis (equation of time = sun fast/slow)
         draw.line([(30, chart_cy), (290, chart_cy)], fill=(50, 50, 60), width=1)
 
         # Simplified axis labels
-        draw.text((chart_cx + 5, 63), "Summer", fill=YELLOW, font=self.fonts["micro"])
+        draw.text((chart_cx + 5, 66), "Summer", fill=YELLOW, font=self.fonts["micro"])
         draw.text((chart_cx + 5, 220), "Winter", fill=LIGHT_BLUE, font=self.fonts["micro"])
         draw.text((25, chart_cy - 12), "Sun", fill=GRAY, font=self.fonts["micro"])
         draw.text((25, chart_cy + 2), "early", fill=GRAY, font=self.fonts["micro"])
@@ -1979,14 +1991,25 @@ class SolarClock:
             draw.text((info_x + 10, 173), height, fill=height_color, font=self.fonts["med"])
             draw.text((info_x + 10, 198), f"{abs(today_decl):.1f}° {['S','N'][today_decl > 0]}", fill=GRAY, font=self.fonts["small"])
 
-        # Season legend at bottom - dots only with tooltip-style label
-        legend_y = 216
-        draw.text((info_x + 8, legend_y - 2), "Season:", fill=GRAY, font=self.fonts["micro"])
-        legend_colors = [(100, 200, 100), YELLOW, ORANGE, LIGHT_BLUE]
-        lx = info_x + 60
-        for color in legend_colors:
-            draw.ellipse([(lx, legend_y), (lx + 10, legend_y + 10)], fill=color)
-            lx += 16
+        # Season legend - 2x2 grid with single letter labels
+        legend_items = [
+            ((100, 200, 100), "Sp"),  # Spring
+            (YELLOW, "Su"),            # Summer
+            (ORANGE, "Fa"),            # Fall
+            (LIGHT_BLUE, "Wi")         # Winter
+        ]
+        # Row 1: Spring, Summer
+        lx, ly = info_x + 10, 210
+        for i, (color, label) in enumerate(legend_items[:2]):
+            draw.ellipse([(lx, ly), (lx + 8, ly + 8)], fill=color)
+            draw.text((lx + 11, ly - 1), label, fill=GRAY, font=self.fonts["micro"])
+            lx += 40
+        # Row 2: Fall, Winter
+        lx, ly = info_x + 10, 222
+        for color, label in legend_items[2:]:
+            draw.ellipse([(lx, ly), (lx + 8, ly + 8)], fill=color)
+            draw.text((lx + 11, ly - 1), label, fill=GRAY, font=self.fonts["micro"])
+            lx += 40
 
         self.draw_nav_bar(draw)
         return img
