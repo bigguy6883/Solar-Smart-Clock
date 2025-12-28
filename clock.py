@@ -549,7 +549,7 @@ class SolarClock:
             obs = ephem.Observer()
             obs.lat = str(LOCATION.latitude)
             obs.lon = str(LOCATION.longitude)
-            obs.date = datetime.datetime.utcnow()
+            obs.date = datetime.datetime.now(datetime.timezone.utc)
 
             moon = ephem.Moon()
 
