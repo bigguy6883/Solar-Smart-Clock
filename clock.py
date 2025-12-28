@@ -1732,7 +1732,7 @@ class SolarClock:
         draw.ellipse([(today_x - 5, today_y - 5), (today_x + 5, today_y + 5)], fill=WHITE, outline=YELLOW)
 
         # === INFO PANEL ===
-        info_top = 185
+        info_top = 196
         box_h = 68
 
         # Today box - compact
