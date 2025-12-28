@@ -293,6 +293,7 @@ class SolarClock:
         self.fonts = self._load_fonts()
         self.view_manager = ViewManager()
         self.touch_handler = TouchHandler(self.view_manager)
+        self.fb_handle = open(self.fb_device, "wb")
 
     def _load_fonts(self):
         fonts = {}
@@ -2021,8 +2022,8 @@ class SolarClock:
             c = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
             fb[i*2] = c & 0xFF
             fb[i*2+1] = (c >> 8) & 0xFF
-        with open(self.fb_device, "wb") as f:
-            f.write(fb)
+        self.fb_handle.seek(0)
+        self.fb_handle.write(fb)
 
     def run(self):
         print(f"Solar Clock running ({WIDTH}x{HEIGHT})")
