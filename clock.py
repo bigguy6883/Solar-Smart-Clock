@@ -1200,7 +1200,7 @@ class SolarClock:
             wind_dir = cc.get('winddir16Point', 'N')
 
             # Main conditions box
-            draw.rounded_rectangle([(8, 48), (190, 235)], radius=8, fill=(25, 25, 35), outline=(70, 70, 90), width=1)
+            draw.rounded_rectangle([(8, 48), (175, 235)], radius=8, fill=(25, 25, 35), outline=(70, 70, 90), width=1)
 
             # Weather icon in top right of box
             self.draw_weather_icon(draw, 160, 75, 12, desc)
@@ -1227,7 +1227,7 @@ class SolarClock:
             draw.text((18, 135), desc, fill=desc_color, font=self.fonts["small"])
 
             # Separator line
-            draw.line([(18, 162), (180, 162)], fill=DARK_GRAY, width=1)
+            draw.line([(18, 162), (167, 162)], fill=DARK_GRAY, width=1)
 
             # Wind with visual direction indicator
             draw.text((18, 172), "Wind", fill=LIGHT_GRAY, font=self.fonts["small"])
@@ -1237,11 +1237,11 @@ class SolarClock:
 
         # RIGHT SIDE - Forecast table
         if forecast and 'weather' in forecast:
-            x = 200
-            col_day = x + 8
-            col_high = x + 80
+            x = 185
+            col_day = x + 5
+            col_high = x + 85
             col_low = x + 140
-            col_rain = x + 200
+            col_rain = x + 195
             y = 52
 
             draw.text((col_day, y), "Day", fill=LIGHT_GRAY, font=self.fonts["small"])
