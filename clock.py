@@ -53,6 +53,7 @@ BLUE = (100, 149, 237)
 DARK_BLUE = (25, 25, 112)
 LIGHT_BLUE = (135, 206, 235)
 GRAY = (128, 128, 128)
+LIGHT_GRAY = (180, 180, 180)
 DARK_GRAY = (50, 50, 50)
 RED = (255, 80, 80)
 PURPLE = (147, 112, 219)
@@ -304,8 +305,8 @@ class SolarClock:
             fonts["large"] = ImageFont.truetype(font_path, 32)
             fonts["med"] = ImageFont.truetype(font_path, 24)
             fonts["small"] = ImageFont.truetype(font_path, 18)
-            fonts["tiny"] = ImageFont.truetype(font_path, 14)
-            fonts["micro"] = ImageFont.truetype(font_path, 11)
+            fonts["tiny"] = ImageFont.truetype(font_path, 16)
+            fonts["micro"] = ImageFont.truetype(font_path, 14)
             fonts["nav"] = ImageFont.truetype(font_path, 28)
         else:
             d = ImageFont.load_default()
@@ -539,6 +540,44 @@ class SolarClock:
             print(f"Moon phase error: {e}")
             return None
 
+    def get_moon_rise_set(self):
+        """Get moonrise and moonset times for today using ephem"""
+        if not EPHEM_AVAILABLE:
+            return None, None
+
+        try:
+            obs = ephem.Observer()
+            obs.lat = str(LOCATION.latitude)
+            obs.lon = str(LOCATION.longitude)
+            obs.date = datetime.datetime.utcnow()
+
+            moon = ephem.Moon()
+
+            # Get next moonrise and moonset
+            try:
+                next_rise = obs.next_rising(moon)
+                rise_time = ephem.Date(next_rise).datetime()
+                # Convert to local timezone
+                from zoneinfo import ZoneInfo
+                tz = ZoneInfo(LOCATION.timezone)
+                rise_time = rise_time.replace(tzinfo=datetime.timezone.utc).astimezone(tz)
+            except:
+                rise_time = None
+
+            try:
+                next_set = obs.next_setting(moon)
+                set_time = ephem.Date(next_set).datetime()
+                from zoneinfo import ZoneInfo
+                tz = ZoneInfo(LOCATION.timezone)
+                set_time = set_time.replace(tzinfo=datetime.timezone.utc).astimezone(tz)
+            except:
+                set_time = None
+
+            return rise_time, set_time
+        except Exception as e:
+            print(f"Moon rise/set error: {e}")
+            return None, None
+
     def draw_nav_bar(self, draw):
         """Draw navigation bar with buttons and page indicators at bottom"""
         nav_y = HEIGHT - NAV_BAR_HEIGHT
@@ -581,24 +620,48 @@ class SolarClock:
                              (x + dot_radius, dot_y + dot_radius)], fill=GRAY, outline=GRAY)
 
     def draw_sun_arc(self, draw, elev, cx, cy, radius):
-        # Horizon
-        draw.line([(cx - radius, cy), (cx + radius, cy)], fill=GRAY, width=2)
+        """Enhanced sun arc with better visuals"""
+        # Horizon line
+        draw.line([(cx - radius - 5, cy), (cx + radius + 5, cy)], fill=GRAY, width=2)
 
-        # Arc
-        for i in range(0, 180, 15):
-            a1, a2 = math.radians(i), math.radians(i + 15)
+        # Draw arc path with subtle shading
+        for i in range(0, 180, 5):
+            a1, a2 = math.radians(i), math.radians(i + 5)
             x1 = cx - int(radius * math.cos(a1))
             y1 = cy - int(radius * math.sin(a1))
             x2 = cx - int(radius * math.cos(a2))
             y2 = cy - int(radius * math.sin(a2))
-            draw.line([(x1, y1), (x2, y2)], fill=DARK_GRAY, width=2)
+            arc_color = (60, 60, 80) if i < 90 else (40, 40, 60)
+            draw.line([(x1, y1), (x2, y2)], fill=arc_color, width=2)
 
-        # Sun
-        if elev is not None and elev >= 0:
-            angle = math.radians(180 - elev * 2)
-            sx = cx - int(radius * 0.8 * math.cos(angle))
-            sy = cy - int(radius * 0.8 * math.sin(angle))
-            draw.ellipse([(sx-10, sy-10), (sx+10, sy+10)], fill=YELLOW, outline=WHITE)
+        # Sun position marker
+        if elev is not None:
+            if elev >= 0:
+                # Sun is up - position on arc
+                angle = math.radians(180 - elev * 2)
+                sx = cx - int(radius * 0.85 * math.cos(angle))
+                sy = cy - int(radius * 0.85 * math.sin(angle))
+
+                # Glow effect
+                draw.ellipse([(sx-12, sy-12), (sx+12, sy+12)], fill=(80, 60, 0))
+                draw.ellipse([(sx-10, sy-10), (sx+10, sy+10)], fill=(120, 80, 0))
+                # Sun body
+                draw.ellipse([(sx-8, sy-8), (sx+8, sy+8)], fill=YELLOW, outline=WHITE, width=2)
+
+                # Small rays
+                for ray_angle in range(0, 360, 45):
+                    rad = math.radians(ray_angle)
+                    rx1 = sx + int(9 * math.cos(rad))
+                    ry1 = sy - int(9 * math.sin(rad))
+                    rx2 = sx + int(13 * math.cos(rad))
+                    ry2 = sy - int(13 * math.sin(rad))
+                    draw.line([(rx1, ry1), (rx2, ry2)], fill=YELLOW, width=2)
+            else:
+                # Sun is below horizon - show position below line
+                below_amount = min(abs(elev) / 18, 1.0)
+                sx = cx
+                sy = cy + int(15 * below_amount)
+                draw.ellipse([(sx-5, sy-5), (sx+5, sy+5)], fill=PURPLE, outline=GRAY)
 
     def draw_moon(self, draw, cx, cy, radius, phase):
         """Draw moon with phase visualization"""
@@ -624,10 +687,11 @@ class SolarClock:
                                  fill=MOON_YELLOW)
 
     def create_clock_frame(self):
-        """Main clock view"""
+        """Main clock view - improved layout"""
         now = datetime.datetime.now()
         hour = now.hour
 
+        # Time-based header color
         if 6 <= hour < 12:
             hdr = LIGHT_BLUE
         elif 12 <= hour < 18:
@@ -650,48 +714,110 @@ class SolarClock:
         draw.text((WIDTH//2 - tw//2, 5), time_str, fill=WHITE, font=self.fonts["huge"])
 
         # Date (centered)
-        date_str = now.strftime("%A, %B %d, %Y")
+        date_str = now.strftime("%A, %B %-d, %Y")
         bbox = draw.textbbox((0, 0), date_str, font=self.fonts["small"])
         tw = bbox[2] - bbox[0]
         draw.text((WIDTH//2 - tw//2, 58), date_str, fill=WHITE, font=self.fonts["small"])
 
-        # Content area: y=85 to y=HEIGHT-NAV_BAR_HEIGHT (280)
-        content_bottom = HEIGHT - NAV_BAR_HEIGHT - 5
-
-        # === LEFT SIDE: Sun times + Weather ===
+        # === LEFT SIDE ===
         sun_times = self.get_sun_times()
+
+        # Sun times in a styled box
+        draw.rounded_rectangle([(8, 88), (225, 148)], radius=6, fill=(25, 25, 35))
         if sun_times:
             sunrise = sun_times["sunrise"].strftime("%-I:%M %p")
             sunset = sun_times["sunset"].strftime("%-I:%M %p")
-            draw.text((15, 88), f"Rise: {sunrise}", fill=YELLOW, font=self.fonts["med"])
-            draw.text((15, 114), f"Set:  {sunset}", fill=ORANGE, font=self.fonts["med"])
+            # Sunrise with sun icon
+            draw.ellipse([(15, 96), (27, 108)], fill=YELLOW)
+            draw.text((32, 94), sunrise, fill=YELLOW, font=self.fonts["med"])
+            # Sunset with setting sun icon
+            draw.arc([(15, 124), (27, 136)], 180, 360, fill=ORANGE, width=2)
+            draw.line([(15, 130), (27, 130)], fill=ORANGE, width=2)
+            draw.text((32, 120), sunset, fill=ORANGE, font=self.fonts["med"])
 
-        # Weather box
+            # Day length on right side of box
+            day_len = sun_times["sunset"] - sun_times["sunrise"]
+            hours = int(day_len.total_seconds() // 3600)
+            mins = int((day_len.total_seconds() % 3600) // 60)
+            draw.text((145, 94), f"{hours}h {mins}m", fill=WHITE, font=self.fonts["small"])
+            draw.text((145, 114), "daylight", fill=GRAY, font=self.fonts["tiny"])
+
+        # Weather box with better formatting
         weather = self.get_weather()
         if weather:
-            draw.rounded_rectangle([(10, 145), (220, 182)], radius=6, fill=DARK_GRAY)
-            w_clean = weather.encode('ascii', 'ignore').decode()[:20]
-            draw.text((18, 152), w_clean, fill=WHITE, font=self.fonts["med"])
+            draw.rounded_rectangle([(8, 155), (225, 195)], radius=6, fill=(25, 25, 35))
+            # Parse weather string: "Clouds 45°F 62%"
+            parts = weather.split()
+            if len(parts) >= 2:
+                condition = parts[0]
+                temp = parts[1] if len(parts) > 1 else ""
+                humidity = parts[2] if len(parts) > 2 else ""
 
-        # Day progress
-        draw.rounded_rectangle([(10, 195), (220, 215)], radius=5, fill=DARK_GRAY)
-        mins = now.hour * 60 + now.minute
-        prog = mins / 1440
-        bw = int(206 * prog)
-        if bw > 2:
-            draw.rounded_rectangle([(12, 197), (12 + bw, 213)], radius=4, fill=BLUE)
-        draw.text((75, 220), f"{prog*100:.0f}% of day", fill=GRAY, font=self.fonts["tiny"])
+                # Weather condition with color coding
+                if "rain" in condition.lower() or "drizzle" in condition.lower():
+                    cond_color = LIGHT_BLUE
+                elif "cloud" in condition.lower():
+                    cond_color = LIGHT_GRAY
+                elif "clear" in condition.lower() or "sun" in condition.lower():
+                    cond_color = YELLOW
+                elif "snow" in condition.lower():
+                    cond_color = WHITE
+                else:
+                    cond_color = LIGHT_GRAY
 
-        # === RIGHT SIDE: Solar position + Arc ===
+                draw.text((16, 161), condition[:10], fill=cond_color, font=self.fonts["med"])
+                draw.text((130, 161), temp, fill=WHITE, font=self.fonts["med"])
+                if humidity:
+                    draw.text((185, 166), humidity, fill=LIGHT_BLUE, font=self.fonts["small"])
+
+        # Day progress bar
+        draw.rounded_rectangle([(8, 205), (225, 228)], radius=5, fill=(25, 25, 35))
+        mins_of_day = now.hour * 60 + now.minute
+        prog = mins_of_day / 1440
+        bar_width = int(209 * prog)
+        if bar_width > 3:
+            draw.rounded_rectangle([(10, 207), (10 + bar_width, 226)], radius=4, fill=BLUE)
+        draw.text((85, 232), f"{prog*100:.0f}% of day", fill=LIGHT_GRAY, font=self.fonts["tiny"])
+
+        # === RIGHT SIDE ===
         elev, azim = self.get_solar_position()
 
-        draw.text((245, 88), "Solar Position", fill=WHITE, font=self.fonts["med"])
-        if elev is not None:
-            draw.text((245, 116), f"Elev: {elev:.1f}", fill=WHITE, font=self.fonts["small"])
-            draw.text((245, 138), f"Azim: {azim:.1f}", fill=WHITE, font=self.fonts["small"])
+        # Solar position box
+        draw.rounded_rectangle([(235, 88), (WIDTH - 8, 175)], radius=6, fill=(25, 25, 35))
 
-        # Sun arc
-        self.draw_sun_arc(draw, elev, 360, 220, 45)
+        # Title
+        draw.text((245, 92), "Sun Position", fill=LIGHT_GRAY, font=self.fonts["small"])
+
+        if elev is not None:
+            # Current elevation
+            elev_color = YELLOW if elev > 0 else PURPLE
+            draw.text((245, 112), f"{elev:.1f}°", fill=elev_color, font=self.fonts["med"])
+            status = "above" if elev > 0 else "below"
+            draw.text((310, 117), status, fill=GRAY, font=self.fonts["tiny"])
+
+            # Azimuth with compass direction
+            if azim < 45 or azim >= 315:
+                direction = "N"
+            elif azim < 135:
+                direction = "E"
+            elif azim < 225:
+                direction = "S"
+            else:
+                direction = "W"
+            draw.text((245, 140), f"{azim:.0f}° {direction}", fill=LIGHT_GRAY, font=self.fonts["small"])
+
+        # Improved sun arc
+        self.draw_sun_arc(draw, elev, 360, 220, 50)
+
+        # Next event countdown (bottom right)
+        next_event, time_delta, event_color = self.get_next_solar_event()
+        if next_event and time_delta:
+            total_secs = int(time_delta.total_seconds())
+            hours = total_secs // 3600
+            mins = (total_secs % 3600) // 60
+            evt_name = next_event.replace(" (tomorrow)", "")
+            draw.text((235, 240), f"{evt_name} in {hours}h {mins}m",
+                     fill=event_color or ORANGE, font=self.fonts["tiny"])
 
         # Navigation bar
         self.draw_nav_bar(draw)
@@ -762,7 +888,7 @@ class SolarClock:
         elev, azim = self.get_solar_position()
 
         # Layout constants
-        header_h = 32
+        header_h = 42
         nav_y = HEIGHT - NAV_BAR_HEIGHT  # 280
         bottom_h = 58
         bottom_y = nav_y - bottom_h - 4  # 218
@@ -997,8 +1123,8 @@ class SolarClock:
         
         if elev is not None:
             elev_color = YELLOW if elev > 0 else (ORANGE if elev > -6 else PURPLE)
-            draw.text((right_x + 8, bottom_y + 8), f"{elev:.0f}°", fill=elev_color, font=self.fonts["med"])
-            draw.text((right_x + 8, bottom_y + 34), f"{azim:.0f}°", fill=GRAY, font=self.fonts["small"])
+            draw.text((right_x + 8, bottom_y + 8), f"El {elev:.0f}°", fill=elev_color, font=self.fonts["med"])
+            draw.text((right_x + 8, bottom_y + 34), f"Az {azim:.0f}°", fill=LIGHT_GRAY, font=self.fonts["small"])
         else:
             draw.text((right_x + 8, bottom_y + 20), "--", fill=GRAY, font=self.fonts["med"])
 
@@ -1006,8 +1132,52 @@ class SolarClock:
         return img
 
 
+    def draw_weather_icon(self, draw, x, y, size, condition):
+        """Draw a simple weather icon based on condition"""
+        condition = condition.lower()
+
+        if "clear" in condition or "sunny" in condition:
+            # Sun icon
+            r = size // 2
+            draw.ellipse([(x - r, y - r), (x + r, y + r)], fill=YELLOW)
+            # Rays
+            for angle in range(0, 360, 45):
+                rad = math.radians(angle)
+                rx1 = x + int((r + 3) * math.cos(rad))
+                ry1 = y - int((r + 3) * math.sin(rad))
+                rx2 = x + int((r + 7) * math.cos(rad))
+                ry2 = y - int((r + 7) * math.sin(rad))
+                draw.line([(rx1, ry1), (rx2, ry2)], fill=YELLOW, width=2)
+        elif "cloud" in condition:
+            # Cloud icon
+            draw.ellipse([(x - 10, y - 5), (x, y + 5)], fill=LIGHT_GRAY)
+            draw.ellipse([(x - 5, y - 10), (x + 8, y + 3)], fill=LIGHT_GRAY)
+            draw.ellipse([(x, y - 5), (x + 12, y + 7)], fill=LIGHT_GRAY)
+        elif "rain" in condition or "drizzle" in condition:
+            # Cloud with rain drops
+            draw.ellipse([(x - 8, y - 8), (x, y)], fill=GRAY)
+            draw.ellipse([(x - 4, y - 12), (x + 6, y - 2)], fill=GRAY)
+            draw.ellipse([(x, y - 8), (x + 10, y + 2)], fill=GRAY)
+            # Rain drops
+            for dx, dy in [(-5, 8), (0, 6), (5, 10)]:
+                draw.line([(x + dx, y + dy), (x + dx - 2, y + dy + 6)], fill=LIGHT_BLUE, width=2)
+        elif "snow" in condition:
+            # Snowflakes
+            for dx, dy in [(-6, 0), (6, 0), (0, -6)]:
+                draw.text((x + dx - 4, y + dy - 6), "*", fill=WHITE, font=self.fonts["small"])
+        elif "thunder" in condition or "storm" in condition:
+            # Cloud with lightning
+            draw.ellipse([(x - 8, y - 10), (x + 2, y - 2)], fill=GRAY)
+            draw.ellipse([(x - 4, y - 14), (x + 8, y - 4)], fill=GRAY)
+            # Lightning bolt
+            draw.polygon([(x, y), (x - 3, y + 8), (x + 2, y + 5), (x - 1, y + 14)], fill=YELLOW)
+        else:
+            # Default: partly cloudy
+            draw.ellipse([(x - 8, y - 5), (x + 2, y + 5)], fill=LIGHT_GRAY)
+            draw.ellipse([(x - 4, y - 10), (x + 8, y)], fill=LIGHT_GRAY)
+
     def create_weather_frame(self):
-        """Weather forecast view - simplified"""
+        """Weather forecast view - with visual indicators"""
         img = Image.new("RGB", (WIDTH, HEIGHT), BLACK)
         draw = ImageDraw.Draw(img)
 
@@ -1019,7 +1189,7 @@ class SolarClock:
 
         forecast = self.get_weather_forecast()
 
-        # LEFT SIDE - Current conditions
+        # LEFT SIDE - Current conditions (single box)
         if forecast and 'current_condition' in forecast:
             cc = forecast['current_condition'][0]
             temp = cc.get('temp_F', '--')
@@ -1029,41 +1199,59 @@ class SolarClock:
             wind_speed = cc.get('windspeedMiles', '0')
             wind_dir = cc.get('winddir16Point', 'N')
 
-            # Current conditions box
-            draw.rounded_rectangle([(8, 48), (190, 145)], radius=8, fill=(25, 25, 35), outline=(70, 70, 90), width=1)
+            # Main conditions box
+            draw.rounded_rectangle([(8, 48), (190, 235)], radius=8, fill=(25, 25, 35), outline=(70, 70, 90), width=1)
+
+            # Weather icon in top right of box
+            self.draw_weather_icon(draw, 160, 75, 12, desc)
+
+            # Large temperature
             draw.text((18, 52), f"{temp}°F", fill=WHITE, font=self.fonts["huge"])
-            draw.text((18, 105), desc, fill=LIGHT_BLUE, font=self.fonts["small"])
-            draw.text((18, 125), f"Feels {feels}°", fill=GRAY, font=self.fonts["tiny"])
 
-            # Wind box - simplified
-            draw.rounded_rectangle([(8, 152), (190, 235)], radius=8, fill=(25, 25, 35), outline=(70, 70, 90), width=1)
-            draw.text((18, 158), "Wind", fill=GRAY, font=self.fonts["small"])
-            draw.text((18, 180), f"{wind_speed}", fill=WHITE, font=self.fonts["huge"])
-            draw.text((95, 195), "mph", fill=GRAY, font=self.fonts["small"])
-            draw.text((18, 215), f"{wind_dir}", fill=YELLOW, font=self.fonts["small"])
+            # Feels like and humidity on same row
+            draw.text((18, 108), f"Feels {feels}°", fill=LIGHT_GRAY, font=self.fonts["small"])
+            draw.text((115, 108), f"{humidity}%", fill=LIGHT_BLUE, font=self.fonts["small"])
 
-            # Humidity
-            draw.text((130, 125), f"{humidity}%", fill=LIGHT_BLUE, font=self.fonts["tiny"])
+            # Weather description with condition-based color
+            desc_lower = desc.lower()
+            if "rain" in desc_lower or "drizzle" in desc_lower:
+                desc_color = LIGHT_BLUE
+            elif "clear" in desc_lower or "sunny" in desc_lower:
+                desc_color = YELLOW
+            elif "cloud" in desc_lower:
+                desc_color = LIGHT_GRAY
+            elif "snow" in desc_lower:
+                desc_color = WHITE
+            else:
+                desc_color = LIGHT_BLUE
+            draw.text((18, 135), desc, fill=desc_color, font=self.fonts["small"])
 
-        draw.text((15, 245), f"{LOCATION.name}", fill=GRAY, font=self.fonts["tiny"])
+            # Separator line
+            draw.line([(18, 162), (180, 162)], fill=DARK_GRAY, width=1)
+
+            # Wind with visual direction indicator
+            draw.text((18, 172), "Wind", fill=LIGHT_GRAY, font=self.fonts["small"])
+            draw.text((18, 195), f"{wind_speed} mph {wind_dir}", fill=WHITE, font=self.fonts["med"])
+
+        draw.text((15, 245), f"{LOCATION.name}", fill=LIGHT_GRAY, font=self.fonts["tiny"])
 
         # RIGHT SIDE - Forecast table
         if forecast and 'weather' in forecast:
             x = 200
             col_day = x + 8
-            col_high = x + 100
-            col_low = x + 165
-            col_rain = x + 230
+            col_high = x + 80
+            col_low = x + 140
+            col_rain = x + 200
             y = 52
 
-            draw.text((col_day, y), "Day", fill=GRAY, font=self.fonts["tiny"])
-            draw.text((col_high, y), "High", fill=GRAY, font=self.fonts["tiny"])
-            draw.text((col_low, y), "Low", fill=GRAY, font=self.fonts["tiny"])
-            draw.text((col_rain, y), "Rain", fill=GRAY, font=self.fonts["tiny"])
+            draw.text((col_day, y), "Day", fill=LIGHT_GRAY, font=self.fonts["small"])
+            draw.text((col_high, y), "Hi", fill=LIGHT_GRAY, font=self.fonts["small"])
+            draw.text((col_low, y), "Lo", fill=LIGHT_GRAY, font=self.fonts["small"])
+            draw.text((col_rain, y), "Rain", fill=LIGHT_GRAY, font=self.fonts["small"])
 
-            y += 18
+            y += 22
             draw.line([(x, y), (WIDTH - 10, y)], fill=GRAY, width=1)
-            y += 8
+            y += 6
 
             for i, day in enumerate(forecast['weather'][:3]):
                 date = day.get('date', '')
@@ -1085,64 +1273,107 @@ class SolarClock:
                 except:
                     day_name = "--"
 
-                row_y = y + i * 55
-                draw.rounded_rectangle([(x, row_y), (WIDTH - 10, row_y + 48)], radius=6, fill=(20, 20, 30))
-                draw.text((col_day, row_y + 14), day_name, fill=WHITE, font=self.fonts["med"])
-                draw.text((col_high, row_y + 14), max_temp + "°", fill=(255, 180, 50), font=self.fonts["med"])
-                draw.text((col_low, row_y + 14), min_temp + "°", fill=(100, 180, 255), font=self.fonts["med"])
+                row_y = y + i * 58
+                draw.rounded_rectangle([(x, row_y), (WIDTH - 10, row_y + 52)], radius=6, fill=(20, 20, 30))
+                draw.text((col_day, row_y + 15), day_name, fill=WHITE, font=self.fonts["med"])
+                draw.text((col_high, row_y + 15), f"{max_temp}°", fill=(255, 180, 50), font=self.fonts["med"])
+                draw.text((col_low, row_y + 15), f"{min_temp}°", fill=(100, 180, 255), font=self.fonts["med"])
 
+                # Rain chance with visual bar
                 rain_val = int(rain_chance) if rain_chance.isdigit() else 0
                 if rain_val > 50:
                     rain_color = (100, 200, 255)
+                    # Draw rain drop icon for high chance
+                    drop_x = col_rain + 50
+                    draw.polygon([(drop_x, row_y + 12), (drop_x - 4, row_y + 20), (drop_x + 4, row_y + 20)], fill=LIGHT_BLUE)
+                    draw.ellipse([(drop_x - 4, row_y + 17), (drop_x + 4, row_y + 25)], fill=LIGHT_BLUE)
                 elif rain_val > 20:
                     rain_color = (150, 180, 200)
                 else:
                     rain_color = GRAY
-                draw.text((col_rain, row_y + 14), f"{rain_chance}%", fill=rain_color, font=self.fonts["med"])
+                draw.text((col_rain, row_y + 15), f"{rain_chance}%", fill=rain_color, font=self.fonts["med"])
 
         self.draw_nav_bar(draw)
         return img
 
+
     def create_moon_frame(self):
-        """Moon phase view"""
+        """Moon phase view - with rise/set times"""
         img = Image.new("RGB", (WIDTH, HEIGHT), BLACK)
         draw = ImageDraw.Draw(img)
 
         # Header
-        draw.rectangle([(0, 0), (WIDTH, 45)], fill=PURPLE)
+        draw.rectangle([(0, 0), (WIDTH, 42)], fill=PURPLE)
         title = "Moon Phase"
         bbox = draw.textbbox((0, 0), title, font=self.fonts["large"])
-        draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 8), title, fill=WHITE, font=self.fonts["large"])
+        draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 6), title, fill=WHITE, font=self.fonts["large"])
 
-        content_bottom = HEIGHT - NAV_BAR_HEIGHT - 5
         moon = self.get_moon_phase()
 
         if moon:
-            # Draw large moon - centered vertically in content area
-            moon_cy = 140
-            self.draw_moon(draw, 110, moon_cy, 55, moon['phase'])
+            # LEFT SIDE - Moon visualization in a box
+            draw.rounded_rectangle([(10, 50), (175, 270)], radius=8, fill=(15, 15, 25))
+            moon_cy = 120
+            self.draw_moon(draw, 92, moon_cy, 55, moon['phase'])
 
-            # Moon info on right side
-            draw.text((185, 60), moon['phase_name'], fill=MOON_YELLOW, font=self.fonts["med"])
-            draw.text((200, 98), f"Illumination: {moon['illumination']:.1f}%",
-                     fill=WHITE, font=self.fonts["med"])
+            # Phase name centered below moon
+            phase_name = moon['phase_name']
+            bbox = draw.textbbox((0, 0), phase_name, font=self.fonts["small"])
+            name_w = bbox[2] - bbox[0]
+            draw.text((92 - name_w//2, 185), phase_name, fill=MOON_YELLOW, font=self.fonts["small"])
+
+            # Moonrise/Moonset in bottom of left box
+            moon_rise, moon_set = self.get_moon_rise_set()
+            if moon_rise or moon_set:
+                draw.line([(20, 210), (165, 210)], fill=DARK_GRAY, width=1)
+                if moon_rise:
+                    rise_str = moon_rise.strftime("%-I:%M %p")
+                    draw.text((20, 218), "Rise", fill=GRAY, font=self.fonts["tiny"])
+                    draw.text((20, 234), rise_str, fill=LIGHT_GRAY, font=self.fonts["small"])
+                if moon_set:
+                    set_str = moon_set.strftime("%-I:%M %p")
+                    draw.text((95, 218), "Set", fill=GRAY, font=self.fonts["tiny"])
+                    draw.text((95, 234), set_str, fill=LIGHT_GRAY, font=self.fonts["small"])
+
+            # RIGHT SIDE - Moon info box
+            draw.rounded_rectangle([(185, 50), (WIDTH - 10, 270)], radius=8, fill=(25, 25, 35), outline=(60, 60, 80))
+
+            # Illumination - large and prominent
+            draw.text((195, 58), "Illumination", fill=LIGHT_GRAY, font=self.fonts["small"])
+            draw.text((195, 78), f"{moon['illumination']:.0f}%", fill=WHITE, font=self.fonts["large"])
+
+            # Illumination bar
+            bar_width = int((moon['illumination'] / 100) * 90)
+            draw.rounded_rectangle([(195, 112), (285, 122)], radius=3, fill=DARK_GRAY)
+            if bar_width > 2:
+                draw.rounded_rectangle([(195, 112), (195 + bar_width, 122)], radius=3, fill=MOON_YELLOW)
+
+            # Separator
+            draw.line([(195, 132), (WIDTH - 20, 132)], fill=DARK_GRAY, width=1)
 
             # Next new moon
             next_new = moon['next_new']
-            new_str = next_new.strftime("%b %d")
+            new_str = next_new.strftime("%b %-d")
             days_to_new = (next_new.date() - datetime.date.today()).days
-            draw.text((200, 135), f"New Moon: {new_str}", fill=GRAY, font=self.fonts["small"])
-            draw.text((200, 155), f"({days_to_new} days)", fill=DARK_GRAY, font=self.fonts["tiny"])
+            draw.text((195, 140), "New Moon", fill=LIGHT_GRAY, font=self.fonts["small"])
+            draw.text((195, 160), new_str, fill=WHITE, font=self.fonts["med"])
+            draw.text((290, 163), f"{days_to_new}d", fill=LIGHT_BLUE, font=self.fonts["small"])
 
             # Next full moon
             next_full = moon['next_full']
-            full_str = next_full.strftime("%b %d")
+            full_str = next_full.strftime("%b %-d")
             days_to_full = (next_full.date() - datetime.date.today()).days
-            draw.text((200, 180), f"Full Moon: {full_str}", fill=GRAY, font=self.fonts["small"])
-            draw.text((200, 200), f"({days_to_full} days)", fill=DARK_GRAY, font=self.fonts["tiny"])
+            draw.text((195, 190), "Full Moon", fill=LIGHT_GRAY, font=self.fonts["small"])
+            draw.text((195, 210), full_str, fill=WHITE, font=self.fonts["med"])
+            draw.text((290, 213), f"{days_to_full}d", fill=MOON_YELLOW, font=self.fonts["small"])
 
-            # Moon rise/set if available
-            draw.text((200, 230), "Swipe or tap arrows", fill=DARK_GRAY, font=self.fonts["tiny"])
+            # Current phase progress indicator at bottom
+            draw.text((195, 240), "Lunar cycle", fill=GRAY, font=self.fonts["tiny"])
+            cycle_bar_width = int(moon['phase'] * 90)
+            draw.rounded_rectangle([(195, 255), (285, 263)], radius=3, fill=DARK_GRAY)
+            if cycle_bar_width > 2:
+                draw.rounded_rectangle([(195, 255), (195 + cycle_bar_width, 263)], radius=3, fill=PURPLE)
+
         else:
             draw.text((WIDTH//2 - 100, 120), "Moon data unavailable",
                      fill=GRAY, font=self.fonts["med"])
@@ -1154,107 +1385,83 @@ class SolarClock:
 
         return img
 
+
     def create_solar_frame(self):
-        """Detailed solar information view"""
+        """Detailed solar information view - cleaner layout"""
         img = Image.new("RGB", (WIDTH, HEIGHT), BLACK)
         draw = ImageDraw.Draw(img)
 
         # Header
-        draw.rectangle([(0, 0), (WIDTH, 45)], fill=ORANGE)
+        draw.rectangle([(0, 0), (WIDTH, 42)], fill=ORANGE)
         title = "Solar Details"
         bbox = draw.textbbox((0, 0), title, font=self.fonts["large"])
-        draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 8), title, fill=WHITE, font=self.fonts["large"])
+        draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 6), title, fill=WHITE, font=self.fonts["large"])
 
         sun_times = self.get_sun_times()
         elev, azim = self.get_solar_position()
 
-        content_bottom = HEIGHT - NAV_BAR_HEIGHT - 5
-        y = 52
-
+        # LEFT COLUMN - Sun times box
+        draw.rounded_rectangle([(8, 50), (235, 175)], radius=8, fill=(25, 25, 35), outline=(60, 60, 80))
+        
+        y = 58
         if sun_times:
-            # Dawn/Dusk
             dawn = sun_times.get("dawn")
+            sunrise = sun_times.get("sunrise")
+            noon = sun_times.get("noon")
+            sunset = sun_times.get("sunset")
             dusk = sun_times.get("dusk")
-            if dawn and dusk:
-                draw.text((15, y), f"Dawn: {dawn.strftime('%-I:%M %p')}",
-                         fill=LIGHT_BLUE, font=self.fonts["small"])
-                draw.text((250, y), f"Dusk: {dusk.strftime('%-I:%M %p')}",
-                         fill=PURPLE, font=self.fonts["small"])
+
+            # Dawn
+            if dawn:
+                draw.text((18, y), "Dawn", fill=LIGHT_GRAY, font=self.fonts["small"])
+                draw.text((90, y), dawn.strftime("%-I:%M %p"), fill=LIGHT_BLUE, font=self.fonts["small"])
                 y += 22
 
-            # Sunrise/Sunset
+            # Sunrise
+            if sunrise:
+                draw.text((18, y), "Sunrise", fill=LIGHT_GRAY, font=self.fonts["small"])
+                draw.text((90, y), sunrise.strftime("%-I:%M %p"), fill=YELLOW, font=self.fonts["small"])
+                y += 22
+
+            # Noon
+            if noon:
+                draw.text((18, y), "Noon", fill=LIGHT_GRAY, font=self.fonts["small"])
+                draw.text((90, y), noon.strftime("%-I:%M %p"), fill=WHITE, font=self.fonts["small"])
+                y += 22
+
+            # Sunset
+            if sunset:
+                draw.text((18, y), "Sunset", fill=LIGHT_GRAY, font=self.fonts["small"])
+                draw.text((90, y), sunset.strftime("%-I:%M %p"), fill=ORANGE, font=self.fonts["small"])
+                y += 22
+
+            # Dusk
+            if dusk:
+                draw.text((18, y), "Dusk", fill=LIGHT_GRAY, font=self.fonts["small"])
+                draw.text((90, y), dusk.strftime("%-I:%M %p"), fill=PURPLE, font=self.fonts["small"])
+
+        # RIGHT COLUMN - Position and day length
+        draw.rounded_rectangle([(245, 50), (WIDTH - 8, 175)], radius=8, fill=(25, 25, 35), outline=(60, 60, 80))
+        
+        # Day length
+        if sun_times:
             sunrise = sun_times.get("sunrise")
             sunset = sun_times.get("sunset")
             if sunrise and sunset:
-                draw.text((15, y), f"Sunrise: {sunrise.strftime('%-I:%M %p')}",
-                         fill=YELLOW, font=self.fonts["small"])
-                draw.text((250, y), f"Sunset: {sunset.strftime('%-I:%M %p')}",
-                         fill=ORANGE, font=self.fonts["small"])
-                y += 22
-
-            # Solar noon and day length
-            noon = sun_times.get("noon")
-            if noon and sunrise and sunset:
-                draw.text((15, y), f"Solar Noon: {noon.strftime('%-I:%M %p')}",
-                         fill=WHITE, font=self.fonts["small"])
                 day_len = sunset - sunrise
                 hours = int(day_len.total_seconds() // 3600)
                 mins = int((day_len.total_seconds() % 3600) // 60)
-                draw.text((250, y), f"Day: {hours}h {mins}m",
-                         fill=GRAY, font=self.fonts["small"])
-                y += 22
-
-        # Separator
-        y += 5
-        draw.line([(15, y), (465, y)], fill=DARK_GRAY, width=1)
-        y += 8
-
-        # Golden hour section - two boxes
-        morning_gh, evening_gh = self.get_golden_hour()
-        
-        box_w = 225
-        box_h = 50
-        
-        # Morning golden hour box
-        draw.rounded_rectangle([(10, y), (10 + box_w, y + box_h)], radius=6, fill=(40, 35, 20))
-        draw.text((18, y + 4), "Morning Golden", fill=YELLOW, font=self.fonts["small"])
-        if morning_gh:
-            start_t = morning_gh[0].strftime("%-I:%M %p").lower()
-            end_t = morning_gh[1].strftime("%-I:%M %p").lower()
-            draw.text((18, y + 26), f"{start_t} - {end_t}", fill=ORANGE, font=self.fonts["small"])
-        else:
-            draw.text((18, y + 26), "--", fill=GRAY, font=self.fonts["small"])
-        
-        # Evening golden hour box
-        draw.rounded_rectangle([(WIDTH - 10 - box_w, y), (WIDTH - 10, y + box_h)], radius=6, fill=(40, 30, 25))
-        draw.text((WIDTH - box_w, y + 4), "Evening Golden", fill=YELLOW, font=self.fonts["small"])
-        if evening_gh:
-            start_t = evening_gh[0].strftime("%-I:%M %p").lower()
-            end_t = evening_gh[1].strftime("%-I:%M %p").lower()
-            draw.text((WIDTH - box_w, y + 26), f"{start_t} - {end_t}", fill=ORANGE, font=self.fonts["small"])
-        else:
-            draw.text((WIDTH - box_w, y + 26), "--", fill=GRAY, font=self.fonts["small"])
-        
-        y += box_h + 8
-
-        # Separator
-        y += 3
-        draw.line([(15, y), (465, y)], fill=DARK_GRAY, width=1)
-        y += 8
+                draw.text((255, 58), "Day Length", fill=LIGHT_GRAY, font=self.fonts["small"])
+                draw.text((255, 80), f"{hours}h {mins}m", fill=WHITE, font=self.fonts["med"])
 
         # Current position
-        draw.text((15, y), "Current Position", fill=WHITE, font=self.fonts["small"])
-        y += 20
-
+        draw.text((255, 115), "Sun Position", fill=LIGHT_GRAY, font=self.fonts["small"])
         if elev is not None:
-            status = "Above" if elev > 0 else "Below"
-            draw.text((15, y), f"Elevation: {elev:.1f} ({status})",
-                     fill=YELLOW if elev > 0 else GRAY, font=self.fonts["tiny"])
-            draw.text((200, y), f"Azimuth: {azim:.1f}",
-                     fill=WHITE, font=self.fonts["tiny"])
-            y += 18
-
-            # Direction hint
+            status = "up" if elev > 0 else "down"
+            elev_color = YELLOW if elev > 0 else PURPLE
+            draw.text((255, 137), f"{elev:.1f}° {status}", fill=elev_color, font=self.fonts["med"])
+            
+            # Direction
             if azim < 90:
                 direction = "NE"
             elif azim < 180:
@@ -1263,11 +1470,32 @@ class SolarClock:
                 direction = "SW"
             else:
                 direction = "NW"
-            draw.text((15, y), f"Direction: {direction}", fill=GRAY, font=self.fonts["tiny"])
+            draw.text((370, 140), direction, fill=LIGHT_GRAY, font=self.fonts["small"])
 
-        # Navigation bar
+        # BOTTOM - Golden hours (compact)
+        morning_gh, evening_gh = self.get_golden_hour()
+        
+        # Morning golden hour
+        draw.rounded_rectangle([(8, 183), (235, 230)], radius=6, fill=(40, 35, 20))
+        draw.text((18, 190), "Morning Golden Hour", fill=YELLOW, font=self.fonts["small"])
+        if morning_gh:
+            start_t = morning_gh[0].strftime("%-I:%M")
+            end_t = morning_gh[1].strftime("%-I:%M %p")
+            draw.text((18, 208), f"{start_t} - {end_t}", fill=ORANGE, font=self.fonts["small"])
+        else:
+            draw.text((18, 208), "--", fill=GRAY, font=self.fonts["small"])
+        
+        # Evening golden hour
+        draw.rounded_rectangle([(245, 183), (WIDTH - 8, 230)], radius=6, fill=(40, 30, 25))
+        draw.text((255, 190), "Evening Golden Hour", fill=YELLOW, font=self.fonts["small"])
+        if evening_gh:
+            start_t = evening_gh[0].strftime("%-I:%M")
+            end_t = evening_gh[1].strftime("%-I:%M %p")
+            draw.text((255, 208), f"{start_t} - {end_t}", fill=ORANGE, font=self.fonts["small"])
+        else:
+            draw.text((255, 208), "--", fill=GRAY, font=self.fonts["small"])
+
         self.draw_nav_bar(draw)
-
         return img
 
 
@@ -1335,7 +1563,7 @@ class SolarClock:
             aqi_label = "Waiting..."
 
         # Header with AQI color
-        draw.rectangle([(0, 0), (WIDTH, 45)], fill=aqi_color if aqi > 0 else DARK_GRAY)
+        draw.rectangle([(0, 0), (WIDTH, 42)], fill=aqi_color if aqi > 0 else DARK_GRAY)
         header_text = "Air Quality"
         bbox = draw.textbbox((0, 0), header_text, font=self.fonts["large"])
         tw = bbox[2] - bbox[0]
@@ -1344,7 +1572,7 @@ class SolarClock:
 
         # Left side: Large AQI display
         aqi_y = 55
-        draw.text((25, aqi_y), "AQI Level", fill=GRAY, font=self.fonts["small"])
+        draw.text((25, aqi_y), "AQI Level", fill=LIGHT_GRAY, font=self.fonts["small"])
         aqi_str = str(aqi) if aqi > 0 else "--"
         draw.text((25, aqi_y + 25), aqi_str, fill=aqi_color, font=self.fonts["huge"])
         draw.text((25, aqi_y + 85), aqi_label, fill=aqi_color, font=self.fonts["large"])
@@ -1387,12 +1615,12 @@ class SolarClock:
 
         # Bottom info
         info_y = HEIGHT - NAV_BAR_HEIGHT - 40
-        draw.text((25, info_y), f"{LOCATION.name}", fill=GRAY, font=self.fonts["small"])
+        draw.text((25, info_y), f"{LOCATION.name}", fill=LIGHT_GRAY, font=self.fonts["small"])
         if aqi == 0:
             draw.text((200, info_y), "API key activating...", fill=ORANGE, font=self.fonts["small"])
         elif hasattr(self, 'aqi_last_update') and self.aqi_last_update > 0:
             update_time = datetime.datetime.fromtimestamp(self.aqi_last_update).strftime("%-I:%M %p")
-            draw.text((200, info_y), f"Updated {update_time}", fill=GRAY, font=self.fonts["small"])
+            draw.text((200, info_y), f"Updated {update_time}", fill=LIGHT_GRAY, font=self.fonts["small"])
 
         self.draw_nav_bar(draw)
         return img
@@ -1512,7 +1740,7 @@ class SolarClock:
         draw.rounded_rectangle([(8, info_top), (8 + box1_w, info_top + box_h)], radius=6, fill=(25, 25, 35), outline=(60, 60, 80))
         hours = int(today_dl)
         mins = int((today_dl - hours) * 60)
-        draw.text((15, info_top + 5), "Today", fill=GRAY, font=self.fonts["small"])
+        draw.text((15, info_top + 5), "Today", fill=LIGHT_GRAY, font=self.fonts["small"])
         draw.text((15, info_top + 22), f"{hours}h {mins}m", fill=WHITE, font=self.fonts["med"])
 
         # Trend
@@ -1571,7 +1799,7 @@ class SolarClock:
             next_event_color = LIGHT_BLUE
 
         days_until = (next_event - today).days
-        draw.text((box3_x + 8, info_top + 5), "Next", fill=GRAY, font=self.fonts["tiny"])
+        draw.text((box3_x + 8, info_top + 5), "Next", fill=LIGHT_GRAY, font=self.fonts["tiny"])
         draw.text((box3_x + 8, info_top + 20), next_event_name, fill=next_event_color, font=self.fonts["small"])
         draw.text((box3_x + 8, info_top + 40), next_event.strftime("%b %d"), fill=WHITE, font=self.fonts["tiny"])
         # Days count on right side
