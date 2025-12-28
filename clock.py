@@ -73,7 +73,7 @@ AQI_HAZARDOUS = (126, 0, 35)
 
 class ViewManager:
     """Manages navigation between views"""
-    VIEWS = ["clock", "sunpath", "weather", "moon", "solar", "airquality", "daylength", "analemma"]
+    VIEWS = ["clock", "weather", "airquality", "sunpath", "daylength", "solar", "moon", "analemma"]
 
     def __init__(self):
         self.current_index = 0
@@ -1414,31 +1414,31 @@ class SolarClock:
             # Dawn
             if dawn:
                 draw.text((18, y), "Dawn", fill=LIGHT_GRAY, font=self.fonts["small"])
-                draw.text((90, y), dawn.strftime("%-I:%M %p"), fill=LIGHT_BLUE, font=self.fonts["small"])
+                draw.text((100, y), dawn.strftime("%-I:%M %p"), fill=LIGHT_BLUE, font=self.fonts["small"])
                 y += 22
 
             # Sunrise
             if sunrise:
                 draw.text((18, y), "Sunrise", fill=LIGHT_GRAY, font=self.fonts["small"])
-                draw.text((90, y), sunrise.strftime("%-I:%M %p"), fill=YELLOW, font=self.fonts["small"])
+                draw.text((100, y), sunrise.strftime("%-I:%M %p"), fill=YELLOW, font=self.fonts["small"])
                 y += 22
 
             # Noon
             if noon:
                 draw.text((18, y), "Noon", fill=LIGHT_GRAY, font=self.fonts["small"])
-                draw.text((90, y), noon.strftime("%-I:%M %p"), fill=WHITE, font=self.fonts["small"])
+                draw.text((100, y), noon.strftime("%-I:%M %p"), fill=WHITE, font=self.fonts["small"])
                 y += 22
 
             # Sunset
             if sunset:
                 draw.text((18, y), "Sunset", fill=LIGHT_GRAY, font=self.fonts["small"])
-                draw.text((90, y), sunset.strftime("%-I:%M %p"), fill=ORANGE, font=self.fonts["small"])
+                draw.text((100, y), sunset.strftime("%-I:%M %p"), fill=ORANGE, font=self.fonts["small"])
                 y += 22
 
             # Dusk
             if dusk:
                 draw.text((18, y), "Dusk", fill=LIGHT_GRAY, font=self.fonts["small"])
-                draw.text((90, y), dusk.strftime("%-I:%M %p"), fill=PURPLE, font=self.fonts["small"])
+                draw.text((100, y), dusk.strftime("%-I:%M %p"), fill=PURPLE, font=self.fonts["small"])
 
         # RIGHT COLUMN - Position and day length
         draw.rounded_rectangle([(245, 50), (WIDTH - 8, 175)], radius=8, fill=(25, 25, 35), outline=(60, 60, 80))
@@ -1858,7 +1858,7 @@ class SolarClock:
             return img
 
         # Explanation subtitle
-        draw.text((WIDTH//2 - 115, 46), "Sun's noon position through the year", fill=GRAY, font=self.fonts["tiny"])
+        draw.text((WIDTH//2 - 110, 44), "Sun's noon position through the year", fill=GRAY, font=self.fonts["micro"])
 
         # Chart area - shifted to allow info panel
         chart_cx = 160
@@ -1868,7 +1868,7 @@ class SolarClock:
         decl_scale = 3.5
 
         # Draw chart background
-        draw.rounded_rectangle([(20, 58), (300, 235)], radius=8, fill=(15, 15, 25))
+        draw.rounded_rectangle([(20, 56), (298, 235)], radius=8, fill=(15, 15, 25))
 
         # Draw axes with better labels
         # Vertical axis (declination = sun height)
@@ -1944,7 +1944,7 @@ class SolarClock:
             draw.ellipse([(today_x - 6, today_y - 6), (today_x + 6, today_y + 6)], fill=WHITE)
 
         # Right panel - today's info
-        info_x = 310
+        info_x = 305
         draw.rounded_rectangle([(info_x, 58), (WIDTH - 8, 235)], radius=8, fill=(25, 25, 35), outline=(60, 60, 80))
 
         draw.text((info_x + 10, 65), "Today", fill=WHITE, font=self.fonts["small"])
@@ -1979,14 +1979,14 @@ class SolarClock:
             draw.text((info_x + 10, 173), height, fill=height_color, font=self.fonts["med"])
             draw.text((info_x + 10, 198), f"{abs(today_decl):.1f}° {['S','N'][today_decl > 0]}", fill=GRAY, font=self.fonts["small"])
 
-        # Season legend at bottom
-        legend_y = 218
-        legend_items = [('Sp', (100, 200, 100)), ('Su', YELLOW), ('Fa', ORANGE), ('Wi', LIGHT_BLUE)]
-        lx = info_x + 10
-        for label, color in legend_items:
-            draw.ellipse([(lx, legend_y), (lx + 8, legend_y + 8)], fill=color)
-            draw.text((lx + 12, legend_y - 2), label, fill=GRAY, font=self.fonts["micro"])
-            lx += 35
+        # Season legend at bottom - dots only with tooltip-style label
+        legend_y = 216
+        draw.text((info_x + 8, legend_y - 2), "Season:", fill=GRAY, font=self.fonts["micro"])
+        legend_colors = [(100, 200, 100), YELLOW, ORANGE, LIGHT_BLUE]
+        lx = info_x + 60
+        for color in legend_colors:
+            draw.ellipse([(lx, legend_y), (lx + 10, legend_y + 10)], fill=color)
+            lx += 16
 
         self.draw_nav_bar(draw)
         return img
