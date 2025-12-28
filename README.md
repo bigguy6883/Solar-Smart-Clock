@@ -32,10 +32,12 @@ Navigate between eight views using the **< >** buttons at the bottom of the scre
 1. **Clock View** (default)
    - Large, easy-to-read time with AM/PM indicator
    - Full date with day of week
-   - Sunrise/sunset times
-   - Current weather conditions
+   - Styled info boxes with dark backgrounds
+   - Sunrise/sunset times with mini sun icons and day length
+   - Current weather with color-coded conditions (rain=blue, clear=yellow, clouds=gray)
    - Day progress bar
-   - Solar position (elevation/azimuth) with visual sun arc
+   - Enhanced sun arc with glow effect and rays (shows below-horizon position at night)
+   - Next solar event countdown (e.g., "Sunrise in 2h 15m")
 
 2. **Sun Path View**
    - Full 24-hour elevation chart from midnight to midnight
@@ -49,18 +51,21 @@ Navigate between eight views using the **< >** buttons at the bottom of the scre
 
 3. **Weather Forecast View**
    - Large current temperature display
+   - Weather icon (sun, clouds, rain, snow, thunderstorm)
    - Feels like temperature and humidity
-   - Current weather description
+   - Color-coded weather description
    - Simplified wind display with speed and direction
    - 3-day forecast table (Today, Tomorrow, Day 3)
-   - High/low temperatures and rain chance per day
+   - High/low temperatures with rain drop icon for >50% chance
 
 4. **Moon Phase View**
    - Visual moon phase display with illumination
    - Phase name (New, Waxing Crescent, Full, etc.)
-   - Illumination percentage
+   - Illumination percentage with progress bar
+   - Moonrise and moonset times
    - Days until next new moon
    - Days until next full moon
+   - Lunar cycle progress bar
 
 5. **Solar Details View**
    - Dawn/Dusk times with color coding (light blue/purple)
