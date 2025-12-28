@@ -34,7 +34,7 @@ LOCATION = LocationInfo(
     longitude=-84.4822
 )
 # OpenWeatherMap API (free tier) for Air Quality
-OPENWEATHER_API_KEY = "ac5189e6a0f50737d3145e449c96c5e6"
+OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY", "ac5189e6a0f50737d3145e449c96c5e6")
 
 
 # Display - LANDSCAPE
@@ -287,6 +287,8 @@ class SolarClock:
         self.weather_data = None
         self.weather_json = None
         self.weather_last_update = 0
+        self.aqi_data = None
+        self.aqi_last_update = 0
         self.fonts = self._load_fonts()
         self.view_manager = ViewManager()
         self.touch_handler = TouchHandler(self.view_manager)
