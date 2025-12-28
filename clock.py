@@ -5,6 +5,7 @@ import os
 import time
 import math
 import datetime
+from zoneinfo import ZoneInfo
 import threading
 import requests
 from PIL import Image, ImageDraw, ImageFont
@@ -560,7 +561,6 @@ class SolarClock:
                 next_rise = obs.next_rising(moon)
                 rise_time = ephem.Date(next_rise).datetime()
                 # Convert to local timezone
-                from zoneinfo import ZoneInfo
                 tz = ZoneInfo(LOCATION.timezone)
                 rise_time = rise_time.replace(tzinfo=datetime.timezone.utc).astimezone(tz)
             except:
@@ -569,7 +569,6 @@ class SolarClock:
             try:
                 next_set = obs.next_setting(moon)
                 set_time = ephem.Date(next_set).datetime()
-                from zoneinfo import ZoneInfo
                 tz = ZoneInfo(LOCATION.timezone)
                 set_time = set_time.replace(tzinfo=datetime.timezone.utc).astimezone(tz)
             except:
@@ -828,7 +827,6 @@ class SolarClock:
 
     def get_next_solar_event(self):
         """Get the next solar event and time remaining"""
-        from zoneinfo import ZoneInfo
         try:
             tz = ZoneInfo(LOCATION.timezone)
             now = datetime.datetime.now(tz)
@@ -878,7 +876,6 @@ class SolarClock:
 
     def create_sunpath_frame(self):
         """Sun path view - full day elevation chart"""
-        from zoneinfo import ZoneInfo
         tz = ZoneInfo(LOCATION.timezone)
         now = datetime.datetime.now(tz)
         today = now.date()
