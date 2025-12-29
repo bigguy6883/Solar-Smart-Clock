@@ -179,7 +179,7 @@ sudo systemctl start solar-clock
 | 1 | Clock | Main time display with weather and sun info |
 | 2 | Weather | Current conditions and 3-day forecast |
 | 3 | Air Quality | AQI and pollutant levels |
-| 4 | Sun Path | Sun trajectory with next event countdown |
+| 4 | Sun Path | Sun trajectory with time, date, and next event |
 | 5 | Day Length | Yearly chart with solstice/equinox info |
 | 6 | Solar | Detailed sun times and golden hours |
 | 7 | Moon | Phase visualization and upcoming dates |
