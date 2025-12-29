@@ -73,7 +73,7 @@ AQI_HAZARDOUS = (126, 0, 35)
 
 class ViewManager:
     """Manages navigation between views"""
-    VIEWS = ["clock", "weather", "airquality", "sunpath", "daylength", "solar", "moon", "analemma"]
+    VIEWS = ["clock", "weather", "airquality", "sunpath", "daylength", "solar", "moon", "analemma", "analogclock"]
 
     def __init__(self):
         self.current_index = 0
@@ -2008,6 +2008,150 @@ class SolarClock:
         self.draw_nav_bar(draw)
         return img
 
+    def get_time_colors(self, hour):
+        """Return color scheme based on time of day"""
+        # Night: 9pm - 5am (21:00 - 05:00)
+        if hour >= 21 or hour < 5:
+            return {
+                'bg': (15, 20, 40),           # Deep navy
+                'face': (35, 45, 65),         # Dark blue-gray
+                'hand_hour': (200, 200, 210), # Silver
+                'hand_minute': (220, 220, 230), # Light silver
+                'dots': (60, 80, 120),        # Dim blue
+                'center': (180, 180, 190),    # Silver center
+                'date': (150, 160, 180),      # Muted blue-white
+            }
+        # Dawn: 5am - 7am (pink-orange sunrise)
+        elif hour >= 5 and hour < 7:
+            return {
+                'bg': (60, 40, 70),           # Dark purple-pink
+                'face': (255, 220, 200),      # Pale peach/coral
+                'hand_hour': (180, 80, 80),   # Deep coral
+                'hand_minute': (200, 100, 100), # Coral
+                'dots': (220, 120, 100),      # Salmon
+                'center': (180, 80, 80),      # Deep coral center
+                'date': (255, 200, 180),      # Warm peach
+            }
+        # Day: 7am - 5pm (07:00 - 17:00)
+        elif hour >= 7 and hour < 17:
+            return {
+                'bg': (70, 130, 180),         # Sky blue
+                'face': (250, 248, 240),      # Light cream
+                'hand_hour': (40, 40, 50),    # Dark gray
+                'hand_minute': (50, 50, 60),  # Dark gray
+                'dots': (80, 80, 90),         # Dark gray dots
+                'center': (60, 60, 70),       # Dark center
+                'date': (255, 255, 255),      # White
+            }
+        # Dusk: 5pm - 9pm (deep purple-magenta sunset)
+        else:
+            return {
+                'bg': (50, 30, 60),           # Deep purple
+                'face': (70, 50, 80),         # Dark purple-gray
+                'hand_hour': (255, 180, 100), # Amber gold
+                'hand_minute': (255, 200, 120), # Light amber
+                'dots': (180, 130, 200),      # Lavender
+                'center': (255, 180, 100),    # Amber center
+                'date': (200, 180, 220),      # Light lavender
+            }
+
+    def create_analogclock_frame(self):
+        """Analog clock view with time-adaptive colors"""
+        now = datetime.datetime.now()
+        hour = now.hour
+        minute = now.minute
+
+        # Get time-based color scheme
+        colors = self.get_time_colors(hour)
+
+        # Create image with background color
+        img = Image.new("RGB", (WIDTH, HEIGHT), colors['bg'])
+        draw = ImageDraw.Draw(img)
+
+        # Clock dimensions - fits between top and nav bar
+        cx, cy = 240, 120  # Center positioned for balanced layout
+        radius = 115       # Clock face radius (fits 0-280 vertical space)
+
+        # Draw clock face (filled circle with thicker outline)
+        draw.ellipse(
+            [(cx - radius, cy - radius), (cx + radius, cy + radius)],
+            fill=colors['face'],
+            outline=colors['dots'],
+            width=3
+        )
+
+        # Draw hour markers (12 positions)
+        dot_radius = 5
+        dot_distance = radius - 18  # Distance from center to dots
+        for i in range(12):
+            angle = math.radians(i * 30 - 90)  # 30 degrees per hour, -90 to start at 12
+            dx = cx + dot_distance * math.cos(angle)
+            dy = cy + dot_distance * math.sin(angle)
+
+            if i == 0:
+                # 12 o'clock: double dot (distinctive marker)
+                r = dot_radius + 3
+                draw.ellipse([(dx - r, dy - r), (dx + r, dy + r)], fill=colors['dots'])
+                # Inner contrasting dot
+                r_inner = dot_radius - 1
+                draw.ellipse([(dx - r_inner, dy - r_inner), (dx + r_inner, dy + r_inner)], fill=colors['face'])
+            elif i % 3 == 0:
+                # 3, 6, 9: larger dots
+                r = dot_radius + 2
+                draw.ellipse([(dx - r, dy - r), (dx + r, dy + r)], fill=colors['dots'])
+            else:
+                # Regular hour dots
+                r = dot_radius
+                draw.ellipse([(dx - r, dy - r), (dx + r, dy + r)], fill=colors['dots'])
+
+        # Calculate hand angles
+        # Hour hand: moves 30 degrees per hour + 0.5 degrees per minute
+        hour_angle = math.radians((hour % 12 + minute / 60) * 30 - 90)
+        # Minute hand: moves 6 degrees per minute
+        minute_angle = math.radians(minute * 6 - 90)
+
+        # Hand lengths - proportional to clock size
+        hour_length = 65
+        minute_length = 95  # Extends close to dots
+
+        # Draw hour hand (thicker)
+        hour_x = cx + hour_length * math.cos(hour_angle)
+        hour_y = cy + hour_length * math.sin(hour_angle)
+        draw.line([(cx, cy), (hour_x, hour_y)], fill=colors['hand_hour'], width=10)
+
+        # Draw minute hand
+        minute_x = cx + minute_length * math.cos(minute_angle)
+        minute_y = cy + minute_length * math.sin(minute_angle)
+        draw.line([(cx, cy), (minute_x, minute_y)], fill=colors['hand_minute'], width=6)
+
+        # Draw center with contrasting ring
+        outer_radius = 12
+        inner_radius = 7
+        # Outer ring (uses dot color for contrast)
+        draw.ellipse(
+            [(cx - outer_radius, cy - outer_radius), (cx + outer_radius, cy + outer_radius)],
+            fill=colors['dots']
+        )
+        # Inner center dot
+        draw.ellipse(
+            [(cx - inner_radius, cy - inner_radius), (cx + inner_radius, cy + inner_radius)],
+            fill=colors['center']
+        )
+
+        # Draw date below clock
+        date_str = now.strftime("%A, %B %-d")
+        bbox = draw.textbbox((0, 0), date_str, font=self.fonts["med"])
+        date_width = bbox[2] - bbox[0]
+        draw.text(
+            ((WIDTH - date_width) // 2, cy + radius + 8),
+            date_str,
+            fill=colors['date'],
+            font=self.fonts["med"]
+        )
+
+        self.draw_nav_bar(draw)
+        return img
+
 
     def create_frame(self):
         """Create current view frame"""
@@ -2029,6 +2173,8 @@ class SolarClock:
             return self.create_daylength_frame()
         elif view == "analemma":
             return self.create_analemma_frame()
+        elif view == "analogclock":
+            return self.create_analogclock_frame()
         else:
             return self.create_clock_frame()
 
