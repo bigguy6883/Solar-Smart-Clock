@@ -1319,66 +1319,79 @@ class SolarClock:
         if moon:
             # LEFT SIDE - Moon visualization in a box
             draw.rounded_rectangle([(10, 50), (175, 270)], radius=8, fill=(15, 15, 25))
-            moon_cy = 120
-            self.draw_moon(draw, 92, moon_cy, 55, moon['phase'])
+            
+            # Moon graphic - centered better
+            moon_cx, moon_cy = 92, 115
+            self.draw_moon(draw, moon_cx, moon_cy, 55, moon["phase"])
 
             # Phase name centered below moon
-            phase_name = moon['phase_name']
+            phase_name = moon["phase_name"]
             bbox = draw.textbbox((0, 0), phase_name, font=self.fonts["small"])
             name_w = bbox[2] - bbox[0]
-            draw.text((92 - name_w//2, 185), phase_name, fill=MOON_YELLOW, font=self.fonts["small"])
+            draw.text((moon_cx - name_w//2, 178), phase_name, fill=MOON_YELLOW, font=self.fonts["small"])
 
             # Moonrise/Moonset in bottom of left box
             moon_rise, moon_set = self.get_moon_rise_set()
             if moon_rise or moon_set:
-                draw.line([(20, 210), (165, 210)], fill=DARK_GRAY, width=1)
+                draw.line([(20, 205), (165, 205)], fill=DARK_GRAY, width=1)
                 if moon_rise:
                     rise_str = moon_rise.strftime("%-I:%M %p")
-                    draw.text((20, 218), "Rise", fill=GRAY, font=self.fonts["tiny"])
-                    draw.text((20, 234), rise_str, fill=LIGHT_GRAY, font=self.fonts["small"])
+                    draw.text((20, 213), "Rise", fill=GRAY, font=self.fonts["tiny"])
+                    draw.text((20, 230), rise_str, fill=LIGHT_GRAY, font=self.fonts["small"])
                 if moon_set:
                     set_str = moon_set.strftime("%-I:%M %p")
-                    draw.text((110, 218), "Set", fill=GRAY, font=self.fonts["tiny"])
-                    draw.text((110, 234), set_str, fill=LIGHT_GRAY, font=self.fonts["small"])
+                    draw.text((110, 213), "Set", fill=GRAY, font=self.fonts["tiny"])
+                    draw.text((110, 230), set_str, fill=LIGHT_GRAY, font=self.fonts["small"])
 
             # RIGHT SIDE - Moon info box
-            draw.rounded_rectangle([(185, 50), (WIDTH - 10, 270)], radius=8, fill=(25, 25, 35), outline=(60, 60, 80))
+            right_x = 185
+            right_w = WIDTH - 10 - right_x  # 285px wide
+            draw.rounded_rectangle([(right_x, 50), (WIDTH - 10, 270)], radius=8, fill=(25, 25, 35), outline=(60, 60, 80))
 
             # Illumination - large and prominent
-            draw.text((195, 58), "Illumination", fill=LIGHT_GRAY, font=self.fonts["small"])
-            draw.text((195, 78), f"{moon['illumination']:.0f}%", fill=WHITE, font=self.fonts["large"])
+            draw.text((right_x + 12, 58), "Illumination", fill=LIGHT_GRAY, font=self.fonts["small"])
+            illum_text = f"{moon['illumination']:.0f}%"
+            draw.text((right_x + 12, 80), illum_text, fill=WHITE, font=self.fonts["large"])
 
-            # Illumination bar
-            bar_width = int((moon['illumination'] / 100) * 90)
-            draw.rounded_rectangle([(195, 112), (285, 122)], radius=3, fill=DARK_GRAY)
+            # Illumination bar - wider
+            bar_x = right_x + 12
+            bar_full_width = 130
+            bar_width = int((moon["illumination"] / 100) * bar_full_width)
+            draw.rounded_rectangle([(bar_x, 118), (bar_x + bar_full_width, 130)], radius=4, fill=DARK_GRAY)
             if bar_width > 2:
-                draw.rounded_rectangle([(195, 112), (195 + bar_width, 122)], radius=3, fill=MOON_YELLOW)
+                draw.rounded_rectangle([(bar_x, 118), (bar_x + bar_width, 130)], radius=4, fill=MOON_YELLOW)
 
             # Separator
-            draw.line([(195, 132), (WIDTH - 20, 132)], fill=DARK_GRAY, width=1)
+            draw.line([(right_x + 12, 142), (WIDTH - 22, 142)], fill=DARK_GRAY, width=1)
 
             # Next new moon
-            next_new = moon['next_new']
+            next_new = moon["next_new"]
             new_str = next_new.strftime("%b %-d")
             days_to_new = (next_new.date() - datetime.date.today()).days
-            draw.text((195, 140), "New Moon", fill=LIGHT_GRAY, font=self.fonts["small"])
-            draw.text((195, 160), new_str, fill=WHITE, font=self.fonts["med"])
-            draw.text((290, 163), f"{days_to_new}d", fill=LIGHT_BLUE, font=self.fonts["small"])
+            draw.text((right_x + 12, 152), "New Moon", fill=LIGHT_GRAY, font=self.fonts["small"])
+            draw.text((right_x + 12, 172), new_str, fill=WHITE, font=self.fonts["med"])
+            # Position days closer to date
+            date_bbox = draw.textbbox((0, 0), new_str, font=self.fonts["med"])
+            date_w = date_bbox[2] - date_bbox[0]
+            draw.text((right_x + 20 + date_w, 176), f"{days_to_new}d", fill=LIGHT_BLUE, font=self.fonts["small"])
 
-            # Next full moon
-            next_full = moon['next_full']
+            # Next full moon  
+            next_full = moon["next_full"]
             full_str = next_full.strftime("%b %-d")
             days_to_full = (next_full.date() - datetime.date.today()).days
-            draw.text((195, 190), "Full Moon", fill=LIGHT_GRAY, font=self.fonts["small"])
-            draw.text((195, 210), full_str, fill=WHITE, font=self.fonts["med"])
-            draw.text((290, 213), f"{days_to_full}d", fill=MOON_YELLOW, font=self.fonts["small"])
+            draw.text((right_x + 12, 202), "Full Moon", fill=LIGHT_GRAY, font=self.fonts["small"])
+            draw.text((right_x + 12, 222), full_str, fill=WHITE, font=self.fonts["med"])
+            # Position days closer to date
+            date_bbox = draw.textbbox((0, 0), full_str, font=self.fonts["med"])
+            date_w = date_bbox[2] - date_bbox[0]
+            draw.text((right_x + 20 + date_w, 226), f"{days_to_full}d", fill=MOON_YELLOW, font=self.fonts["small"])
 
-            # Current phase progress indicator at bottom
-            draw.text((195, 240), "Lunar cycle", fill=GRAY, font=self.fonts["tiny"])
-            cycle_bar_width = int(moon['phase'] * 90)
-            draw.rounded_rectangle([(195, 255), (285, 263)], radius=3, fill=DARK_GRAY)
+            # Current phase progress indicator at bottom - more room
+            draw.text((right_x + 12, 248), "Lunar cycle", fill=GRAY, font=self.fonts["tiny"])
+            cycle_bar_width = int(moon["phase"] * bar_full_width)
+            draw.rounded_rectangle([(bar_x, 260), (bar_x + bar_full_width, 268)], radius=4, fill=DARK_GRAY)
             if cycle_bar_width > 2:
-                draw.rounded_rectangle([(195, 255), (195 + cycle_bar_width, 263)], radius=3, fill=PURPLE)
+                draw.rounded_rectangle([(bar_x, 260), (bar_x + cycle_bar_width, 268)], radius=4, fill=PURPLE)
 
         else:
             draw.text((WIDTH//2 - 100, 120), "Moon data unavailable",
