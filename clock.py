@@ -118,9 +118,9 @@ class TouchHandler:
         self.invert_y = False         # Invert Y after swap
         
         # Gesture thresholds (in screen pixels, not raw units)
-        self.swipe_threshold = 60    # Minimum pixels for swipe
-        self.tap_threshold = 25      # Maximum movement for tap
-        self.tap_timeout = 0.5       # Maximum seconds for tap
+        self.swipe_threshold = 80    # Minimum pixels for swipe
+        self.tap_threshold = 30      # Maximum movement for tap
+        self.tap_timeout = 0.4       # Maximum seconds for tap
         
         # Debug mode - set to True to see all touch coordinates
         self.debug = False
@@ -892,26 +892,20 @@ class SolarClock:
         nav_y = HEIGHT - NAV_BAR_HEIGHT  # 280
         bottom_h = 58
         bottom_y = nav_y - bottom_h - 4  # 218
-        chart_box_top = header_h + 4  # 36
+        chart_box_top = header_h + 18  # 60 - room for time/date
         chart_box_bottom = bottom_y - 4  # 214
 
-        # Header with time and date
+        # Header
         draw.rectangle([(0, 0), (WIDTH, header_h)], fill=ORANGE)
         title = "Sun Path"
-        bbox = draw.textbbox((0, 0), title, font=self.fonts["med"])
-        draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 2), title, fill=WHITE, font=self.fonts["med"])
-        
-        # Current time and date
+        bbox = draw.textbbox((0, 0), title, font=self.fonts["large"])
+        draw.text((WIDTH//2 - (bbox[2] - bbox[0])//2, 6), title, fill=WHITE, font=self.fonts["large"])
+
+        # Time and date line above graph
         time_str = now.strftime("%-I:%M %p")
         date_str = now.strftime("%a %b %-d")
-        draw.text((10, 6), time_str, fill=WHITE, font=self.fonts["small"])
-        draw.text((10, 24), date_str, fill=WHITE, font=self.fonts["tiny"])
-        
-        # Position info on right side of header
-        if elev is not None and azim is not None:
-            pos_str = f"El {elev:.0f}° Az {azim:.0f}°"
-            bbox2 = draw.textbbox((0, 0), pos_str, font=self.fonts["tiny"])
-            draw.text((WIDTH - 10 - (bbox2[2] - bbox2[0]), 26), pos_str, fill=WHITE, font=self.fonts["tiny"])
+        draw.text((10, 44), time_str, fill=LIGHT_GRAY, font=self.fonts["tiny"])
+        draw.text((WIDTH - 120, 44), date_str, fill=LIGHT_GRAY, font=self.fonts["tiny"])
 
         # Chart area with margins for labels
         margin_left = 32
