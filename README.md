@@ -249,3 +249,41 @@ MIT License - Feel free to modify and distribute.
 - Moon & astronomical calculations: [PyEphem](https://rhodesmill.org/pyephem/)
 - Weather & Air Quality data: [OpenWeatherMap](https://openweathermap.org/)
 - Display drivers: [Waveshare LCD-show](https://github.com/waveshare/LCD-show)
+
+## Future Ideas
+
+Potential improvements and features for future development:
+
+### New Views
+| View | Description |
+|------|-------------|
+| Astronomical Events | Meteor showers, eclipses, ISS passes, planetary conjunctions |
+| UV Index | Real-time UV data with exposure recommendations |
+| Tides | High/low tide times for coastal locations |
+| Week Overview | 7-day sunrise/sunset timeline at a glance |
+
+### UI/UX Enhancements
+- **Screen Dimming** - Auto-dim at night, brighten at sunrise
+- **Auto-Cycle Mode** - Slideshow through views every N seconds
+- **Color Themes** - User-selectable color palettes
+- **Loading States** - Spinner while fetching API data
+- **Data Freshness** - Timestamps showing when data was last updated
+
+### Data & Integration
+- **Weather Alerts** - NWS severe weather warnings integration
+- **Blue Hour Times** - Photography timing (in addition to golden hour)
+- **Multiple Locations** - Save and switch between locations
+- **Offline Mode** - Cache weather data with staleness indicator
+- **MQTT/Home Assistant** - Publish solar data for smart home integration
+
+### Technical Improvements
+- **External Config** - Move settings to `config.json` instead of hardcoded values
+- **Web Config UI** - Flask interface for changing location, API keys, preferences
+- **REST API** - Expose current data for other devices/dashboards
+- **OTA Updates** - Pull updates from GitHub automatically
+
+### Quick Wins
+- [ ] Last-updated timestamps on weather/AQI views
+- [ ] Blue hour times on Solar Details view
+- [ ] Swipe hint animation on first launch
+- [ ] Network/offline status indicator
