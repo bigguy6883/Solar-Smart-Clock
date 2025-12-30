@@ -945,9 +945,20 @@ class SolarClock:
         min_elev = min(((int(min_elev_today) // 10) - 1) * 10, -20)
         elev_range = max_elev - min_elev
 
+        # Non-linear mapping: 75% of chart for day (0 to max), 25% for night (min to 0)
+        day_portion = 0.75  # Portion of chart height for positive elevations
+        night_portion = 1.0 - day_portion
+        
         def elev_to_y(e):
-            normalized = (e - min_elev) / elev_range
-            return int(chart_bottom - normalized * chart_height)
+            if e >= 0:
+                # Daytime: map 0 to max_elev onto top 75% of chart
+                normalized = e / max_elev if max_elev > 0 else 0
+                y_offset = (1.0 - normalized) * day_portion * chart_height
+            else:
+                # Nighttime: map min_elev to 0 onto bottom 25% of chart
+                normalized = e / min_elev if min_elev < 0 else 0  # 0 to 1 as we go deeper
+                y_offset = day_portion * chart_height + normalized * night_portion * chart_height
+            return int(chart_top + y_offset)
 
         def time_to_x(dt):
             if isinstance(dt, datetime.datetime):
