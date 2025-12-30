@@ -1726,11 +1726,27 @@ class SolarClock:
                 draw.text((5, y - 6), f"{hours}h", fill=GRAY, font=self.fonts["micro"])
                 draw.line([(chart_left, y), (chart_right, y)], fill=(40, 40, 50), width=1)
 
-        # X axis months
-        months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
-        for i, m in enumerate(months):
-            x = chart_left + int((i + 0.5) * chart_width / 12)
-            draw.text((x - 3, chart_bottom + 3), m, fill=GRAY, font=self.fonts["micro"])
+        # X axis months - CENTERED ON TODAY
+        today_day = today.timetuple().tm_yday
+        half_year = 182  # days to show on each side
+        
+        # Month labels centered on today
+        months_full = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
+        month_starts = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]  # day of year
+        
+        for i in range(12):
+            # Calculate offset from today
+            month_mid = month_starts[i] + 15  # middle of month
+            offset = month_mid - today_day
+            # Handle wrap-around
+            if offset > half_year:
+                offset -= 365
+            elif offset < -half_year:
+                offset += 365
+            
+            if -half_year <= offset <= half_year:
+                x = chart_left + int((offset + half_year) / (2 * half_year) * chart_width)
+                draw.text((x - 3, chart_bottom + 3), months_full[i], fill=GRAY, font=self.fonts["micro"])
 
         # Solstice/equinox dates
         sol_eq = self.get_solstice_equinox_dates(year)
@@ -1741,28 +1757,50 @@ class SolarClock:
             ('winter_solstice', 'Winter', BLUE),
         ]
 
-        # Draw vertical lines for solstice/equinox
+        # Draw vertical lines for solstice/equinox - centered on today
         for key, label, color in events:
             evt_date = sol_eq[key]
-            day_num = evt_date.timetuple().tm_yday
-            x = chart_left + int((day_num - 1) / 365 * chart_width)
-            draw.line([(x, chart_top), (x, chart_bottom)], fill=color, width=2)
+            evt_day = evt_date.timetuple().tm_yday
+            offset = evt_day - today_day
+            if offset > half_year:
+                offset -= 365
+            elif offset < -half_year:
+                offset += 365
+            
+            if -half_year <= offset <= half_year:
+                x = chart_left + int((offset + half_year) / (2 * half_year) * chart_width)
+                draw.line([(x, chart_top), (x, chart_bottom)], fill=color, width=1)
 
-        # Draw day length curve
+        # Draw day length curve - centered on today
         points = []
         for day_of_year, dl, date in day_lengths:
-            x = chart_left + int((day_of_year - 1) / 365 * chart_width)
-            y = chart_bottom - int((dl - min_dl) / dl_range * chart_height)
-            points.append((x, y))
+            offset = day_of_year - today_day
+            if offset > half_year:
+                offset -= 365
+            elif offset < -half_year:
+                offset += 365
+            
+            if -half_year <= offset <= half_year:
+                x = chart_left + int((offset + half_year) / (2 * half_year) * chart_width)
+                y = chart_bottom - int((dl - min_dl) / dl_range * chart_height)
+                points.append((x, y, offset))
 
+        # Sort by x position for proper line drawing
+        points.sort(key=lambda p: p[2])
         for i in range(len(points) - 1):
-            draw.line([points[i], points[i + 1]], fill=ORANGE, width=2)
+            # Only draw line if points are adjacent (within a few days)
+            if abs(points[i+1][2] - points[i][2]) < 10:
+                draw.line([(points[i][0], points[i][1]), (points[i+1][0], points[i+1][1])], fill=ORANGE, width=2)
 
-        # Mark today
-        today_day = today.timetuple().tm_yday
+        # Mark today - always at center
         today_dl = self.calculate_day_length(today)
-        today_x = chart_left + int((today_day - 1) / 365 * chart_width)
+        today_x = chart_left + chart_width // 2
         today_y = chart_bottom - int((today_dl - min_dl) / dl_range * chart_height)
+        
+        # Draw vertical line at today
+        draw.line([(today_x, chart_top), (today_x, chart_bottom)], fill=(60, 60, 100), width=1)
+        
+        # Draw today marker
         draw.ellipse([(today_x - 7, today_y - 7), (today_x + 7, today_y + 7)], fill=(80, 60, 0))
         draw.ellipse([(today_x - 5, today_y - 5), (today_x + 5, today_y + 5)], fill=WHITE, outline=YELLOW)
 
