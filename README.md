@@ -20,14 +20,43 @@ This project was adapted from the original [Solar-Smart-Clock](https://github.co
 |:---:|:---:|:---:|
 | ![Sun Path](screenshots/4_sunpath.png) | ![Day Length](screenshots/5_daylength.png) | ![Solar](screenshots/6_solar.png) |
 
-| Moon Phase | Analemma |
-|:---:|:---:|
-| ![Moon](screenshots/7_moon.png) | ![Analemma](screenshots/8_analemma.png) |
+| Moon Phase | Analemma | Analog Clock |
+|:---:|:---:|:---:|
+| ![Moon](screenshots/7_moon.png) | ![Analemma](screenshots/8_analemma.png) | ![Analog Clock](screenshots/9_analogclock.png) |
 
 ## Features
 
 ### Multi-View Interface
-Navigate between eight views using the **< >** buttons at the bottom of the screen, or swipe left/right on the touchscreen. Views are grouped logically: time/weather, solar information, then celestial.
+Navigate between nine views using the **< >** buttons at the bottom of the screen, or swipe left/right on the touchscreen. Views are grouped logically: time/weather, solar information, then celestial.
+
+1. **Clock View**
+   - Large digital time display with AM/PM indicator
+   - Current date with day of week
+   - Current weather conditions (temperature, description)
+   - Sunrise and sunset times with icons
+   - Dynamic header color changes based on time of day
+
+2. **Weather View**
+   - Current temperature with "feels like" value
+   - Weather description and conditions
+   - Wind speed and direction
+   - Humidity percentage
+   - 3-day forecast with high/low temperatures
+   - Rain probability for each forecast day
+
+3. **Air Quality View**
+   - Current AQI (Air Quality Index) with color-coded scale
+   - AQI category label (Good, Moderate, Unhealthy, etc.)
+   - Pollutant breakdown: PM2.5, PM10, O₃, NO₂, SO₂, CO
+   - Visual progress bars for each pollutant level
+   - Health recommendations based on AQI level
+
+4. **Sun Path View**
+   - Circular diagram showing sun's arc across the sky
+   - Current sun position with elevation angle
+   - Dawn, sunrise, solar noon, sunset, dusk markers
+   - Current time and date display
+   - Countdown to next solar event (sunrise or sunset)
 
 5. **Day Length View**
    - Year-long day length curve chart
@@ -37,6 +66,13 @@ Navigate between eight views using the **< >** buttons at the bottom of the scre
    - **Min/Max box**: Shortest and longest days with dates
    - **Next event box**: Countdown to next solstice/equinox
 
+6. **Solar Details View**
+   - Complete sun times: dawn, sunrise, solar noon, sunset, dusk
+   - Golden hour times (morning and evening)
+   - Current sun elevation and azimuth angles
+   - Day length with comparison to yesterday
+   - Time until next sunrise or sunset
+
 7. **Moon Phase View**
    - Visual moon phase display with illumination
    - Phase name (New, Waxing Crescent, Full, etc.)
@@ -45,10 +81,25 @@ Navigate between eight views using the **< >** buttons at the bottom of the scre
    - Days until next new moon
    - Days until next full moon
    - Lunar cycle progress bar
+
+8. **Analemma View**
+   - Figure-8 sun position diagram
+   - Shows sun's position at same time throughout year
+   - Current position highlighted
+   - Month markers around the curve
+   - Demonstrates equation of time visually
+
+9. **Analog Clock View**
+   - Traditional clock face with hour/minute/second hands
+   - Roman numeral hour markers
+   - Smooth second hand movement
+   - Dynamic color theme based on time of day
+   - Date display
+
 ### Additional Features
 - **Navigation Buttons**: Tap < or > buttons at bottom to change views
 - **Touch Navigation**: Swipe left/right to change views
-- **Page Indicator**: 8 dots at bottom show current view position
+- **Page Indicator**: 9 dots at bottom show current view position
 - **Dynamic Themes**: Header colors change based on time of day
 - **Auto-start**: Runs automatically on boot via systemd service
 - **Landscape Display**: Optimized 480x320 landscape layout
@@ -184,6 +235,7 @@ sudo systemctl start solar-clock
 | 6 | Solar | Detailed sun times and golden hours |
 | 7 | Moon | Phase visualization and upcoming dates |
 | 8 | Analemma | Figure-8 sun position chart |
+| 9 | Analog Clock | Traditional clock face with dynamic theme |
 
 ## Service Management
 
@@ -213,7 +265,7 @@ journalctl -u solar-clock -f
 ## Technical Details
 
 ### Architecture
-- **ViewManager**: Handles navigation between the 8 views
+- **ViewManager**: Handles navigation between the 9 views
 - **TouchHandler**: Threaded touch input processor using evdev
 - **SolarClock**: Main class rendering frames to framebuffer
 
@@ -244,7 +296,6 @@ MIT License - Feel free to modify and distribute.
 
 - Code improvements: [Claude Code](https://claude.com/claude-code)
 - Original Arduino/Pico W version: [Solar-Smart-Clock](https://github.com/bigguy6883/Solar-Smart-Clock)
-
 - Solar calculations: [Astral](https://github.com/sffjunkie/astral)
 - Moon & astronomical calculations: [PyEphem](https://rhodesmill.org/pyephem/)
 - Weather & Air Quality data: [OpenWeatherMap](https://openweathermap.org/)
