@@ -20,35 +20,35 @@ This project was adapted from the original [Solar-Smart-Clock](https://github.co
 |:---:|:---:|:---:|
 | ![Sun Path](screenshots/4_sunpath.png) | ![Day Length](screenshots/5_daylength.png) | ![Solar](screenshots/6_solar.png) |
 
-| Moon Phase | Analemma |
-|:---:|:---:|
-| ![Moon](screenshots/7_moon.png) | ![Analemma](screenshots/8_analemma.png) |
+| Moon Phase | Analemma | Analog Clock |
+|:---:|:---:|:---:|
+| ![Moon](screenshots/7_moon.png) | ![Analemma](screenshots/8_analemma.png) | ![Analog](screenshots/9_analogclock.png) |
 
 ## Features
 
 ### Multi-View Interface
-Navigate between eight views using the **< >** buttons at the bottom of the screen, or swipe left/right on the touchscreen. Views are grouped logically: time/weather, solar information, then celestial.
+Navigate between nine views using the **< >** buttons at the bottom of the screen, or swipe left/right on the touchscreen. Views are grouped logically: time/weather, solar information, then celestial.
 
 5. **Day Length View**
-   - Year-long day length curve chart
+   - Rolling 12-month day length chart centered on current date
+   - Shows 6 months before and after today
    - Solstice/equinox vertical markers with seasonal colors
-   - Today's position highlighted on curve
+   - Today's position highlighted at chart center
    - **Today box**: Current day length with daily trend (+/- minutes)
    - **Min/Max box**: Shortest and longest days with dates
    - **Next event box**: Countdown to next solstice/equinox
 
 7. **Moon Phase View**
-   - Visual moon phase display with illumination
+   - Arc gauge design with moon graphic and illumination arc
    - Phase name (New, Waxing Crescent, Full, etc.)
-   - Illumination percentage with progress bar
-   - Moonrise and moonset times
-   - Days until next new moon
-   - Days until next full moon
+   - Illumination percentage displayed in arc center
+   - Moonrise and moonset times in info row
    - Lunar cycle progress bar
+   - Next new moon and full moon dates with countdowns
 ### Additional Features
 - **Navigation Buttons**: Tap < or > buttons at bottom to change views
 - **Touch Navigation**: Swipe left/right to change views
-- **Page Indicator**: 8 dots at bottom show current view position
+- **Page Indicator**: 9 dots at bottom show current view position
 - **Dynamic Themes**: Header colors change based on time of day
 - **Auto-start**: Runs automatically on boot via systemd service
 - **Landscape Display**: Optimized 480x320 landscape layout
@@ -179,11 +179,12 @@ sudo systemctl start solar-clock
 | 1 | Clock | Main time display with weather and sun info |
 | 2 | Weather | Current conditions and 3-day forecast |
 | 3 | Air Quality | AQI and pollutant levels |
-| 4 | Sun Path | Sun trajectory with time, date, and next event |
-| 5 | Day Length | Yearly chart with solstice/equinox info |
+| 4 | Sun Path | Sun trajectory with day-emphasized chart |
+| 5 | Day Length | Rolling chart centered on today |
 | 6 | Solar | Detailed sun times and golden hours |
-| 7 | Moon | Phase visualization and upcoming dates |
+| 7 | Moon | Arc gauge design with phase info |
 | 8 | Analemma | Figure-8 sun position chart |
+| 9 | Analog Clock | Time-adaptive analog clock display |
 
 ## Service Management
 
