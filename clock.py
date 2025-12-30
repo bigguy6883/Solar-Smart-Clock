@@ -2083,46 +2083,46 @@ class SolarClock:
         # Night: 9pm - 5am (21:00 - 05:00)
         if hour >= 21 or hour < 5:
             return {
-                'bg': (15, 20, 40),           # Deep navy
-                'face': (35, 45, 65),         # Dark blue-gray
-                'hand_hour': (200, 200, 210), # Silver
-                'hand_minute': (220, 220, 230), # Light silver
-                'dots': (60, 80, 120),        # Dim blue
-                'center': (180, 180, 190),    # Silver center
-                'date': (150, 160, 180),      # Muted blue-white
+                'bg': (10, 15, 30),           # Deep navy
+                'face': (20, 30, 50),         # Dark blue-gray
+                'hand_hour': (255, 255, 255), # White
+                'hand_minute': (200, 220, 255), # Ice blue
+                'dots': (255, 255, 255),      # White dots
+                'center': (150, 200, 255),    # Ice blue center
+                'date': (200, 210, 230),      # Light blue-white
             }
         # Dawn: 5am - 7am (pink-orange sunrise)
         elif hour >= 5 and hour < 7:
             return {
-                'bg': (60, 40, 70),           # Dark purple-pink
-                'face': (255, 220, 200),      # Pale peach/coral
-                'hand_hour': (180, 80, 80),   # Deep coral
-                'hand_minute': (200, 100, 100), # Coral
-                'dots': (220, 120, 100),      # Salmon
-                'center': (180, 80, 80),      # Deep coral center
-                'date': (255, 200, 180),      # Warm peach
+                'bg': (50, 30, 60),           # Dark purple-pink
+                'face': (255, 230, 210),      # Pale peach
+                'hand_hour': (140, 40, 40),   # Dark red
+                'hand_minute': (180, 60, 60), # Deep coral
+                'dots': (160, 80, 70),        # Dark salmon
+                'center': (140, 40, 40),      # Dark red center
+                'date': (255, 220, 200),      # Warm peach
             }
         # Day: 7am - 5pm (07:00 - 17:00)
         elif hour >= 7 and hour < 17:
             return {
                 'bg': (70, 130, 180),         # Sky blue
-                'face': (250, 248, 240),      # Light cream
-                'hand_hour': (40, 40, 50),    # Dark gray
-                'hand_minute': (50, 50, 60),  # Dark gray
-                'dots': (80, 80, 90),         # Dark gray dots
-                'center': (60, 60, 70),       # Dark center
+                'face': (255, 252, 245),      # Bright cream
+                'hand_hour': (20, 20, 30),    # Near black
+                'hand_minute': (40, 40, 50),  # Dark gray
+                'dots': (50, 50, 60),         # Dark dots
+                'center': (20, 20, 30),       # Dark center
                 'date': (255, 255, 255),      # White
             }
         # Dusk: 5pm - 9pm (deep purple-magenta sunset)
         else:
             return {
-                'bg': (50, 30, 60),           # Deep purple
-                'face': (70, 50, 80),         # Dark purple-gray
-                'hand_hour': (255, 180, 100), # Amber gold
-                'hand_minute': (255, 200, 120), # Light amber
-                'dots': (180, 130, 200),      # Lavender
-                'center': (255, 180, 100),    # Amber center
-                'date': (200, 180, 220),      # Light lavender
+                'bg': (35, 20, 45),           # Deep purple
+                'face': (55, 40, 65),         # Dark purple-gray
+                'hand_hour': (255, 255, 255), # White
+                'hand_minute': (255, 220, 120), # Bright gold
+                'dots': (255, 255, 255),      # White dots
+                'center': (255, 200, 80),     # Gold center
+                'date': (255, 240, 200),      # Cream white
             }
 
     def create_analogclock_frame(self):
