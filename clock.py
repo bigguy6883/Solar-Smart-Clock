@@ -1567,27 +1567,76 @@ class SolarClock:
             self.aqi_last_update = 0
         return self.aqi_data
 
+    def calculate_epa_aqi(self, components):
+        """Calculate US EPA AQI from pollutant concentrations"""
+        def calc_aqi(c, breakpoints):
+            """Linear interpolation between breakpoints"""
+            for (c_low, c_high, i_low, i_high) in breakpoints:
+                if c_low <= c <= c_high:
+                    return round(((i_high - i_low) / (c_high - c_low)) * (c - c_low) + i_low)
+            return breakpoints[-1][3]  # Return max if above all breakpoints
+
+        # EPA breakpoints: (C_low, C_high, I_low, I_high)
+        pm25_bp = [
+            (0.0, 12.0, 0, 50),
+            (12.1, 35.4, 51, 100),
+            (35.5, 55.4, 101, 150),
+            (55.5, 150.4, 151, 200),
+            (150.5, 250.4, 201, 300),
+            (250.5, 500.4, 301, 500),
+        ]
+
+        # O3 breakpoints (8-hour, ppb) - OWM gives µg/m³, convert: ppb = µg/m³ / 1.96
+        o3_bp = [
+            (0, 54, 0, 50),
+            (55, 70, 51, 100),
+            (71, 85, 101, 150),
+            (86, 105, 151, 200),
+            (106, 200, 201, 300),
+        ]
+
+        aqi_values = []
+
+        pm25 = components.get('pm2_5', 0)
+        if pm25 > 0:
+            aqi_values.append(calc_aqi(pm25, pm25_bp))
+
+        o3_ugm3 = components.get('o3', 0)
+        if o3_ugm3 > 0:
+            o3_ppb = o3_ugm3 / 1.96  # Convert µg/m³ to ppb
+            aqi_values.append(calc_aqi(o3_ppb, o3_bp))
+
+        return max(aqi_values) if aqi_values else 0
+
     def get_aqi_color(self, aqi):
-        """Get color for AQI level (1-5 scale from OpenWeatherMap)"""
-        colors = {
-            1: AQI_GOOD,
-            2: AQI_MODERATE,
-            3: AQI_UNHEALTHY_SENSITIVE,
-            4: AQI_UNHEALTHY,
-            5: AQI_VERY_UNHEALTHY
-        }
-        return colors.get(aqi, GRAY)
+        """Get color for US EPA AQI level (0-500 scale)"""
+        if aqi <= 50:
+            return AQI_GOOD
+        elif aqi <= 100:
+            return AQI_MODERATE
+        elif aqi <= 150:
+            return AQI_UNHEALTHY_SENSITIVE
+        elif aqi <= 200:
+            return AQI_UNHEALTHY
+        elif aqi <= 300:
+            return AQI_VERY_UNHEALTHY
+        else:
+            return AQI_HAZARDOUS
 
     def get_aqi_label(self, aqi):
-        """Get label for AQI level"""
-        labels = {
-            1: "Good",
-            2: "Fair",
-            3: "Moderate",
-            4: "Poor",
-            5: "Very Poor"
-        }
-        return labels.get(aqi, "Unknown")
+        """Get label for US EPA AQI level"""
+        if aqi <= 50:
+            return "Good"
+        elif aqi <= 100:
+            return "Moderate"
+        elif aqi <= 150:
+            return "Sensitive"
+        elif aqi <= 200:
+            return "Unhealthy"
+        elif aqi <= 300:
+            return "Very Unhealthy"
+        else:
+            return "Hazardous"
 
     def create_airquality_frame(self):
         """Air quality view with AQI and pollutants"""
@@ -1595,11 +1644,12 @@ class SolarClock:
         draw = ImageDraw.Draw(img)
 
         aqi_data = self.get_air_quality()
-        
+
         if aqi_data and 'list' in aqi_data and len(aqi_data['list']) > 0:
             aqi_info = aqi_data['list'][0]
-            aqi = aqi_info['main']['aqi']
             components = aqi_info['components']
+            # Calculate US EPA AQI from pollutant concentrations
+            aqi = self.calculate_epa_aqi(components)
             aqi_color = self.get_aqi_color(aqi)
             aqi_label = self.get_aqi_label(aqi)
         else:
@@ -1613,12 +1663,12 @@ class SolarClock:
         header_text = "Air Quality"
         bbox = draw.textbbox((0, 0), header_text, font=self.fonts["large"])
         tw = bbox[2] - bbox[0]
-        text_color = BLACK if aqi in [1, 2] else WHITE
+        text_color = BLACK if aqi <= 100 else WHITE
         draw.text((WIDTH//2 - tw//2, 8), header_text, fill=text_color, font=self.fonts["large"])
 
         # Left side: Large AQI display
         aqi_y = 55
-        draw.text((25, aqi_y), "AQI Level", fill=LIGHT_GRAY, font=self.fonts["small"])
+        draw.text((25, aqi_y), "US EPA AQI", fill=LIGHT_GRAY, font=self.fonts["small"])
         aqi_str = str(aqi) if aqi > 0 else "--"
         draw.text((25, aqi_y + 25), aqi_str, fill=aqi_color, font=self.fonts["huge"])
         draw.text((25, aqi_y + 85), aqi_label, fill=aqi_color, font=self.fonts["large"])
