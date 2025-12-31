@@ -1,0 +1,14 @@
+# SSH config for fast screenshot captures via SSH multiplexing
+# Copy to ~/.ssh/config on your development machine and adjust hostname
+
+Host clock.local
+    User pi
+    ControlMaster auto
+    ControlPath ~/.ssh/sockets/%r@%h-%p
+    ControlPersist 600
+    ConnectTimeout 5
+    ServerAliveInterval 30
+    ServerAliveCountMax 3
+
+# Note: Create socket directory with:
+#   mkdir -p ~/.ssh/sockets && chmod 700 ~/.ssh/sockets

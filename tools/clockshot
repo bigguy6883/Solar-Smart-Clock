@@ -1,0 +1,30 @@
+#!/bin/bash
+# Ultra-fast screenshot from clock.local
+# Tries HTTP first (fastest), falls back to SSH
+# Usage: clockshot [output_file]
+
+OUT="${1:-/tmp/clock_screen.png}"
+HTTP_URL="http://clock.local:8080/screenshot.png"
+SOCKET="$HOME/.ssh/sockets/pi@clock.local-22"
+
+# Ensure output directory exists
+mkdir -p "$(dirname "$OUT")" 2>/dev/null
+
+# Try HTTP first (fastest method)
+if curl -sf --connect-timeout 2 -o "$OUT" "$HTTP_URL" 2>/dev/null; then
+    echo "$OUT"
+    exit 0
+fi
+
+# Fallback to SSH with multiplexing
+if [ ! -S "$SOCKET" ]; then
+    ssh -fN pi@clock.local 2>/dev/null
+    sleep 0.1
+fi
+
+if ssh pi@clock.local "fbgrab -d /dev/fb1 -" > "$OUT" 2>/dev/null; then
+    echo "$OUT"
+else
+    echo "Error: Screenshot capture failed" >&2
+    exit 1
+fi

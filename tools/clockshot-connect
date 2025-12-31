@@ -1,0 +1,18 @@
+#!/bin/bash
+# Pre-establish SSH master connection for fast screenshots
+# Run this at boot or before screenshot sessions
+
+SOCKET="$HOME/.ssh/sockets/pi@clock.local-22"
+
+if [ -S "$SOCKET" ]; then
+    echo "Master connection already active"
+else
+    echo "Establishing SSH master connection..."
+    ssh -fN pi@clock.local
+    if [ -S "$SOCKET" ]; then
+        echo "Connection ready"
+    else
+        echo "Failed to establish connection" >&2
+        exit 1
+    fi
+fi
