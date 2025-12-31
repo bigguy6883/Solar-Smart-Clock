@@ -9,6 +9,8 @@ from zoneinfo import ZoneInfo
 import threading
 import requests
 from PIL import Image, ImageDraw, ImageFont
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from io import BytesIO
 
 from astral import LocationInfo
 from astral.sun import sun, elevation, azimuth, golden_hour, twilight
@@ -76,7 +78,7 @@ class ViewManager:
     VIEWS = ["clock", "weather", "airquality", "sunpath", "daylength", "solar", "moon", "analemma", "analogclock"]
 
     def __init__(self):
-        self.current_index = 0
+        self.current_index = 8
 
     def next_view(self):
         self.current_index = (self.current_index + 1) % len(self.VIEWS)
@@ -282,9 +284,95 @@ class TouchHandler:
         else:
             if self.debug:
                 print(f"Tap outside nav bar: y={screen_y} (nav starts at {HEIGHT - NAV_BAR_HEIGHT})", flush=True)
+
+class ScreenshotHandler(BaseHTTPRequestHandler):
+    """HTTP handler for serving screenshots"""
+
+    clock_instance = None
+
+    def log_message(self, format, *args):
+        pass  # Suppress logging
+
+    def do_GET(self):
+        if self.path in ('/screenshot', '/screenshot.png'):
+            self._serve_screenshot()
+        elif self.path == '/health':
+            self._serve_health()
+        elif self.path == '/next':
+            self._next_view()
+        elif self.path == '/prev':
+            self._prev_view()
+        elif self.path == '/view':
+            self._get_view()
+        else:
+            self.send_error(404)
+
+    def _serve_screenshot(self):
+        if not self.clock_instance:
+            self.send_error(503, "No clock instance")
+            return
+        try:
+            # Generate fresh frame instead of using cache
+            frame = self.clock_instance.create_frame()
+            buf = BytesIO()
+            frame.save(buf, format='PNG', optimize=False)
+            data = buf.getvalue()
+            self.send_response(200)
+            self.send_header('Content-Type', 'image/png')
+            self.send_header('Content-Length', len(data))
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            self.wfile.write(data)
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def _serve_health(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'OK')
+
+    def _next_view(self):
+        if self.clock_instance:
+            self.clock_instance.view_manager.next_view()
+            view = self.clock_instance.view_manager.get_current()
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(f'Switched to: {view}'.encode())
+        else:
+            self.send_error(503)
+
+    def _prev_view(self):
+        if self.clock_instance:
+            self.clock_instance.view_manager.prev_view()
+            view = self.clock_instance.view_manager.get_current()
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(f'Switched to: {view}'.encode())
+        else:
+            self.send_error(503)
+
+    def _get_view(self):
+        if self.clock_instance:
+            view = self.clock_instance.view_manager.get_current()
+            idx = self.clock_instance.view_manager.get_index()
+            total = self.clock_instance.view_manager.get_count()
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(f'{view} ({idx+1}/{total})'.encode())
+        else:
+            self.send_error(503)
+
+
+
 class SolarClock:
     def __init__(self):
         self.fb_device = "/dev/fb1"
+        self.last_frame = None
+        self._start_http_server()
         self.weather_data = None
         self.weather_json = None
         self.weather_last_update = 0
@@ -316,6 +404,18 @@ class SolarClock:
             d = ImageFont.load_default()
             fonts = {k: d for k in ["huge", "large", "med", "small", "tiny", "micro", "nav"]}
         return fonts
+
+    def _start_http_server(self, port=8080):
+        """Start HTTP server for screenshots in background thread"""
+        ScreenshotHandler.clock_instance = self
+        try:
+            self.http_server = HTTPServer(('0.0.0.0', port), ScreenshotHandler)
+            self.http_thread = threading.Thread(target=self.http_server.serve_forever, daemon=True)
+            self.http_thread.start()
+            print(f"Screenshot server running on port {port}")
+        except Exception as e:
+            print(f"Could not start HTTP server: {e}")
+            self.http_server = None
 
     def get_sun_times(self):
         try:
@@ -2317,7 +2417,9 @@ class SolarClock:
 
         try:
             while True:
-                self.write_fb(self.create_frame())
+                frame = self.create_frame()
+                self.last_frame = frame
+                self.write_fb(frame)
                 time.sleep(1)
         except KeyboardInterrupt:
             pass
