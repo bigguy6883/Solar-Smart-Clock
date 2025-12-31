@@ -17,14 +17,54 @@ journalctl -u solar-clock -f
 
 # Check service status
 sudo systemctl status solar-clock
+```
 
-# Capture screenshot from framebuffer
+## Remote Screenshot Capture
+
+The clock runs an HTTP server on port 8080 for fast remote screenshots (~155ms vs ~3800ms via SSH).
+
+### HTTP Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `/screenshot` | Capture current display as PNG |
+| `/health` | Health check (returns "OK") |
+| `/next` | Navigate to next view |
+| `/prev` | Navigate to previous view |
+| `/view` | Get current view name and index |
+
+### From Remote Machine
+
+```bash
+# Quick screenshot via HTTP (fastest)
+curl -o /tmp/screen.png http://clock.local:8080/screenshot
+
+# Navigate views
+curl http://clock.local:8080/next
+curl http://clock.local:8080/view
+
+# Use the clockshot utility (tools/clockshot)
+./tools/clockshot /tmp/screenshot.png
+
+# Capture all 9 views
+for i in 1 2 3 4 5 6 7 8 9; do
+    curl -s http://clock.local:8080/next
+    sleep 0.3
+    view=$(curl -s http://clock.local:8080/view | cut -d' ' -f1)
+    curl -o "/tmp/${i}_${view}.png" http://clock.local:8080/screenshot
+done
+```
+
+### On the Clock Itself
+
+```bash
+# Direct framebuffer capture
 fbgrab -d /dev/fb1 /tmp/screenshot.png
 ```
 
 ## Architecture
 
-**Single file**: `clock.py` (~2300 lines) contains everything.
+**Single file**: `clock.py` (~2400 lines) contains everything including HTTP screenshot server.
 
 ### Core Classes
 
@@ -33,6 +73,7 @@ fbgrab -d /dev/fb1 /tmp/screenshot.png
 | `SolarClock` | Main class - renders frames, manages state, writes to framebuffer |
 | `ViewManager` | Tracks current view index (0-8), handles prev/next navigation |
 | `TouchHandler` | Threaded evdev input handler for swipe gestures and nav button taps |
+| `ScreenshotHandler` | HTTP request handler for remote screenshots and view navigation |
 
 ### View System
 
@@ -52,9 +93,10 @@ Views are defined in `ViewManager.VIEWS` list. Each has a corresponding `create_
 
 ### Data Flow
 
-1. `run()` - Main loop, calls `create_frame()` every 0.5s
+1. `run()` - Main loop, calls `create_frame()` every 1s
 2. `create_frame()` - Dispatches to appropriate `create_*_frame()` based on current view
 3. `write_fb()` - Converts PIL Image to RGB565 and writes to `/dev/fb1`
+4. `_start_http_server()` - Launches threaded HTTP server on port 8080
 
 ### External APIs
 
@@ -68,15 +110,15 @@ All weather/AQI data from OpenWeatherMap (API key in systemd environment):
 - `astral` library: sunrise, sunset, dawn, dusk, golden hour, solar position
 - `ephem` library: moon phase, solstice/equinox dates, analemma
 
-## Testing a Specific View
+## Testing Views
+
+Use HTTP endpoints to navigate and capture views remotely:
 
 ```bash
-# Change starting view index (0-8), restart, then revert
-sed -i 's/self.current_index = 0/self.current_index = 2/' clock.py
-sudo systemctl restart solar-clock
-# After testing:
-sed -i 's/self.current_index = 2/self.current_index = 0/' clock.py
-sudo systemctl restart solar-clock
+# Switch to specific view and capture
+curl http://clock.local:8080/next  # repeat as needed
+curl http://clock.local:8080/view  # check current view
+curl -o test.png http://clock.local:8080/screenshot
 ```
 
 ## Configuration
@@ -97,10 +139,6 @@ LOCATION = LocationInfo(
 - `WIDTH = 480`, `HEIGHT = 320` - Display dimensions
 - `NAV_BAR_HEIGHT = 40` - Bottom navigation bar
 - Color tuples defined at top (BLACK, WHITE, YELLOW, AQI_* colors, etc.)
-
-## Privacy
-
-Before committing, redact: location coordinates, IP addresses, API keys.
 
 ## Privacy
 
