@@ -2402,7 +2402,8 @@ class SolarClock:
         px = list(img.convert("RGB").getdata())
         fb = bytearray(WIDTH * HEIGHT * 2)
         for i, (r, g, b) in enumerate(px):
-            c = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
+            # BGR565 format - swap R and B for this display
+            c = ((b >> 3) << 11) | ((g >> 2) << 5) | (r >> 3)
             fb[i*2] = c & 0xFF
             fb[i*2+1] = (c >> 8) & 0xFF
         self.fb_handle.seek(0)
