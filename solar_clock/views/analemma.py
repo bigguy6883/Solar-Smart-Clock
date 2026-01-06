@@ -48,11 +48,11 @@ class AnalemmaView(BaseView):
 
     def _render_analemma_diagram(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render the figure-8 analemma pattern."""
-        # Diagram area
+        # Diagram area - figure-8 should be taller than wide
         center_x = 120
-        center_y = y + 100
-        scale_x = 60  # Horizontal scale (equation of time)
-        scale_y = 80  # Vertical scale (elevation)
+        center_y = y + 95
+        scale_x = 50  # Horizontal scale (equation of time: ±15 min)
+        scale_y = 170  # Vertical scale (elevation: ~32° to ~79°)
 
         font_tiny = self.get_font(10)
 
@@ -85,8 +85,9 @@ class AnalemmaView(BaseView):
             # Map equation of time (-15 to +15 min) to x
             x = center_x + int((point.equation_of_time / 15) * scale_x)
 
-            # Map elevation to y
-            elev_normalized = (point.elevation - 30) / 50  # Normalize around 30-80 degrees
+            # Map elevation to y (centered on mid-elevation, ~55° for lat 35°N)
+            # Range is approximately 32° to 79° = 47° span
+            elev_normalized = (point.elevation - 55) / 47  # Center on 55°, span 47°
             y_pos = center_y - int(elev_normalized * scale_y)
 
             # Determine season color

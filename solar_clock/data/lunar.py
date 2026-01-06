@@ -267,12 +267,12 @@ class LunarProvider:
             logger.warning(f"Failed to calculate equation of time: {e}")
             return None
 
-    def get_analemma_data(self, sample_time: int = 12) -> list[AnalemmaPoint]:
+    def get_analemma_data(self) -> list[AnalemmaPoint]:
         """
         Get analemma data points for the year.
 
-        Args:
-            sample_time: Hour of day to sample (default: noon)
+        Calculates sun position at solar noon (transit) for each sample date,
+        giving the characteristic figure-8 pattern.
 
         Returns:
             List of AnalemmaPoint for each week of the year
@@ -287,16 +287,21 @@ class LunarProvider:
             observer = ephem.Observer()
             observer.lat = str(self.latitude)
             observer.lon = str(self.longitude)
+            observer.pressure = 0  # No refraction for consistency
 
             # Sample every 7 days
             date = datetime.date(year, 1, 1)
             while date.year == year:
-                dt = datetime.datetime(date.year, date.month, date.day, sample_time, 0)
-                observer.date = dt
+                # Set observer to morning of this date
+                observer.date = datetime.datetime(date.year, date.month, date.day, 6, 0)
 
                 sun = ephem.Sun()
+                # Find solar noon (transit) for this date
+                transit = observer.next_transit(sun)
+                observer.date = transit
                 sun.compute(observer)
 
+                # Elevation at solar noon
                 elevation = float(sun.alt) * 180 / ephem.pi
                 eot = self.get_equation_of_time(date) or 0
 
