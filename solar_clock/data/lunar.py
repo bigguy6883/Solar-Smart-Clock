@@ -241,14 +241,27 @@ class LunarProvider:
             date = datetime.date.today()
 
         try:
-            # Calculate for solar noon
-            dt = datetime.datetime(date.year, date.month, date.day, 12, 0)
-            sun = ephem.Sun()
-            sun.compute(dt)
+            # Set up observer at prime meridian for standard calculation
+            observer = ephem.Observer()
+            observer.lat = '0'
+            observer.lon = '0'
+            observer.elevation = 0
+            observer.pressure = 0  # No atmospheric refraction
 
-            # Equation of time in hours, convert to minutes
-            eot = 12 - float(sun.ra) * 12 / ephem.pi
-            return eot * 60
+            # Set date to noon UTC
+            dt = datetime.datetime(date.year, date.month, date.day, 12, 0)
+            observer.date = dt
+
+            # Find when sun transits (crosses meridian)
+            sun = ephem.Sun()
+            transit = observer.next_transit(sun)
+
+            # Equation of time = 12:00 - transit time (in minutes)
+            # Positive = sun is early (ahead of clock), negative = sun is late
+            transit_dt = ephem.Date(transit).datetime()
+            eot_minutes = (12 * 60) - (transit_dt.hour * 60 + transit_dt.minute + transit_dt.second / 60)
+
+            return eot_minutes
 
         except (ValueError, AttributeError) as e:
             logger.warning(f"Failed to calculate equation of time: {e}")
