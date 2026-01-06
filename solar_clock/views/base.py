@@ -1,6 +1,7 @@
 """Base view class and view manager for Solar Smart Clock."""
 
 import logging
+import threading
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional
 
@@ -252,14 +253,17 @@ class ViewManager:
         """
         self.views = views
         self.current_index = default_index
+        self.view_changed = threading.Event()
 
     def next_view(self) -> None:
         """Navigate to next view."""
         self.current_index = (self.current_index + 1) % len(self.views)
+        self.view_changed.set()
 
     def prev_view(self) -> None:
         """Navigate to previous view."""
         self.current_index = (self.current_index - 1) % len(self.views)
+        self.view_changed.set()
 
     def get_current(self) -> str:
         """Get current view name."""

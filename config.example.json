@@ -27,7 +27,7 @@
   "touch": {
     "enabled": true,
     "device": "/dev/input/event0",
-    "swipe_threshold": 80,
+    "swipe_threshold": 25,
     "tap_threshold": 30,
     "tap_timeout": 0.4
   },
