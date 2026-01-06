@@ -6,10 +6,19 @@ After=network.target
 Type=simple
 User=pi
 WorkingDirectory=/home/pi/solar-clock
-Environment=OPENWEATHER_API_KEY=c3f51839ee21e18cad613f50eeb2f719
-ExecStart=/usr/bin/python3 /home/pi/solar-clock/clock.py
+
+# Load API key from secrets file (not in git)
+EnvironmentFile=/etc/solar-clock/secrets
+
+ExecStart=/usr/bin/python3 -m solar_clock
 Restart=always
 RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/dev/fb1 /var/log/solar-clock
 
 [Install]
 WantedBy=multi-user.target

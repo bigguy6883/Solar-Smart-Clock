@@ -1,0 +1,8 @@
+# Solar Smart Clock dependencies
+Pillow>=10.0.0
+requests>=2.31.0
+astral>=3.2
+ephem>=4.1.0
+
+# Optional: touch support (Pi only)
+# evdev>=1.6.0

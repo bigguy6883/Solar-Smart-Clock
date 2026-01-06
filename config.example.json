@@ -1,0 +1,37 @@
+{
+  "location": {
+    "name": "Your City",
+    "region": "State, Country",
+    "timezone": "America/New_York",
+    "latitude": 40.7128,
+    "longitude": -74.0060
+  },
+  "display": {
+    "width": 480,
+    "height": 320,
+    "framebuffer": "/dev/fb1",
+    "nav_bar_height": 40
+  },
+  "http_server": {
+    "enabled": true,
+    "port": 8080,
+    "bind_address": "127.0.0.1"
+  },
+  "weather": {
+    "update_interval_seconds": 900,
+    "units": "imperial"
+  },
+  "air_quality": {
+    "update_interval_seconds": 1800
+  },
+  "touch": {
+    "enabled": true,
+    "device": "/dev/input/event0",
+    "swipe_threshold": 80,
+    "tap_threshold": 30,
+    "tap_timeout": 0.4
+  },
+  "appearance": {
+    "default_view": 0
+  }
+}
