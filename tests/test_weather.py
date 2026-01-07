@@ -4,12 +4,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 import requests
 
-from solar_clock.data.weather import (
-    WeatherProvider,
-    CurrentWeather,
-    DailyForecast,
-    AirQuality,
-)
+from solar_clock.data.weather import WeatherProvider, CurrentWeather
 
 
 class TestWeatherProvider:
