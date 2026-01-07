@@ -40,18 +40,26 @@ class WeatherView(BaseView):
         # Forecast (right side)
         self._render_forecast(draw, 45)
 
-        # Location
+        # Location and weather description
         font_small = self.get_font(14)
+        font_desc = self.get_font(16)
         location = self.config.location.name
-        draw.text((10, self.content_height - 25), location, fill=GRAY, font=font_small)
+        
+        # Weather description below current conditions panel
+        if self.providers.weather:
+            weather = self.providers.weather.get_current_weather()
+            if weather:
+                draw.text((20, 170), weather.description, fill=YELLOW, font=font_desc)
+        
+        draw.text((20, self.content_height - 25), location, fill=GRAY, font=font_small)
 
     def _render_current_conditions(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render current weather conditions."""
-        font_large = self.get_bold_font(42)
+        font_large = self.get_bold_font(48)
         font_med = self.get_font(16)
         font_small = self.get_font(14)
 
-        x = 15
+        x = 20
 
         if self.providers.weather is None:
             draw.text((x, y + 20), "--", fill=WHITE, font=font_large)
@@ -62,35 +70,43 @@ class WeatherView(BaseView):
             draw.text((x, y + 20), "--", fill=WHITE, font=font_large)
             return
 
-        # Temperature
+        # Subtle background panel for current conditions
+        draw.rounded_rectangle([(10, y - 5), (160, y + 120)], radius=8, fill=(30, 30, 40))
+
+        # Temperature - larger and bolder
         temp = f"{weather.temperature:.0f}°F"
-        draw.text((x, y), temp, fill=WHITE, font=font_large)
+        draw.text((x, y + 5), temp, fill=WHITE, font=font_large)
 
-        # Feels like and humidity
+        # Feels like
         feels = f"Feels {weather.feels_like:.0f}°"
-        humidity = f"{weather.humidity}%"
-        draw.text((x, y + 50), feels, fill=LIGHT_GRAY, font=font_small)
-        draw.text((x + 80, y + 50), humidity, fill=LIGHT_GRAY, font=font_small)
+        draw.text((x, y + 58), feels, fill=LIGHT_GRAY, font=font_small)
 
-        # Description
-        draw.text((x, y + 70), weather.description, fill=WHITE, font=font_med)
+        # Humidity with icon
+        humidity = f"Humidity {weather.humidity}%"
+        draw.text((x, y + 78), humidity, fill=LIGHT_GRAY, font=font_small)
 
         # Wind
-        wind = f"Wind: {weather.wind_speed:.0f} mph {weather.wind_direction}"
-        draw.text((x, y + 95), wind, fill=LIGHT_GRAY, font=font_small)
+        wind = f"Wind {weather.wind_speed:.0f} {weather.wind_direction}"
+        draw.text((x, y + 98), wind, fill=LIGHT_GRAY, font=font_small)
 
     def _render_forecast(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render 3-day forecast."""
-        font_header = self.get_font(14)
+        font_header = self.get_font(12)
         font_day = self.get_font(16)
         font_temp = self.get_bold_font(18)
 
-        # Table headers
+        # Forecast panel background
         x_start = 175
-        draw.text((x_start, y), "Day", fill=GRAY, font=font_header)
-        draw.text((x_start + 70, y), "Hi", fill=GRAY, font=font_header)
-        draw.text((x_start + 115, y), "Lo", fill=GRAY, font=font_header)
-        draw.text((x_start + 160, y), "Rain", fill=GRAY, font=font_header)
+        draw.rounded_rectangle([(170, y - 5), (self.width - 10, y + 175)], radius=8, fill=(30, 30, 40))
+
+        # Table headers
+        draw.text((x_start + 5, y + 2), "Day", fill=GRAY, font=font_header)
+        draw.text((x_start + 75, y + 2), "Hi", fill=GRAY, font=font_header)
+        draw.text((x_start + 125, y + 2), "Lo", fill=GRAY, font=font_header)
+        draw.text((x_start + 175, y + 2), "Rain", fill=GRAY, font=font_header)
+
+        # Header divider
+        draw.line([(x_start, y + 20), (self.width - 15, y + 20)], fill=(60, 60, 70), width=1)
 
         if self.providers.weather is None:
             return
@@ -99,7 +115,7 @@ class WeatherView(BaseView):
         if not forecast:
             return
 
-        row_y = y + 25
+        row_y = y + 28
         row_height = 50
 
         day_names = ["Today", "Tmrw"]
@@ -112,7 +128,7 @@ class WeatherView(BaseView):
                 date = datetime.datetime.strptime(day.date, "%Y-%m-%d")
                 day_label = date.strftime("%a")
 
-            draw.text((x_start, row_y), day_label, fill=WHITE, font=font_day)
+            draw.text((x_start + 5, row_y), day_label, fill=WHITE, font=font_day)
             draw.text(
                 (x_start + 70, row_y),
                 f"{day.high_temp:.0f}°",
@@ -120,16 +136,24 @@ class WeatherView(BaseView):
                 font=font_temp,
             )
             draw.text(
-                (x_start + 115, row_y),
+                (x_start + 120, row_y),
                 f"{day.low_temp:.0f}°",
                 fill=BLUE,
                 font=font_temp,
             )
+            
+            # Rain chance with color coding
+            rain = day.rain_chance
+            rain_color = LIGHT_GRAY if rain < 30 else (LIGHT_BLUE if rain < 60 else BLUE)
             draw.text(
-                (x_start + 160, row_y),
-                f"{day.rain_chance}%",
-                fill=LIGHT_GRAY,
+                (x_start + 175, row_y),
+                f"{rain}%",
+                fill=rain_color,
                 font=font_day,
             )
+
+            # Row divider
+            if i < 2:
+                draw.line([(x_start, row_y + 28), (self.width - 15, row_y + 28)], fill=(40, 40, 50), width=1)
 
             row_y += row_height

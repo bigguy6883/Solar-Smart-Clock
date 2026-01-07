@@ -136,7 +136,7 @@ class SunPathView(BaseView):
         font_value = self.get_bold_font(20)
 
         # Left box: Next event countdown
-        draw.rectangle([(10, y), (230, y + 55)], fill=(30, 30, 30), outline=GRAY)
+        draw.rounded_rectangle([(10, y), (230, y + 55)], radius=6, fill=(35, 35, 40))
 
         if self.providers.solar:
             next_event = self.providers.solar.get_next_solar_event()
@@ -152,7 +152,7 @@ class SunPathView(BaseView):
                 draw.text((20, y + 30), f"at {event_time.strftime('%I:%M %p').lstrip('0')}", fill=LIGHT_GRAY, font=font)
 
         # Right box: Current elevation
-        draw.rectangle([(250, y), (self.width - 10, y + 55)], fill=(30, 30, 30), outline=GRAY)
+        draw.rounded_rectangle([(250, y), (self.width - 10, y + 55)], radius=6, fill=(35, 35, 40))
 
         if self.providers.solar:
             pos = self.providers.solar.get_solar_position()

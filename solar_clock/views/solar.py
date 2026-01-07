@@ -98,11 +98,12 @@ class SolarView(BaseView):
 
     def _render_current_info(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render current sun position and day length info."""
-        font = self.get_font(14)
+        font = self.get_font(12)
         font_value = self.get_bold_font(18)
+        font_small = self.get_font(11)
 
-        # Sun position
-        draw.rectangle([(10, y), (155, y + 55)], fill=(30, 30, 30), outline=GRAY)
+        # Sun position - rounded box
+        draw.rounded_rectangle([(10, y), (155, y + 58)], radius=6, fill=(35, 35, 40))
         draw.text((20, y + 5), "Sun Position", fill=GRAY, font=font)
 
         if self.providers.solar:
@@ -111,10 +112,10 @@ class SolarView(BaseView):
                 elev_str = f"El: {pos.elevation:.1f}°"
                 az_str = f"Az: {pos.azimuth:.0f}°"
                 draw.text((20, y + 22), elev_str, fill=YELLOW, font=font_value)
-                draw.text((20, y + 42), az_str, fill=LIGHT_GRAY, font=font)
+                draw.text((20, y + 40), az_str, fill=LIGHT_GRAY, font=font)
 
-        # Day length
-        draw.rectangle([(165, y), (310, y + 55)], fill=(30, 30, 30), outline=GRAY)
+        # Day length - rounded box
+        draw.rounded_rectangle([(165, y), (310, y + 58)], radius=6, fill=(35, 35, 40))
         draw.text((175, y + 5), "Day Length", fill=GRAY, font=font)
 
         if self.providers.solar:
@@ -127,10 +128,10 @@ class SolarView(BaseView):
             if change:
                 sign = "+" if change > 0 else ""
                 color = YELLOW if change > 0 else PURPLE
-                draw.text((175, y + 42), f"{sign}{change:.1f}m vs yesterday", fill=color, font=font)
+                draw.text((175, y + 42), f"{sign}{change:.1f}m vs yday", fill=color, font=font_small)
 
-        # Next event
-        draw.rectangle([(320, y), (self.width - 10, y + 55)], fill=(30, 30, 30), outline=GRAY)
+        # Next event - rounded box
+        draw.rounded_rectangle([(320, y), (self.width - 10, y + 58)], radius=6, fill=(35, 35, 40))
         draw.text((330, y + 5), "Next Event", fill=GRAY, font=font)
 
         if self.providers.solar:

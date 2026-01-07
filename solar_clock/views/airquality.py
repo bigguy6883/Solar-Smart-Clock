@@ -106,27 +106,33 @@ class AirQualityView(BaseView):
     ) -> None:
         """Render the main AQI value and category."""
         font_label = self.get_font(14)
-        font_aqi = self.get_bold_font(48)
-        font_category = self.get_font(18)
+        font_aqi = self.get_bold_font(56)
+        font_category = self.get_bold_font(20)
 
-        x = 20
+        x = 25
+
+        # Background panel
+        draw.rounded_rectangle([(10, y - 5), (140, y + 115)], radius=8, fill=(25, 30, 25))
 
         # Label
         draw.text((x, y), "US EPA AQI", fill=GRAY, font=font_label)
 
-        # AQI value
-        draw.text((x, y + 20), str(aqi), fill=color, font=font_aqi)
+        # AQI value - larger for emphasis
+        draw.text((x, y + 18), str(aqi), fill=color, font=font_aqi)
 
-        # Category
-        draw.text((x, y + 80), category, fill=color, font=font_category)
+        # Category with color
+        draw.text((x, y + 85), category, fill=color, font=font_category)
 
     def _render_pollutants(self, draw: ImageDraw.ImageDraw, aqi_data, y: int) -> None:
         """Render pollutant breakdown with bars."""
         font_label = self.get_font(14)
-        font_value = self.get_font(14)
+        font_value = self.get_font(12)
 
-        x = 160
-        draw.text((x, y), "Pollutants", fill=WHITE, font=self.get_bold_font(16))
+        # Background panel
+        draw.rounded_rectangle([(150, y - 5), (self.width - 10, y + 165)], radius=8, fill=(25, 30, 25))
+
+        x = 165
+        draw.text((x, y + 2), "Pollutants", fill=WHITE, font=self.get_bold_font(16))
 
         pollutants = [
             ("PM2.5", aqi_data.pm25, 50),
@@ -136,41 +142,45 @@ class AirQualityView(BaseView):
             ("CO", aqi_data.co, 5000),
         ]
 
-        row_y = y + 25
-        row_height = 28
-        bar_width = 80
-        bar_height = 14
+        row_y = y + 28
+        row_height = 26
+        bar_width = 120
+        bar_height = 16
 
         for name, value, max_val in pollutants:
-            # Label
-            draw.text((x, row_y), name, fill=WHITE, font=font_label)
+            # Label - right aligned
+            label_bbox = draw.textbbox((0, 0), name, font=font_label)
+            label_width = label_bbox[2] - label_bbox[0]
+            draw.text((x + 45 - label_width, row_y + 1), name, fill=LIGHT_GRAY, font=font_label)
 
-            # Bar background
+            # Bar background with rounded corners
             bar_x = x + 55
-            draw.rectangle(
+            draw.rounded_rectangle(
                 [(bar_x, row_y), (bar_x + bar_width, row_y + bar_height)],
-                fill=GRAY,
+                radius=3,
+                fill=(50, 50, 55),
             )
 
             # Bar fill
             fill_pct = min(value / max_val, 1.0)
             fill_width = int(bar_width * fill_pct)
-            if fill_width > 0:
+            if fill_width > 3:
                 # Color based on percentage
                 if fill_pct < 0.5:
-                    bar_color = GREEN
+                    bar_color = AQI_GOOD
                 elif fill_pct < 0.75:
                     bar_color = AQI_MODERATE
                 else:
                     bar_color = AQI_UNHEALTHY
 
-                draw.rectangle(
+                draw.rounded_rectangle(
                     [(bar_x, row_y), (bar_x + fill_width, row_y + bar_height)],
+                    radius=3,
                     fill=bar_color,
                 )
 
-            # Value
+            # Value outside bar
             value_str = f"{value:.1f}"
-            draw.text((bar_x + bar_width + 5, row_y), value_str, fill=LIGHT_GRAY, font=font_value)
+            draw.text((bar_x + bar_width + 8, row_y + 1), value_str, fill=WHITE, font=font_value)
 
             row_y += row_height

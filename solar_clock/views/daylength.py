@@ -124,7 +124,7 @@ class DayLengthView(BaseView):
         gap = 10
 
         # Box 1: Today
-        draw.rectangle([(10, y), (10 + box_width, y + 55)], fill=(30, 30, 30), outline=GRAY)
+        draw.rounded_rectangle([(10, y), (10 + box_width, y + 55)], radius=6, fill=(35, 35, 40))
         draw.text((15, y + 3), "Today", fill=GRAY, font=font)
 
         if self.providers.solar:
@@ -140,7 +140,7 @@ class DayLengthView(BaseView):
 
         # Box 2: Shortest/Longest
         x2 = 10 + box_width + gap
-        draw.rectangle([(x2, y), (x2 + box_width, y + 55)], fill=(30, 30, 30), outline=GRAY)
+        draw.rounded_rectangle([(x2, y), (x2 + box_width, y + 55)], radius=6, fill=(35, 35, 40))
         draw.text((x2 + 5, y + 3), "Shortest", fill=GRAY, font=font_small)
         draw.text((x2 + 75, y + 3), "Longest", fill=GRAY, font=font_small)
 
@@ -153,7 +153,7 @@ class DayLengthView(BaseView):
 
         # Box 3: Next event
         x3 = x2 + box_width + gap
-        draw.rectangle([(x3, y), (self.width - 10, y + 55)], fill=(30, 30, 30), outline=GRAY)
+        draw.rounded_rectangle([(x3, y), (self.width - 10, y + 55)], radius=6, fill=(35, 35, 40))
         draw.text((x3 + 5, y + 3), "Next", fill=GRAY, font=font)
 
         if self.providers.lunar:
