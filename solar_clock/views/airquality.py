@@ -1,5 +1,6 @@
 """Air Quality view - AQI and pollutant levels."""
 
+import datetime
 from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
@@ -75,7 +76,6 @@ class AirQualityView(BaseView):
         location = self.config.location.name
         draw.text((10, self.content_height - 25), location, fill=GRAY, font=font_small)
 
-        import datetime
         updated = datetime.datetime.fromtimestamp(aqi_data.updated_at)
         update_str = f"Updated {updated.strftime('%I:%M %p').lstrip('0')}"
         update_bbox = draw.textbbox((0, 0), update_str, font=font_small)

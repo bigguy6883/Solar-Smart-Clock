@@ -185,14 +185,14 @@ class MoonView(BaseView):
         font_value = self.get_bold_font(18)
         font_days = self.get_font(14)
 
-        # New moon box
-        draw.rectangle([(10, y), (235, y + 45)], fill=PURPLE, outline=None)
-        draw.text((20, y + 5), "New Moon", fill=LIGHT_GRAY, font=font)
-        draw.text((20, y + 22), moon.next_new.strftime("%b %d"), fill=WHITE, font=font_value)
-        draw.text((120, y + 22), f"{moon.days_to_new}d", fill=MOON_YELLOW, font=font_days)
+        # New moon box - dark panel
+        draw.rounded_rectangle([(10, y), (235, y + 48)], radius=6, fill=(35, 35, 45))
+        draw.text((20, y + 5), "New Moon", fill=GRAY, font=font)
+        draw.text((20, y + 24), moon.next_new.strftime("%b %d"), fill=WHITE, font=font_value)
+        draw.text((120, y + 24), f"{moon.days_to_new}d", fill=LIGHT_GRAY, font=font_days)
 
-        # Full moon box
-        draw.rectangle([(245, y), (self.width - 10, y + 45)], fill=(50, 50, 80), outline=None)
-        draw.text((255, y + 5), "Full Moon", fill=LIGHT_GRAY, font=font)
-        draw.text((255, y + 22), moon.next_full.strftime("%b %d"), fill=WHITE, font=font_value)
-        draw.text((355, y + 22), f"{moon.days_to_full}d", fill=MOON_YELLOW, font=font_days)
+        # Full moon box - matching dark panel with yellow accent
+        draw.rounded_rectangle([(245, y), (self.width - 10, y + 48)], radius=6, fill=(35, 35, 45))
+        draw.text((255, y + 5), "Full Moon", fill=GRAY, font=font)
+        draw.text((255, y + 24), moon.next_full.strftime("%b %d"), fill=MOON_YELLOW, font=font_value)
+        draw.text((355, y + 24), f"{moon.days_to_full}d", fill=LIGHT_GRAY, font=font_days)

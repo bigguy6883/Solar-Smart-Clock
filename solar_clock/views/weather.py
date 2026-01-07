@@ -1,5 +1,6 @@
 """Weather view - current conditions and forecast."""
 
+import datetime
 from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
@@ -45,11 +46,19 @@ class WeatherView(BaseView):
         font_desc = self.get_font(16)
         location = self.config.location.name
         
-        # Weather description below current conditions panel
+        # Weather description below current conditions panel (truncate if needed)
         if self.providers.weather:
             weather = self.providers.weather.get_current_weather()
             if weather:
-                draw.text((20, 170), weather.description, fill=YELLOW, font=font_desc)
+                desc = weather.description
+                max_width = 200  # Limit to left panel width
+                desc_bbox = draw.textbbox((0, 0), desc, font=font_desc)
+                if desc_bbox[2] - desc_bbox[0] > max_width:
+                    # Truncate and add ellipsis
+                    while len(desc) > 3 and draw.textbbox((0, 0), desc + "...", font=font_desc)[2] > max_width:
+                        desc = desc[:-1]
+                    desc = desc.rstrip() + "..."
+                draw.text((20, 170), desc, fill=YELLOW, font=font_desc)
         
         draw.text((20, self.content_height - 25), location, fill=GRAY, font=font_small)
 
@@ -124,7 +133,6 @@ class WeatherView(BaseView):
                 day_label = day_names[i]
             else:
                 # Get day of week
-                import datetime
                 date = datetime.datetime.strptime(day.date, "%Y-%m-%d")
                 day_label = date.strftime("%a")
 

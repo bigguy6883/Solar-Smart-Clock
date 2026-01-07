@@ -7,7 +7,7 @@ from typing import Optional
 from zoneinfo import ZoneInfo
 
 from astral import LocationInfo
-from astral.sun import sun, elevation, azimuth, golden_hour, twilight
+from astral.sun import sun, elevation, azimuth, golden_hour, twilight, SunDirection
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +130,8 @@ class SolarProvider:
         """
         Get morning and evening golden hour times.
 
-        Golden hour is approximately 30 minutes before/after sunrise/sunset.
+        Uses astral library's golden_hour() for accurate calculation
+        based on sun elevation (typically -4 to +6 degrees).
 
         Args:
             date: Date to get times for (default: today)
@@ -138,26 +139,35 @@ class SolarProvider:
         Returns:
             Tuple of (morning_golden_hour, evening_golden_hour)
         """
-        sun_times = self.get_sun_times(date)
-        if sun_times is None:
-            return None, None
+        if date is None:
+            date = datetime.date.today()
 
         morning = None
         evening = None
 
-        if sun_times.sunrise:
-            # Morning golden hour: sunrise to ~45 min after (sun rises through golden zone)
-            morning = GoldenHour(
-                start=sun_times.sunrise,
-                end=sun_times.sunrise + datetime.timedelta(minutes=45),
+        try:
+            # Morning golden hour (sun rising through golden zone)
+            morning_times = golden_hour(
+                self.location.observer, date,
+                direction=SunDirection.RISING,
+                tzinfo=self.location.timezone
             )
+            if morning_times:
+                morning = GoldenHour(start=morning_times[0], end=morning_times[1])
+        except ValueError as e:
+            logger.debug(f"Could not calculate morning golden hour: {e}")
 
-        if sun_times.sunset:
-            # Evening golden hour: ~45 min before sunset to sunset
-            evening = GoldenHour(
-                start=sun_times.sunset - datetime.timedelta(minutes=45),
-                end=sun_times.sunset,
+        try:
+            # Evening golden hour (sun setting through golden zone)
+            evening_times = golden_hour(
+                self.location.observer, date,
+                direction=SunDirection.SETTING,
+                tzinfo=self.location.timezone
             )
+            if evening_times:
+                evening = GoldenHour(start=evening_times[0], end=evening_times[1])
+        except ValueError as e:
+            logger.debug(f"Could not calculate evening golden hour: {e}")
 
         return morning, evening
 

@@ -91,6 +91,7 @@ class BaseView(ABC):
 
         # Font cache
         self._fonts: dict[int, ImageFont.FreeTypeFont] = {}
+        self._bold_fonts: dict[int, ImageFont.FreeTypeFont] = {}
 
     def get_font(self, size: int) -> ImageFont.FreeTypeFont:
         """
@@ -121,12 +122,14 @@ class BaseView(ABC):
 
     def get_bold_font(self, size: int) -> ImageFont.FreeTypeFont:
         """Get a bold font at the specified size."""
-        try:
-            return ImageFont.truetype(
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size
-            )
-        except OSError:
-            return self.get_font(size)
+        if size not in self._bold_fonts:
+            try:
+                self._bold_fonts[size] = ImageFont.truetype(
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size
+                )
+            except OSError:
+                self._bold_fonts[size] = self.get_font(size)
+        return self._bold_fonts[size]
 
     @abstractmethod
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
