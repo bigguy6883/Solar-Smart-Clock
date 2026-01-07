@@ -1,6 +1,7 @@
 [Unit]
 Description=Solar Smart Clock
-After=network.target
+After=network-online.target graphical.target
+Wants=network-online.target
 
 [Service]
 Type=simple
@@ -8,17 +9,21 @@ User=pi
 WorkingDirectory=/home/pi/solar-clock
 
 # Load API key from secrets file (not in git)
-EnvironmentFile=/etc/solar-clock/secrets
+EnvironmentFile=-/etc/solar-clock/secrets
 
-ExecStart=/usr/bin/python3 -m solar_clock
+ExecStart=/home/pi/solar-clock/venv/bin/python3 -m solar_clock
 Restart=always
-RestartSec=5
+RestartSec=10
+TimeoutStartSec=30
 
-# Security hardening
+# Don't block boot if service fails
+# Allow the service to fail gracefully without affecting system boot
+SuccessExitStatus=0 1
+
+# Security settings (relaxed for framebuffer access)
 NoNewPrivileges=true
-ProtectSystem=strict
+ProtectSystem=false
 ProtectHome=read-only
-ReadWritePaths=/dev/fb1 /var/log/solar-clock
 
 [Install]
 WantedBy=multi-user.target
