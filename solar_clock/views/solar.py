@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, PURPLE
+from .base import BaseView, UPDATE_FREQUENT, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, PURPLE
 
 if TYPE_CHECKING:
     from ..config import Config
@@ -17,7 +17,7 @@ class SolarView(BaseView):
 
     name = "solar"
     title = "Solar Details"
-    update_interval = 60
+    update_interval = UPDATE_FREQUENT
 
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the solar details view content."""
@@ -48,12 +48,12 @@ class SolarView(BaseView):
         font_value = self.get_bold_font(18)
 
         if self.providers.solar is None:
-            draw.text((20, y + 40), "Solar data unavailable", fill=GRAY, font=font)
+            self.render_centered_message(draw, "Solar data unavailable")
             return
 
         sun_times = self.providers.solar.get_sun_times()
         if sun_times is None:
-            draw.text((20, y + 40), "Solar data unavailable", fill=GRAY, font=font)
+            self.render_centered_message(draw, "Solar data unavailable")
             return
 
         # Two columns
@@ -70,7 +70,7 @@ class SolarView(BaseView):
 
         for name, time, x, row_y in events:
             draw.text((x, row_y), name, fill=GRAY, font=font)
-            time_str = time.strftime("%I:%M %p").lstrip("0")
+            time_str = time.strftime("%-I:%M %p")
             color = YELLOW if "Sun" in name else ORANGE if name == "Dusk" else LIGHT_GRAY
             draw.text((x, row_y + 15), time_str, fill=color, font=font_value)
 
@@ -87,12 +87,12 @@ class SolarView(BaseView):
         morning, evening = self.providers.solar.get_golden_hour()
 
         if morning:
-            morning_str = f"{morning.start.strftime('%I:%M').lstrip('0')} - {morning.end.strftime('%I:%M %p').lstrip('0')}"
+            morning_str = f"{morning.start.strftime('%-I:%M')} - {morning.end.strftime('%-I:%M %p')}"
             draw.text((20, y + 22), "Morning:", fill=GRAY, font=font)
             draw.text((90, y + 22), morning_str, fill=YELLOW, font=font_value)
 
         if evening:
-            evening_str = f"{evening.start.strftime('%I:%M').lstrip('0')} - {evening.end.strftime('%I:%M %p').lstrip('0')}"
+            evening_str = f"{evening.start.strftime('%-I:%M')} - {evening.end.strftime('%-I:%M %p')}"
             draw.text((250, y + 22), "Evening:", fill=GRAY, font=font)
             draw.text((320, y + 22), evening_str, fill=ORANGE, font=font_value)
 

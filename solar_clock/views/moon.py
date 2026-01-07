@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, WHITE, BLACK, YELLOW, GRAY, LIGHT_GRAY, PURPLE, MOON_YELLOW
+from .base import BaseView, UPDATE_HOURLY, WHITE, BLACK, YELLOW, GRAY, LIGHT_GRAY, PURPLE, MOON_YELLOW
 
 if TYPE_CHECKING:
     from ..config import Config
@@ -18,7 +18,7 @@ class MoonView(BaseView):
 
     name = "moon"
     title = "Moon Phase"
-    update_interval = 3600
+    update_interval = UPDATE_HOURLY
 
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the moon phase view content."""
@@ -35,14 +35,12 @@ class MoonView(BaseView):
         )
 
         if self.providers.lunar is None or not self.providers.lunar.available:
-            font = self.get_font(18)
-            draw.text((150, 120), "Lunar data unavailable", fill=GRAY, font=font)
+            self.render_centered_message(draw, "Lunar data unavailable")
             return
 
         moon = self.providers.lunar.get_moon_phase()
         if moon is None:
-            font = self.get_font(18)
-            draw.text((150, 120), "Lunar data unavailable", fill=GRAY, font=font)
+            self.render_centered_message(draw, "Lunar data unavailable")
             return
 
         # Moon visualization (left side)
@@ -173,10 +171,10 @@ class MoonView(BaseView):
             times = self.providers.lunar.get_moon_times()
             if times:
                 if times.moonrise:
-                    rise_str = times.moonrise.strftime("%I:%M %p").lstrip("0")
+                    rise_str = times.moonrise.strftime("%-I:%M %p")
                     draw.text((20, y + 22), rise_str, fill=WHITE, font=font_value)
                 if times.moonset:
-                    set_str = times.moonset.strftime("%I:%M %p").lstrip("0")
+                    set_str = times.moonset.strftime("%-I:%M %p")
                     draw.text((175, y + 22), set_str, fill=WHITE, font=font_value)
 
     def _render_upcoming_dates(self, draw: ImageDraw.ImageDraw, moon, y: int) -> None:

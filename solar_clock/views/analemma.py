@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, GREEN, BLUE
+from .base import BaseView, UPDATE_HOURLY, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, GREEN, BLUE
 
 if TYPE_CHECKING:
     from ..config import Config
@@ -18,7 +18,7 @@ class AnalemmaView(BaseView):
 
     name = "analemma"
     title = "Analemma"
-    update_interval = 3600
+    update_interval = UPDATE_HOURLY
 
     # Season colors
     SPRING_COLOR = GREEN
@@ -69,7 +69,7 @@ class AnalemmaView(BaseView):
         draw.line([(30, center_y), (210, center_y)], fill=GRAY, width=1)
 
         if self.providers.lunar is None or not self.providers.lunar.available:
-            draw.text((60, center_y), "Data unavailable", fill=GRAY, font=self.get_font(14))
+            self.render_centered_message(draw, "Data unavailable")
             return
 
         # Get analemma data points

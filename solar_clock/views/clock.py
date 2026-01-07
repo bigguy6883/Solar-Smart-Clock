@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY
+from .base import BaseView, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, UPDATE_REALTIME
 
 if TYPE_CHECKING:
     from ..config import Config
@@ -17,7 +17,7 @@ class ClockView(BaseView):
 
     name = "clock"
     title = "Clock"
-    update_interval = 1
+    update_interval = UPDATE_REALTIME
 
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the clock view content."""
@@ -28,7 +28,7 @@ class ClockView(BaseView):
         draw.rectangle([(0, 0), (self.width, 45)], fill=header_color)
 
         # Time display
-        time_str = now.strftime("%I:%M:%S").lstrip("0")
+        time_str = now.strftime("%-I:%M:%S")
         am_pm = now.strftime("%p")
 
         font_time = self.get_bold_font(46)
@@ -80,7 +80,7 @@ class ClockView(BaseView):
             return
 
         # Sunrise
-        sunrise_str = sun_times.sunrise.strftime("%I:%M %p").lstrip("0")
+        sunrise_str = sun_times.sunrise.strftime("%-I:%M %p")
         draw.text((20, y), "Sunrise", fill=GRAY, font=font)
         draw.text((20, y + 18), sunrise_str, fill=YELLOW, font=font_value)
 
@@ -100,7 +100,7 @@ class ClockView(BaseView):
             draw.text((center_x, y + 18), length_str, fill=WHITE, font=font_value)
 
         # Sunset
-        sunset_str = sun_times.sunset.strftime("%I:%M %p").lstrip("0")
+        sunset_str = sun_times.sunset.strftime("%-I:%M %p")
         sunset_bbox = draw.textbbox((0, 0), sunset_str, font=font_value)
         sunset_width = sunset_bbox[2] - sunset_bbox[0]
 
@@ -118,12 +118,12 @@ class ClockView(BaseView):
         font_value = self.get_bold_font(20)
 
         if self.providers.weather is None:
-            draw.text((20, y), "Weather: --", fill=GRAY, font=font)
+            draw.text((20, y), "Weather: unavailable", fill=LIGHT_GRAY, font=font)
             return
 
         weather = self.providers.weather.get_current_weather()
         if weather is None:
-            draw.text((20, y), "Weather: --", fill=GRAY, font=font)
+            draw.text((20, y), "Weather: unavailable", fill=LIGHT_GRAY, font=font)
             return
 
         # Description and temperature

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, BLUE, LIGHT_BLUE
+from .base import BaseView, UPDATE_FREQUENT, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, BLUE, LIGHT_BLUE
 
 if TYPE_CHECKING:
     from ..config import Config
@@ -17,7 +17,7 @@ class WeatherView(BaseView):
 
     name = "weather"
     title = "Weather"
-    update_interval = 60
+    update_interval = UPDATE_FREQUENT
 
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the weather view content."""
@@ -71,12 +71,12 @@ class WeatherView(BaseView):
         x = 20
 
         if self.providers.weather is None:
-            draw.text((x, y + 20), "--", fill=WHITE, font=font_large)
+            self.render_centered_message(draw, "Weather data unavailable")
             return
 
         weather = self.providers.weather.get_current_weather()
         if weather is None:
-            draw.text((x, y + 20), "--", fill=WHITE, font=font_large)
+            self.render_centered_message(draw, "Weather data unavailable")
             return
 
         # Subtle background panel for current conditions

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, WHITE, BLACK, GRAY, LIGHT_GRAY, DARK_BLUE, LIGHT_BLUE, ORANGE
+from .base import BaseView, UPDATE_REALTIME, WHITE, BLACK, GRAY, LIGHT_GRAY, DARK_BLUE, LIGHT_BLUE, ORANGE
 
 if TYPE_CHECKING:
     from ..config import Config
@@ -18,7 +18,7 @@ class AnalogClockView(BaseView):
 
     name = "analogclock"
     title = "Analog Clock"
-    update_interval = 1
+    update_interval = UPDATE_REALTIME
 
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the analog clock view content."""
@@ -27,6 +27,10 @@ class AnalogClockView(BaseView):
 
         # Background based on time of day
         draw.rectangle([(0, 0), (self.width, self.content_height)], fill=header_color)
+
+        # Minimal title at top
+        font_title = self.get_font(16)
+        draw.text((10, 5), "Analog", fill=LIGHT_GRAY, font=font_title)
 
         # Clock face
         self._render_clock_face(draw, image, now)

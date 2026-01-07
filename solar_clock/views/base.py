@@ -42,6 +42,48 @@ AQI_HAZARDOUS = (126, 0, 35)
 NAV_BUTTON_COLOR = (60, 60, 60)
 NAV_BUTTON_ACTIVE = (80, 80, 80)
 
+# Layout constants
+HEADER_HEIGHT = 35
+CONTENT_START_Y = 45
+ROW_HEIGHT = 50
+SECTION_PADDING = 10
+FOOTER_HEIGHT = 25
+
+# Update interval constants (seconds)
+UPDATE_REALTIME = 1      # Clock displays that update every second
+UPDATE_FREQUENT = 60     # Weather, solar position
+UPDATE_HOURLY = 3600     # Moon phase, analemma
+
+# Font paths (in order of preference)
+FONT_PATHS = [
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",      # Debian/Ubuntu/Raspbian
+    "/usr/share/fonts/TTF/DejaVuSans.ttf",                  # Arch Linux
+    "/System/Library/Fonts/Helvetica.ttc",                   # macOS
+    "/usr/share/fonts/dejavu/DejaVuSans.ttf",               # Alternative Linux path
+]
+
+BOLD_FONT_PATHS = [
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",  # Debian/Ubuntu/Raspbian
+    "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",              # Arch Linux
+    "/System/Library/Fonts/Helvetica.ttc",                    # macOS (bold variant)
+    "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",           # Alternative Linux path
+]
+
+# Typography scale constants
+class FontSize:
+    """Standard font sizes for consistent typography."""
+    # Text sizes
+    TITLE = 24
+    SUBTITLE = 20
+    BODY = 16
+    SMALL = 14
+    CAPTION = 12
+    
+    # Value display sizes
+    VALUE_LARGE = 48
+    VALUE_MEDIUM = 36
+    VALUE_SMALL = 24
+
 
 class DataProviders:
     """Container for data provider instances."""
@@ -97,8 +139,8 @@ class BaseView(ABC):
         """
         Get a font at the specified size.
 
-        Uses DejaVu Sans as the default font, falling back to the
-        PIL default if not available.
+        Uses DejaVu Sans as the default font, with fallbacks for different
+        platforms. Falls back to PIL default if no system fonts available.
 
         Args:
             size: Font size in points
@@ -107,29 +149,50 @@ class BaseView(ABC):
             PIL ImageFont
         """
         if size not in self._fonts:
-            try:
-                self._fonts[size] = ImageFont.truetype(
-                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size
-                )
-            except OSError:
+            for path in FONT_PATHS:
                 try:
-                    self._fonts[size] = ImageFont.truetype(
-                        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size
-                    )
+                    self._fonts[size] = ImageFont.truetype(path, size)
+                    break
                 except OSError:
-                    self._fonts[size] = ImageFont.load_default()
+                    continue
+            else:
+                # No fonts found, use PIL default
+                self._fonts[size] = ImageFont.load_default()
         return self._fonts[size]
 
     def get_bold_font(self, size: int) -> ImageFont.FreeTypeFont:
-        """Get a bold font at the specified size."""
+        """
+        Get a bold font at the specified size.
+
+        Tries multiple font paths, falling back to regular font if bold unavailable.
+        """
         if size not in self._bold_fonts:
-            try:
-                self._bold_fonts[size] = ImageFont.truetype(
-                    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size
-                )
-            except OSError:
+            for path in BOLD_FONT_PATHS:
+                try:
+                    self._bold_fonts[size] = ImageFont.truetype(path, size)
+                    break
+                except OSError:
+                    continue
+            else:
+                # No bold fonts found, fall back to regular font
                 self._bold_fonts[size] = self.get_font(size)
         return self._bold_fonts[size]
+
+    def render_centered_message(self, draw: ImageDraw.ImageDraw, message: str, font_size: int = 18) -> None:
+        """
+        Render a centered message (typically for error/no-data states).
+
+        Args:
+            draw: ImageDraw instance
+            message: Message to display
+            font_size: Font size to use (default 18)
+        """
+        font = self.get_font(font_size)
+        bbox = draw.textbbox((0, 0), message, font=font)
+        msg_width = bbox[2] - bbox[0]
+        x = (self.width - msg_width) // 2
+        y = self.content_height // 2
+        draw.text((x, y), message, fill=LIGHT_GRAY, font=font)
 
     @abstractmethod
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
@@ -203,7 +266,8 @@ class BaseView(ABC):
 
         # Page indicator dots
         dot_radius = 4
-        dot_spacing = 14
+        # Dynamic spacing scales down if more views are added
+        dot_spacing = min(14, (self.width - 100) // total_views)
         total_width = (total_views - 1) * dot_spacing
         start_x = (self.width - total_width) // 2
         dot_y = nav_top + self.nav_height // 2

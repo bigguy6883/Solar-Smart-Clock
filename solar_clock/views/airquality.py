@@ -21,14 +21,30 @@ class AirQualityView(BaseView):
 
     name = "airquality"
     title = "Air Quality"
-    update_interval = 300
+    update_interval = UPDATE_FREQUENT  # 5 minutes
 
     def _get_aqi_color(self, aqi: int) -> tuple[int, int, int]:
-        """Get color for AQI value."""
+        """Get color for AQI value (used for backgrounds)."""
         if aqi <= 50:
             return AQI_GOOD
         elif aqi <= 100:
             return AQI_MODERATE
+        elif aqi <= 150:
+            return AQI_UNHEALTHY_SENSITIVE
+        elif aqi <= 200:
+            return AQI_UNHEALTHY
+        elif aqi <= 300:
+            return AQI_VERY_UNHEALTHY
+        else:
+            return AQI_HAZARDOUS
+
+    def _get_aqi_text_color(self, aqi: int) -> tuple[int, int, int]:
+        """Get readable text color for AQI value (darker moderate for better contrast)."""
+        if aqi <= 50:
+            return AQI_GOOD
+        elif aqi <= 100:
+            # Use darker yellow for better readability on dark backgrounds
+            return (200, 180, 0)
         elif aqi <= 150:
             return AQI_UNHEALTHY_SENSITIVE
         elif aqi <= 200:
@@ -50,6 +66,7 @@ class AirQualityView(BaseView):
             return
 
         aqi_color = self._get_aqi_color(aqi_data.aqi)
+        aqi_text_color = self._get_aqi_text_color(aqi_data.aqi)
 
         # Header with AQI color
         draw.rectangle([(0, 0), (self.width, 35)], fill=aqi_color)
@@ -66,7 +83,7 @@ class AirQualityView(BaseView):
         )
 
         # AQI value and category (left side)
-        self._render_aqi_value(draw, aqi_data.aqi, aqi_data.category, aqi_color, 50)
+        self._render_aqi_value(draw, aqi_data.aqi, aqi_data.category, aqi_text_color, 50)
 
         # Pollutant breakdown (right side)
         self._render_pollutants(draw, aqi_data, 50)
@@ -77,7 +94,7 @@ class AirQualityView(BaseView):
         draw.text((10, self.content_height - 25), location, fill=GRAY, font=font_small)
 
         updated = datetime.datetime.fromtimestamp(aqi_data.updated_at)
-        update_str = f"Updated {updated.strftime('%I:%M %p').lstrip('0')}"
+        update_str = f"Updated {updated.strftime('%-I:%M %p')}"
         update_bbox = draw.textbbox((0, 0), update_str, font=font_small)
         update_width = update_bbox[2] - update_bbox[0]
         draw.text(
@@ -101,7 +118,7 @@ class AirQualityView(BaseView):
         draw: ImageDraw.ImageDraw,
         aqi: int,
         category: str,
-        color: tuple,
+        text_color: tuple,
         y: int,
     ) -> None:
         """Render the main AQI value and category."""
@@ -117,11 +134,11 @@ class AirQualityView(BaseView):
         # Label
         draw.text((x, y), "US EPA AQI", fill=GRAY, font=font_label)
 
-        # AQI value - larger for emphasis
-        draw.text((x, y + 18), str(aqi), fill=color, font=font_aqi)
+        # AQI value - larger for emphasis, using text-friendly color
+        draw.text((x, y + 18), str(aqi), fill=text_color, font=font_aqi)
 
         # Category with color
-        draw.text((x, y + 85), category, fill=color, font=font_category)
+        draw.text((x, y + 85), category, fill=text_color, font=font_category)
 
     def _render_pollutants(self, draw: ImageDraw.ImageDraw, aqi_data, y: int) -> None:
         """Render pollutant breakdown with bars."""

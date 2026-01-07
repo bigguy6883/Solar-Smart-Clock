@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, DARK_BLUE, LIGHT_BLUE
+from .base import BaseView, UPDATE_FREQUENT, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, DARK_BLUE, LIGHT_BLUE
 
 if TYPE_CHECKING:
     from ..config import Config
@@ -18,7 +18,7 @@ class SunPathView(BaseView):
 
     name = "sunpath"
     title = "Sun Path"
-    update_interval = 60
+    update_interval = UPDATE_FREQUENT
 
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the sun path view content."""
@@ -37,7 +37,7 @@ class SunPathView(BaseView):
         # Time and date in header corners
         now = datetime.datetime.now()
         font_small = self.get_font(14)
-        time_str = now.strftime("%I:%M %p").lstrip("0")
+        time_str = now.strftime("%-I:%M %p")
         date_str = now.strftime("%a %b %d")
         draw.text((10, 40), time_str, fill=WHITE, font=font_small)
         draw.text((self.width - 80, 40), date_str, fill=WHITE, font=font_small)
@@ -149,7 +149,7 @@ class SunPathView(BaseView):
 
                 draw.text((20, y + 5), event_name, fill=ORANGE, font=font)
                 draw.text((115, y + 5), f"in {hours}h {minutes}m", fill=WHITE, font=font)
-                draw.text((20, y + 30), f"at {event_time.strftime('%I:%M %p').lstrip('0')}", fill=LIGHT_GRAY, font=font)
+                draw.text((20, y + 30), f"at {event_time.strftime('%-I:%M %p')}", fill=LIGHT_GRAY, font=font)
 
         # Right box: Current elevation
         draw.rounded_rectangle([(250, y), (self.width - 10, y + 55)], radius=6, fill=(35, 35, 40))

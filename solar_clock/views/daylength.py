@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, BLUE, GREEN, PURPLE
+from .base import BaseView, UPDATE_HOURLY, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, BLUE, GREEN, PURPLE
 
 if TYPE_CHECKING:
     from ..config import Config
@@ -18,7 +18,7 @@ class DayLengthView(BaseView):
 
     name = "daylength"
     title = "Day Length"
-    update_interval = 3600
+    update_interval = UPDATE_HOURLY
 
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the day length view content."""

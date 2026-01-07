@@ -152,16 +152,18 @@ class WeatherProvider:
             current_resp.raise_for_status()
             current_data = current_resp.json()
 
-            # Parse current weather
+            # Parse current weather (defensive parsing)
+            main = current_data.get("main", {})
+            weather_list = current_data.get("weather", [{}])
+            wind = current_data.get("wind", {})
+
             self._current_weather = CurrentWeather(
-                temperature=current_data["main"]["temp"],
-                feels_like=current_data["main"]["feels_like"],
-                humidity=current_data["main"]["humidity"],
-                description=current_data["weather"][0]["description"].title(),
-                wind_speed=current_data["wind"]["speed"],
-                wind_direction=self._degrees_to_compass(
-                    current_data["wind"].get("deg", 0)
-                ),
+                temperature=main.get("temp", 0),
+                feels_like=main.get("feels_like", 0),
+                humidity=main.get("humidity", 0),
+                description=weather_list[0].get("description", "Unknown").title() if weather_list else "Unknown",
+                wind_speed=wind.get("speed", 0),
+                wind_direction=self._degrees_to_compass(wind.get("deg", 0)),
             )
 
             # Fetch forecast
@@ -248,7 +250,8 @@ class WeatherProvider:
             daily[date]["rain"].append(int(item.get("pop", 0) * 100))
 
         forecasts = []
-        for date, values in list(daily.items())[:5]:
+        # Explicitly sort by date to ensure chronological order
+        for date, values in sorted(daily.items())[:5]:
             forecasts.append(
                 DailyForecast(
                     date=date,
