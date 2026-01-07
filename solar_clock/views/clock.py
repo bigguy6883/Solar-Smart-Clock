@@ -31,7 +31,7 @@ class ClockView(BaseView):
         time_str = now.strftime("%I:%M:%S").lstrip("0")
         am_pm = now.strftime("%p")
 
-        font_time = self.get_bold_font(52)
+        font_time = self.get_bold_font(46)
         font_ampm = self.get_font(24)
 
         # Center the time
@@ -43,7 +43,7 @@ class ClockView(BaseView):
         total_width = time_width + ampm_width + 5
         start_x = (self.width - total_width) // 2
 
-        draw.text((start_x, 0), time_str, fill=WHITE, font=font_time)
+        draw.text((start_x, -1), time_str, fill=WHITE, font=font_time)
         draw.text((start_x + time_width + 5, 20), am_pm, fill=LIGHT_GRAY, font=font_ampm)
 
         # Date
