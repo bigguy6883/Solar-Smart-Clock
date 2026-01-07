@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CurrentWeather:
     """Current weather conditions."""
+
     temperature: float  # Fahrenheit or Celsius based on units
     feels_like: float
     humidity: int  # Percentage
@@ -24,6 +25,7 @@ class CurrentWeather:
 @dataclass
 class DailyForecast:
     """Daily weather forecast."""
+
     date: str
     high_temp: float
     low_temp: float
@@ -33,6 +35,7 @@ class DailyForecast:
 @dataclass
 class AirQuality:
     """Air quality data."""
+
     aqi: int  # US EPA AQI (0-500)
     category: str  # Good, Moderate, Unhealthy, etc.
     pm25: float
@@ -267,8 +270,22 @@ class WeatherProvider:
     def _degrees_to_compass(degrees: float) -> str:
         """Convert wind degrees to 16-point compass direction."""
         directions = [
-            "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-            "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW",
+            "N",
+            "NNE",
+            "NE",
+            "ENE",
+            "E",
+            "ESE",
+            "SE",
+            "SSE",
+            "S",
+            "SSW",
+            "SW",
+            "WSW",
+            "W",
+            "WNW",
+            "NW",
+            "NNW",
         ]
         idx = int((degrees + 11.25) / 22.5) % 16
         return directions[idx]

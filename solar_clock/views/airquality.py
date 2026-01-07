@@ -1,19 +1,22 @@
 """Air Quality view - AQI and pollutant levels."""
 
 import datetime
-from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
 from .base import (
-    BaseView, WHITE, BLACK, GRAY, LIGHT_GRAY, GREEN,
-    AQI_GOOD, AQI_MODERATE, AQI_UNHEALTHY_SENSITIVE,
-    AQI_UNHEALTHY, AQI_VERY_UNHEALTHY, AQI_HAZARDOUS,
+    BaseView,
+    WHITE,
+    BLACK,
+    GRAY,
+    LIGHT_GRAY,
+    AQI_GOOD,
+    AQI_MODERATE,
+    AQI_UNHEALTHY_SENSITIVE,
+    AQI_UNHEALTHY,
+    AQI_VERY_UNHEALTHY,
+    AQI_HAZARDOUS,
 )
-
-if TYPE_CHECKING:
-    from ..config import Config
-    from .base import DataProviders
 
 
 class AirQualityView(BaseView):
@@ -129,7 +132,9 @@ class AirQualityView(BaseView):
         x = 25
 
         # Background panel
-        draw.rounded_rectangle([(10, y - 5), (140, y + 115)], radius=8, fill=(25, 30, 25))
+        draw.rounded_rectangle(
+            [(10, y - 5), (140, y + 115)], radius=8, fill=(25, 30, 25)
+        )
 
         # Label
         draw.text((x, y), "US EPA AQI", fill=GRAY, font=font_label)
@@ -146,7 +151,9 @@ class AirQualityView(BaseView):
         font_value = self.get_font(12)
 
         # Background panel
-        draw.rounded_rectangle([(150, y - 5), (self.width - 10, y + 165)], radius=8, fill=(25, 30, 25))
+        draw.rounded_rectangle(
+            [(150, y - 5), (self.width - 10, y + 165)], radius=8, fill=(25, 30, 25)
+        )
 
         x = 165
         draw.text((x, y + 2), "Pollutants", fill=WHITE, font=self.get_bold_font(16))
@@ -168,7 +175,12 @@ class AirQualityView(BaseView):
             # Label - right aligned
             label_bbox = draw.textbbox((0, 0), name, font=font_label)
             label_width = label_bbox[2] - label_bbox[0]
-            draw.text((x + 45 - label_width, row_y + 1), name, fill=LIGHT_GRAY, font=font_label)
+            draw.text(
+                (x + 45 - label_width, row_y + 1),
+                name,
+                fill=LIGHT_GRAY,
+                font=font_label,
+            )
 
             # Bar background with rounded corners
             bar_x = x + 55
@@ -198,6 +210,11 @@ class AirQualityView(BaseView):
 
             # Value outside bar
             value_str = f"{value:.1f}"
-            draw.text((bar_x + bar_width + 8, row_y + 1), value_str, fill=WHITE, font=font_value)
+            draw.text(
+                (bar_x + bar_width + 8, row_y + 1),
+                value_str,
+                fill=WHITE,
+                font=font_value,
+            )
 
             row_y += row_height

@@ -2,17 +2,16 @@
 
 import datetime
 import json
-import os
-import pytest
+import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+
+import pytest
 
 # Add parent to path for imports
-import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from solar_clock.config import Config, load_config
-from solar_clock.views.base import DataProviders
+from solar_clock.views.base import DataProviders  # noqa: E402
 
 
 @pytest.fixture
@@ -24,36 +23,25 @@ def sample_config_dict():
             "region": "Test Region",
             "timezone": "America/New_York",
             "latitude": 40.7128,
-            "longitude": -74.0060
+            "longitude": -74.0060,
         },
         "display": {
             "width": 480,
             "height": 320,
             "framebuffer": "/dev/fb1",
-            "nav_bar_height": 40
+            "nav_bar_height": 40,
         },
-        "http_server": {
-            "enabled": True,
-            "port": 8080,
-            "bind_address": "127.0.0.1"
-        },
-        "weather": {
-            "update_interval_seconds": 900,
-            "units": "imperial"
-        },
-        "air_quality": {
-            "update_interval_seconds": 1800
-        },
+        "http_server": {"enabled": True, "port": 8080, "bind_address": "127.0.0.1"},
+        "weather": {"update_interval_seconds": 900, "units": "imperial"},
+        "air_quality": {"update_interval_seconds": 1800},
         "touch": {
             "enabled": True,
             "device": "/dev/input/event0",
             "swipe_threshold": 80,
             "tap_threshold": 30,
-            "tap_timeout": 0.4
+            "tap_timeout": 0.4,
         },
-        "appearance": {
-            "default_view": 0
-        }
+        "appearance": {"default_view": 0},
     }
 
 
@@ -70,6 +58,7 @@ def temp_config_file(tmp_path, sample_config_dict):
 def sample_config(sample_config_dict):
     """Create a Config object from sample data."""
     from solar_clock.config import _dict_to_config
+
     return _dict_to_config(sample_config_dict)
 
 
@@ -77,18 +66,9 @@ def sample_config(sample_config_dict):
 def mock_weather_response():
     """Mock OpenWeatherMap current weather response."""
     return {
-        "main": {
-            "temp": 72.5,
-            "feels_like": 70.0,
-            "humidity": 65
-        },
-        "weather": [
-            {"description": "partly cloudy", "main": "Clouds"}
-        ],
-        "wind": {
-            "speed": 5.5,
-            "deg": 180
-        }
+        "main": {"temp": 72.5, "feels_like": 70.0, "humidity": 65},
+        "weather": [{"description": "partly cloudy", "main": "Clouds"}],
+        "wind": {"speed": 5.5, "deg": 180},
     }
 
 
@@ -101,19 +81,19 @@ def mock_forecast_response():
                 "dt_txt": "2024-01-15 12:00:00",
                 "main": {"temp": 75},
                 "pop": 0.2,
-                "weather": [{"description": "sunny"}]
+                "weather": [{"description": "sunny"}],
             },
             {
                 "dt_txt": "2024-01-15 18:00:00",
                 "main": {"temp": 70},
                 "pop": 0.1,
-                "weather": [{"description": "clear"}]
+                "weather": [{"description": "clear"}],
             },
             {
                 "dt_txt": "2024-01-16 12:00:00",
                 "main": {"temp": 68},
                 "pop": 0.5,
-                "weather": [{"description": "rain"}]
+                "weather": [{"description": "rain"}],
             },
         ]
     }
@@ -131,7 +111,7 @@ def mock_aqi_response():
                     "o3": 45.0,
                     "no2": 15.0,
                     "so2": 5.0,
-                    "co": 200.0
+                    "co": 200.0,
                 }
             }
         ]
@@ -148,7 +128,7 @@ def mock_providers():
         humidity=65,
         description="Partly Cloudy",
         wind_speed=5.5,
-        wind_direction="S"
+        wind_direction="S",
     )
 
     solar = MagicMock()
@@ -157,20 +137,24 @@ def mock_providers():
         sunrise=datetime.datetime(2024, 1, 15, 7, 0),
         noon=datetime.datetime(2024, 1, 15, 12, 30),
         sunset=datetime.datetime(2024, 1, 15, 17, 30),
-        dusk=datetime.datetime(2024, 1, 15, 18, 0)
+        dusk=datetime.datetime(2024, 1, 15, 18, 0),
     )
     solar.get_day_length.return_value = 10.5
     solar.get_day_length_change.return_value = 1.5
-    solar.get_solar_position.return_value = MagicMock(
-        elevation=35.5,
-        azimuth=180.0
-    )
+    solar.get_solar_position.return_value = MagicMock(elevation=35.5, azimuth=180.0)
     solar.get_golden_hour.return_value = (
-        MagicMock(start=datetime.datetime(2024, 1, 15, 6, 30), end=datetime.datetime(2024, 1, 15, 7, 30)),
-        MagicMock(start=datetime.datetime(2024, 1, 15, 17, 0), end=datetime.datetime(2024, 1, 15, 18, 0))
+        MagicMock(
+            start=datetime.datetime(2024, 1, 15, 6, 30),
+            end=datetime.datetime(2024, 1, 15, 7, 30),
+        ),
+        MagicMock(
+            start=datetime.datetime(2024, 1, 15, 17, 0),
+            end=datetime.datetime(2024, 1, 15, 18, 0),
+        ),
     )
     # Return a proper tuple for next_solar_event
     from zoneinfo import ZoneInfo
+
     tz = ZoneInfo("America/New_York")
     future_time = datetime.datetime.now(tz) + datetime.timedelta(hours=2)
     solar.get_next_solar_event.return_value = ("Sunset", future_time)
@@ -184,7 +168,7 @@ def mock_providers():
         next_new=datetime.date(2024, 1, 20),
         next_full=datetime.date(2024, 1, 28),
         days_to_new=5,
-        days_to_full=13
+        days_to_full=13,
     )
 
     return DataProviders(weather=weather, solar=solar, lunar=lunar)

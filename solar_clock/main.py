@@ -4,7 +4,6 @@ import argparse
 import logging
 import signal
 import sys
-import time
 from pathlib import Path
 from typing import Optional
 
@@ -47,14 +46,18 @@ class SolarClock:
         # Initialize data providers
         api_key = get_api_key()
         self.providers = DataProviders(
-            weather=WeatherProvider(
-                api_key=api_key or "",
-                latitude=config.location.latitude,
-                longitude=config.location.longitude,
-                units=config.weather.units,
-                weather_interval=config.weather.update_interval_seconds,
-                aqi_interval=config.air_quality.update_interval_seconds,
-            ) if api_key else None,
+            weather=(
+                WeatherProvider(
+                    api_key=api_key or "",
+                    latitude=config.location.latitude,
+                    longitude=config.location.longitude,
+                    units=config.weather.units,
+                    weather_interval=config.weather.update_interval_seconds,
+                    aqi_interval=config.air_quality.update_interval_seconds,
+                )
+                if api_key
+                else None
+            ),
             solar=SolarProvider(
                 name=config.location.name,
                 region=config.location.region,
@@ -69,10 +72,7 @@ class SolarClock:
         )
 
         # Initialize views
-        views = [
-            ViewClass(config, self.providers)
-            for ViewClass in VIEW_CLASSES
-        ]
+        views = [ViewClass(config, self.providers) for ViewClass in VIEW_CLASSES]
         self.view_manager = ViewManager(views, config.appearance.default_view)
 
         # Initialize display
@@ -131,7 +131,9 @@ class SolarClock:
 
                 # Sleep until next update
                 current_view = self.view_manager.get_current_view()
-                self.view_manager.view_changed.wait(timeout=current_view.update_interval)
+                self.view_manager.view_changed.wait(
+                    timeout=current_view.update_interval
+                )
                 self.view_manager.view_changed.clear()
 
         except Exception as e:
@@ -167,12 +169,14 @@ def main() -> int:
         description="Solar Smart Clock - Multi-view solar clock display"
     )
     parser.add_argument(
-        "-c", "--config",
+        "-c",
+        "--config",
         type=Path,
         help="Path to config.json file",
     )
     parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Enable debug logging",
     )

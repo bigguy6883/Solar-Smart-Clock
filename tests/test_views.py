@@ -1,12 +1,9 @@
 """Tests for views."""
 
-import datetime
 import pytest
-from unittest.mock import MagicMock, patch
 from PIL import Image
 
-from solar_clock.config import Config
-from solar_clock.views.base import BaseView, ViewManager, DataProviders
+from solar_clock.views.base import ViewManager, DataProviders
 from solar_clock.views.clock import ClockView
 from solar_clock.views.weather import WeatherView
 from solar_clock.views.airquality import AirQualityView

@@ -4,11 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Solar Smart Clock - A single-file Python application that renders 9 interactive views to a Waveshare 3.5" TFT LCD touchscreen (480x320) on Raspberry Pi. Writes directly to framebuffer `/dev/fb1` using RGB565 format.
+Solar Smart Clock - A modular Python application that renders 9 interactive views to a Waveshare 3.5" TFT LCD touchscreen (480x320) on Raspberry Pi. Writes directly to framebuffer `/dev/fb1` using RGB565 format.
 
 ## Commands
 
 ```bash
+# Run the application
+python3 -m solar_clock
+
 # Restart service after code changes
 sudo systemctl restart solar-clock
 
@@ -17,11 +20,17 @@ journalctl -u solar-clock -f
 
 # Check service status
 sudo systemctl status solar-clock
+
+# Run tests
+./venv/bin/pytest tests/ -v
+
+# Run linting
+./venv/bin/flake8 solar_clock tests --max-line-length=100 --ignore=E501,W503
 ```
 
 ## Remote Screenshot Capture
 
-The clock runs an HTTP server on port 8080 for fast remote screenshots (~155ms vs ~3800ms via SSH).
+The clock runs an HTTP server on port 8080 for fast remote screenshots.
 
 ### HTTP Endpoints
 
@@ -36,110 +45,164 @@ The clock runs an HTTP server on port 8080 for fast remote screenshots (~155ms v
 ### From Remote Machine
 
 ```bash
-# Quick screenshot via HTTP (fastest)
+# Quick screenshot via HTTP
 curl -o /tmp/screen.png http://clock.local:8080/screenshot
 
 # Navigate views
 curl http://clock.local:8080/next
 curl http://clock.local:8080/view
 
-# Use the clockshot utility (tools/clockshot)
-./tools/clockshot /tmp/screenshot.png
-
 # Capture all 9 views
 for i in 1 2 3 4 5 6 7 8 9; do
-    curl -s http://clock.local:8080/next
-    sleep 0.3
     view=$(curl -s http://clock.local:8080/view | cut -d' ' -f1)
     curl -o "/tmp/${i}_${view}.png" http://clock.local:8080/screenshot
+    curl -s http://clock.local:8080/next
+    sleep 0.3
 done
-```
-
-### On the Clock Itself
-
-```bash
-# Direct framebuffer capture
-fbgrab -d /dev/fb1 /tmp/screenshot.png
 ```
 
 ## Architecture
 
-**Single file**: `clock.py` (~2400 lines) contains everything including HTTP screenshot server.
+### Package Structure
+
+```
+solar_clock/
+├── __init__.py
+├── __main__.py          # Entry point for python -m solar_clock
+├── main.py              # SolarClock class, main loop
+├── config.py            # Configuration dataclasses and loading
+├── display.py           # Framebuffer handling (RGB565)
+├── http_server.py       # HTTP API server with rate limiting
+├── touch_handler.py     # Touch input (evdev)
+├── data/
+│   ├── __init__.py
+│   ├── weather.py       # WeatherProvider (OpenWeatherMap)
+│   ├── solar.py         # SolarProvider (astral)
+│   └── lunar.py         # LunarProvider (ephem)
+└── views/
+    ├── __init__.py      # VIEW_CLASSES list
+    ├── base.py          # BaseView, ViewManager, colors
+    ├── clock.py         # ClockView
+    ├── weather.py       # WeatherView
+    ├── airquality.py    # AirQualityView
+    ├── sunpath.py       # SunPathView
+    ├── daylength.py     # DayLengthView
+    ├── solar.py         # SolarView
+    ├── moon.py          # MoonView
+    ├── analemma.py      # AnalemmaView
+    └── analogclock.py   # AnalogClockView
+```
 
 ### Core Classes
 
-| Class | Purpose |
-|-------|---------|
-| `SolarClock` | Main class - renders frames, manages state, writes to framebuffer |
-| `ViewManager` | Tracks current view index (0-8), handles prev/next navigation |
-| `TouchHandler` | Threaded evdev input handler for swipe gestures and nav button taps |
-| `ScreenshotHandler` | HTTP request handler for remote screenshots and view navigation |
+| Module | Class | Purpose |
+|--------|-------|---------|
+| `main.py` | `SolarClock` | Main application - initializes components, runs main loop |
+| `config.py` | `Config` | Configuration container with validation |
+| `display.py` | `Display` | Framebuffer operations (open, write, RGB565 conversion) |
+| `http_server.py` | `ScreenshotHandler` | HTTP request handler for API endpoints |
+| `http_server.py` | `RateLimiter` | Token bucket rate limiting |
+| `touch_handler.py` | `TouchHandler` | Threaded evdev input for swipes and taps |
+| `views/base.py` | `BaseView` | Abstract base for all views |
+| `views/base.py` | `ViewManager` | View navigation and rendering |
+| `views/base.py` | `DataProviders` | Container for weather/solar/lunar providers |
 
 ### View System
 
-Views are defined in `ViewManager.VIEWS` list. Each has a corresponding `create_*_frame()` method:
+Views inherit from `BaseView` and implement `render_content()`. The base class handles navigation bar rendering.
 
-| Index | View | Method |
-|-------|------|--------|
-| 0 | clock | `create_clock_frame()` |
-| 1 | weather | `create_weather_frame()` |
-| 2 | airquality | `create_airquality_frame()` |
-| 3 | sunpath | `create_sunpath_frame()` |
-| 4 | daylength | `create_daylength_frame()` |
-| 5 | solar | `create_solar_frame()` |
-| 6 | moon | `create_moon_frame()` |
-| 7 | analemma | `create_analemma_frame()` |
-| 8 | analogclock | `create_analogclock_frame()` |
+| Index | View | Class | File |
+|-------|------|-------|------|
+| 0 | clock | `ClockView` | `views/clock.py` |
+| 1 | weather | `WeatherView` | `views/weather.py` |
+| 2 | airquality | `AirQualityView` | `views/airquality.py` |
+| 3 | sunpath | `SunPathView` | `views/sunpath.py` |
+| 4 | daylength | `DayLengthView` | `views/daylength.py` |
+| 5 | solar | `SolarView` | `views/solar.py` |
+| 6 | moon | `MoonView` | `views/moon.py` |
+| 7 | analemma | `AnalemmaView` | `views/analemma.py` |
+| 8 | analogclock | `AnalogClockView` | `views/analogclock.py` |
 
 ### Data Flow
 
-1. `run()` - Main loop, calls `create_frame()` every 1s
-2. `create_frame()` - Dispatches to appropriate `create_*_frame()` based on current view
-3. `write_fb()` - Converts PIL Image to RGB565 and writes to `/dev/fb1`
-4. `_start_http_server()` - Launches threaded HTTP server on port 8080
+1. `main.py:SolarClock.__init__()` - Initializes providers, views, display, HTTP server, touch handler
+2. `main.py:SolarClock.run()` - Main loop, renders current view every `update_interval` seconds
+3. `views/base.py:ViewManager.render_current()` - Calls current view's `render()` method
+4. `views/base.py:BaseView.render()` - Creates image, calls `render_content()`, adds nav bar
+5. `display.py:Display.write_frame()` - Converts to RGB565, writes to `/dev/fb1`
 
-### External APIs
+### Data Providers
 
-All weather/AQI data from OpenWeatherMap (API key in systemd environment):
-- `get_weather()` - Current conditions (15 min cache)
-- `get_weather_forecast()` - 3-day forecast (15 min cache)
-- `get_air_quality()` - AQI and pollutants (30 min cache)
+| Provider | Library | Data |
+|----------|---------|------|
+| `WeatherProvider` | requests | Current weather, 3-day forecast, AQI (OpenWeatherMap) |
+| `SolarProvider` | astral | Sunrise, sunset, dawn, dusk, golden hour, sun position |
+| `LunarProvider` | ephem | Moon phase, illumination, solstice/equinox dates |
 
-### Local Calculations
+## Configuration
 
-- `astral` library: sunrise, sunset, dawn, dusk, golden hour, solar position
-- `ephem` library: moon phase, solstice/equinox dates, analemma
+Configuration is loaded from `config.json` (searched in cwd, `~/.config/solar-clock/`, `/etc/solar-clock/`).
+
+### Key Config Sections
+
+```python
+@dataclass
+class Config:
+    location: LocationConfig      # name, region, timezone, lat/lon
+    display: DisplayConfig        # width, height, framebuffer, nav_bar_height
+    http_server: HttpServerConfig # enabled, port, bind_address, rate_limit
+    weather: WeatherConfig        # update_interval_seconds, units
+    air_quality: AirQualityConfig # update_interval_seconds
+    touch: TouchConfig            # enabled, device, swipe/tap thresholds
+    appearance: AppearanceConfig  # default_view
+```
+
+### Example config.json
+
+```json
+{
+  "location": {
+    "name": "City",
+    "region": "State, Country",
+    "timezone": "America/New_York",
+    "latitude": 40.7128,
+    "longitude": -74.0060
+  },
+  "http_server": {
+    "bind_address": "0.0.0.0"
+  }
+}
+```
+
+### Environment Variables
+
+- `OPENWEATHER_API_KEY` - Required for weather/AQI data
+- `HTTP_AUTH_USER` / `HTTP_AUTH_PASS` - Optional HTTP Basic Auth
+
+## Key Constants (views/base.py)
+
+Colors are defined as RGB tuples:
+- `BLACK`, `WHITE`, `YELLOW`, `ORANGE`, `BLUE`, `DARK_BLUE`, `LIGHT_BLUE`
+- `GRAY`, `LIGHT_GRAY`, `DARK_GRAY`, `RED`, `PURPLE`, `GREEN`
+- `AQI_GOOD`, `AQI_MODERATE`, `AQI_UNHEALTHY`, etc.
+
+## Adding a New View
+
+1. Create `views/newview.py` with class inheriting from `BaseView`
+2. Set class attributes: `name`, `title`, `update_interval`
+3. Implement `render_content(self, draw, image)` method
+4. Add to `VIEW_CLASSES` list in `views/__init__.py`
+5. Update `AppearanceConfig.validate()` in `config.py` if view count changed
 
 ## Testing Views
 
-Use HTTP endpoints to navigate and capture views remotely:
-
 ```bash
-# Switch to specific view and capture
+# Navigate to specific view and capture
 curl http://clock.local:8080/next  # repeat as needed
 curl http://clock.local:8080/view  # check current view
 curl -o test.png http://clock.local:8080/screenshot
 ```
 
-## Configuration
-
-Location and timezone are hardcoded in `LOCATION` constant near top of file:
-```python
-LOCATION = LocationInfo(
-    name="City",
-    region="State, Country",
-    timezone="America/New_York",
-    latitude=34.6948,
-    longitude=-84.4822
-)
-```
-
-## Key Constants
-
-- `WIDTH = 480`, `HEIGHT = 320` - Display dimensions
-- `NAV_BAR_HEIGHT = 40` - Bottom navigation bar
-- Color tuples defined at top (BLACK, WHITE, YELLOW, AQI_* colors, etc.)
-
 ## Privacy
 
-Before committing, redact: location coordinates in LOCATION constant, API keys, IP addresses.
+Before committing, redact: location coordinates in config.json, API keys, IP addresses.

@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 # Try to import evdev (only available on Pi)
 try:
-    import evdev
     from evdev import InputDevice, ecodes
+
     EVDEV_AVAILABLE = True
 except ImportError:
     EVDEV_AVAILABLE = False
@@ -170,7 +170,6 @@ class TouchHandler:
             return
 
         dx = self.current_x - self.touch_start_x
-        dy = self.current_y - self.touch_start_y
         elapsed = time.time() - self.touch_start_time
 
         # Check for swipe

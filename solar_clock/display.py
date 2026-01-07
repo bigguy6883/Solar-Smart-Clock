@@ -1,7 +1,6 @@
 """Framebuffer display handling for Solar Smart Clock."""
 
 import logging
-import struct
 from typing import TYPE_CHECKING, Optional
 
 from PIL import Image
@@ -85,7 +84,9 @@ class Display:
         try:
             # Ensure correct size
             if image.size != (self.width, self.height):
-                image = image.resize((self.width, self.height), Image.Resampling.LANCZOS)
+                image = image.resize(
+                    (self.width, self.height), Image.Resampling.LANCZOS
+                )
 
             # Ensure RGB mode
             if image.mode != "RGB":

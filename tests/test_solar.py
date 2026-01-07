@@ -2,7 +2,6 @@
 
 import datetime
 import pytest
-from unittest.mock import patch, MagicMock
 
 from solar_clock.data.solar import SolarProvider, SunTimes, SolarPosition, GoldenHour
 
