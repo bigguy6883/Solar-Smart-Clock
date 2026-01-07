@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw
 
 from .base import (
     BaseView,
+    UPDATE_FREQUENT,
     WHITE,
     BLACK,
     GRAY,
