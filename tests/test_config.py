@@ -28,7 +28,7 @@ class TestLocationConfig:
             region="NY, USA",
             timezone="America/New_York",
             latitude=40.7128,
-            longitude=-74.0060
+            longitude=-74.0060,
         )
         errors = loc.validate()
         assert errors == []
@@ -169,7 +169,9 @@ class TestConfigLoading:
 
     def test_load_defaults_when_no_file(self):
         """Test defaults used when no config file found."""
-        with patch("solar_clock.config.CONFIG_PATHS", [Path("/nonexistent/config.json")]):
+        with patch(
+            "solar_clock.config.CONFIG_PATHS", [Path("/nonexistent/config.json")]
+        ):
             config = load_config(None)
             assert isinstance(config, Config)
             assert config.display.width == 480  # Default

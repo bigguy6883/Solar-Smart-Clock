@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SunTimes:
     """Sun event times for a day."""
+
     dawn: datetime.datetime
     sunrise: datetime.datetime
     noon: datetime.datetime
@@ -25,6 +26,7 @@ class SunTimes:
 @dataclass
 class GoldenHour:
     """Golden hour time range."""
+
     start: datetime.datetime
     end: datetime.datetime
 
@@ -32,8 +34,9 @@ class GoldenHour:
 @dataclass
 class SolarPosition:
     """Current sun position in the sky."""
+
     elevation: float  # Degrees above horizon (negative = below)
-    azimuth: float    # Degrees from north (0-360)
+    azimuth: float  # Degrees from north (0-360)
 
 
 class SolarProvider:
@@ -148,9 +151,10 @@ class SolarProvider:
         try:
             # Morning golden hour (sun rising through golden zone)
             morning_times = golden_hour(
-                self.location.observer, date,
+                self.location.observer,
+                date,
                 direction=SunDirection.RISING,
-                tzinfo=self.location.timezone
+                tzinfo=self.location.timezone,
             )
             if morning_times:
                 morning = GoldenHour(start=morning_times[0], end=morning_times[1])
@@ -160,9 +164,10 @@ class SolarProvider:
         try:
             # Evening golden hour (sun setting through golden zone)
             evening_times = golden_hour(
-                self.location.observer, date,
+                self.location.observer,
+                date,
                 direction=SunDirection.SETTING,
-                tzinfo=self.location.timezone
+                tzinfo=self.location.timezone,
             )
             if evening_times:
                 evening = GoldenHour(start=evening_times[0], end=evening_times[1])

@@ -34,7 +34,9 @@ class TestWeatherProvider:
         assert provider.longitude == -74.0060
         assert provider.units == "imperial"
 
-    def test_get_current_weather_success(self, provider, mock_weather_response, mock_forecast_response):
+    def test_get_current_weather_success(
+        self, provider, mock_weather_response, mock_forecast_response
+    ):
         """Test successful weather fetch."""
         with patch("solar_clock.data.weather.requests.get") as mock_get:
             mock_resp = MagicMock()
@@ -58,7 +60,7 @@ class TestWeatherProvider:
             humidity=50,
             description="Cached",
             wind_speed=3.0,
-            wind_direction="N"
+            wind_direction="N",
         )
         provider._weather_updated = 9999999999  # Far future
 
@@ -85,7 +87,9 @@ class TestWeatherProvider:
             weather = provider.get_current_weather()
             assert weather is None
 
-    def test_get_forecast(self, provider, mock_weather_response, mock_forecast_response):
+    def test_get_forecast(
+        self, provider, mock_weather_response, mock_forecast_response
+    ):
         """Test forecast retrieval."""
         with patch("solar_clock.data.weather.requests.get") as mock_get:
             mock_resp = MagicMock()
@@ -113,7 +117,14 @@ class TestWeatherProvider:
             assert aqi is not None
             assert aqi.pm25 == 12.5
             assert aqi.aqi > 0
-            assert aqi.category in ["Good", "Moderate", "Unhealthy for Sensitive", "Unhealthy", "Very Unhealthy", "Hazardous"]
+            assert aqi.category in [
+                "Good",
+                "Moderate",
+                "Unhealthy for Sensitive",
+                "Unhealthy",
+                "Very Unhealthy",
+                "Hazardous",
+            ]
 
     def test_degrees_to_compass(self):
         """Test wind direction conversion."""

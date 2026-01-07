@@ -85,7 +85,9 @@ class Display:
         try:
             # Ensure correct size
             if image.size != (self.width, self.height):
-                image = image.resize((self.width, self.height), Image.Resampling.LANCZOS)
+                image = image.resize(
+                    (self.width, self.height), Image.Resampling.LANCZOS
+                )
 
             # Ensure RGB mode
             if image.mode != "RGB":

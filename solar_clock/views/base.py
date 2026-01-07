@@ -212,7 +212,10 @@ class BaseView(ABC):
             x = start_x + i * dot_spacing
             color = WHITE if i == current_index else GRAY
             draw.ellipse(
-                [(x - dot_radius, dot_y - dot_radius), (x + dot_radius, dot_y + dot_radius)],
+                [
+                    (x - dot_radius, dot_y - dot_radius),
+                    (x + dot_radius, dot_y + dot_radius),
+                ],
                 fill=color,
             )
 

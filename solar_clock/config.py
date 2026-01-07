@@ -20,6 +20,7 @@ CONFIG_PATHS = [
 @dataclass
 class LocationConfig:
     """Location settings for solar calculations."""
+
     name: str = "Unknown"
     region: str = "Unknown"
     timezone: str = "UTC"
@@ -41,6 +42,7 @@ class LocationConfig:
 @dataclass
 class DisplayConfig:
     """Display settings."""
+
     width: int = 480
     height: int = 320
     framebuffer: str = "/dev/fb1"
@@ -58,6 +60,7 @@ class DisplayConfig:
 @dataclass
 class HttpServerConfig:
     """HTTP screenshot server settings."""
+
     enabled: bool = True
     port: int = 8080
     bind_address: str = "127.0.0.1"  # Secure default: localhost only
@@ -73,6 +76,7 @@ class HttpServerConfig:
 @dataclass
 class WeatherConfig:
     """Weather API settings."""
+
     update_interval_seconds: int = 900  # 15 minutes
     units: str = "imperial"  # imperial or metric
 
@@ -81,13 +85,16 @@ class WeatherConfig:
         if self.update_interval_seconds < 60:
             errors.append("Weather update interval must be at least 60 seconds")
         if self.units not in ("imperial", "metric"):
-            errors.append(f"Invalid units '{self.units}': must be 'imperial' or 'metric'")
+            errors.append(
+                f"Invalid units '{self.units}': must be 'imperial' or 'metric'"
+            )
         return errors
 
 
 @dataclass
 class AirQualityConfig:
     """Air quality API settings."""
+
     update_interval_seconds: int = 1800  # 30 minutes
 
     def validate(self) -> list[str]:
@@ -100,6 +107,7 @@ class AirQualityConfig:
 @dataclass
 class TouchConfig:
     """Touchscreen settings."""
+
     enabled: bool = True
     device: str = "/dev/input/event0"
     swipe_threshold: int = 80
@@ -120,6 +128,7 @@ class TouchConfig:
 @dataclass
 class AppearanceConfig:
     """Appearance settings."""
+
     default_view: int = 0
 
     def validate(self) -> list[str]:
@@ -132,6 +141,7 @@ class AppearanceConfig:
 @dataclass
 class Config:
     """Main configuration container."""
+
     location: LocationConfig = field(default_factory=LocationConfig)
     display: DisplayConfig = field(default_factory=DisplayConfig)
     http_server: HttpServerConfig = field(default_factory=HttpServerConfig)
@@ -182,20 +192,26 @@ def _dict_to_config(data: dict) -> Config:
             enabled=http.get("enabled", config.http_server.enabled),
             port=http.get("port", config.http_server.port),
             bind_address=http.get("bind_address", config.http_server.bind_address),
-            rate_limit_per_second=http.get("rate_limit_per_second", config.http_server.rate_limit_per_second),
+            rate_limit_per_second=http.get(
+                "rate_limit_per_second", config.http_server.rate_limit_per_second
+            ),
         )
 
     if "weather" in data:
         weather = data["weather"]
         config.weather = WeatherConfig(
-            update_interval_seconds=weather.get("update_interval_seconds", config.weather.update_interval_seconds),
+            update_interval_seconds=weather.get(
+                "update_interval_seconds", config.weather.update_interval_seconds
+            ),
             units=weather.get("units", config.weather.units),
         )
 
     if "air_quality" in data:
         aq = data["air_quality"]
         config.air_quality = AirQualityConfig(
-            update_interval_seconds=aq.get("update_interval_seconds", config.air_quality.update_interval_seconds),
+            update_interval_seconds=aq.get(
+                "update_interval_seconds", config.air_quality.update_interval_seconds
+            ),
         )
 
     if "touch" in data:
@@ -264,7 +280,9 @@ def load_config(config_path: Optional[Path] = None) -> Config:
     # Validate
     errors = config.validate()
     if errors:
-        error_msg = "Config validation errors:\n" + "\n".join(f"  - {e}" for e in errors)
+        error_msg = "Config validation errors:\n" + "\n".join(
+            f"  - {e}" for e in errors
+        )
         raise ValueError(error_msg)
 
     return config

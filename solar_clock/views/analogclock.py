@@ -6,7 +6,16 @@ from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, WHITE, BLACK, GRAY, LIGHT_GRAY, DARK_BLUE, LIGHT_BLUE, ORANGE
+from .base import (
+    BaseView,
+    WHITE,
+    BLACK,
+    GRAY,
+    LIGHT_GRAY,
+    DARK_BLUE,
+    LIGHT_BLUE,
+    ORANGE,
+)
 
 if TYPE_CHECKING:
     from ..config import Config
@@ -120,7 +129,9 @@ class AnalogClockView(BaseView):
         second_length = radius * 0.85
         second_x = center_x + int(second_length * math.cos(second_angle))
         second_y = center_y + int(second_length * math.sin(second_angle))
-        draw.line([(center_x, center_y), (second_x, second_y)], fill=(200, 0, 0), width=2)
+        draw.line(
+            [(center_x, center_y), (second_x, second_y)], fill=(200, 0, 0), width=2
+        )
 
         # Center dot
         draw.ellipse(

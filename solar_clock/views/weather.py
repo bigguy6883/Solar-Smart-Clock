@@ -5,7 +5,17 @@ from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, BLUE, LIGHT_BLUE
+from .base import (
+    BaseView,
+    WHITE,
+    BLACK,
+    YELLOW,
+    ORANGE,
+    GRAY,
+    LIGHT_GRAY,
+    BLUE,
+    LIGHT_BLUE,
+)
 
 if TYPE_CHECKING:
     from ..config import Config
@@ -45,7 +55,7 @@ class WeatherView(BaseView):
         font_small = self.get_font(14)
         font_desc = self.get_font(16)
         location = self.config.location.name
-        
+
         # Weather description below current conditions panel (truncate if needed)
         if self.providers.weather:
             weather = self.providers.weather.get_current_weather()
@@ -55,11 +65,15 @@ class WeatherView(BaseView):
                 desc_bbox = draw.textbbox((0, 0), desc, font=font_desc)
                 if desc_bbox[2] - desc_bbox[0] > max_width:
                     # Truncate and add ellipsis
-                    while len(desc) > 3 and draw.textbbox((0, 0), desc + "...", font=font_desc)[2] > max_width:
+                    while (
+                        len(desc) > 3
+                        and draw.textbbox((0, 0), desc + "...", font=font_desc)[2]
+                        > max_width
+                    ):
                         desc = desc[:-1]
                     desc = desc.rstrip() + "..."
                 draw.text((20, 170), desc, fill=YELLOW, font=font_desc)
-        
+
         draw.text((20, self.content_height - 25), location, fill=GRAY, font=font_small)
 
     def _render_current_conditions(self, draw: ImageDraw.ImageDraw, y: int) -> None:
@@ -80,7 +94,9 @@ class WeatherView(BaseView):
             return
 
         # Subtle background panel for current conditions
-        draw.rounded_rectangle([(10, y - 5), (160, y + 120)], radius=8, fill=(30, 30, 40))
+        draw.rounded_rectangle(
+            [(10, y - 5), (160, y + 120)], radius=8, fill=(30, 30, 40)
+        )
 
         # Temperature - larger and bolder
         temp = f"{weather.temperature:.0f}°F"
@@ -106,7 +122,9 @@ class WeatherView(BaseView):
 
         # Forecast panel background
         x_start = 175
-        draw.rounded_rectangle([(170, y - 5), (self.width - 10, y + 175)], radius=8, fill=(30, 30, 40))
+        draw.rounded_rectangle(
+            [(170, y - 5), (self.width - 10, y + 175)], radius=8, fill=(30, 30, 40)
+        )
 
         # Table headers
         draw.text((x_start + 5, y + 2), "Day", fill=GRAY, font=font_header)
@@ -115,7 +133,9 @@ class WeatherView(BaseView):
         draw.text((x_start + 175, y + 2), "Rain", fill=GRAY, font=font_header)
 
         # Header divider
-        draw.line([(x_start, y + 20), (self.width - 15, y + 20)], fill=(60, 60, 70), width=1)
+        draw.line(
+            [(x_start, y + 20), (self.width - 15, y + 20)], fill=(60, 60, 70), width=1
+        )
 
         if self.providers.weather is None:
             return
@@ -149,10 +169,12 @@ class WeatherView(BaseView):
                 fill=BLUE,
                 font=font_temp,
             )
-            
+
             # Rain chance with color coding
             rain = day.rain_chance
-            rain_color = LIGHT_GRAY if rain < 30 else (LIGHT_BLUE if rain < 60 else BLUE)
+            rain_color = (
+                LIGHT_GRAY if rain < 30 else (LIGHT_BLUE if rain < 60 else BLUE)
+            )
             draw.text(
                 (x_start + 175, row_y),
                 f"{rain}%",
@@ -162,6 +184,10 @@ class WeatherView(BaseView):
 
             # Row divider
             if i < 2:
-                draw.line([(x_start, row_y + 28), (self.width - 15, row_y + 28)], fill=(40, 40, 50), width=1)
+                draw.line(
+                    [(x_start, row_y + 28), (self.width - 15, row_y + 28)],
+                    fill=(40, 40, 50),
+                    width=1,
+                )
 
             row_y += row_height

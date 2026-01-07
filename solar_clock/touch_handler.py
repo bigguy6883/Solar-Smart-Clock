@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 try:
     import evdev
     from evdev import InputDevice, ecodes
+
     EVDEV_AVAILABLE = True
 except ImportError:
     EVDEV_AVAILABLE = False

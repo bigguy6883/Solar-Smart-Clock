@@ -44,7 +44,9 @@ class ClockView(BaseView):
         start_x = (self.width - total_width) // 2
 
         draw.text((start_x, -1), time_str, fill=WHITE, font=font_time)
-        draw.text((start_x + time_width + 5, 20), am_pm, fill=LIGHT_GRAY, font=font_ampm)
+        draw.text(
+            (start_x + time_width + 5, 20), am_pm, fill=LIGHT_GRAY, font=font_ampm
+        )
 
         # Date
         date_str = now.strftime("%A, %B %d, %Y")
@@ -142,7 +144,7 @@ class ClockView(BaseView):
                 # Elevation with up/down indicator
                 elev_abs = abs(pos.elevation)
                 elev_arrow = "↑" if pos.elevation >= 0 else "↓"
-                
+
                 # Calculate compass direction from azimuth
                 az = pos.azimuth
                 if az >= 337.5 or az < 22.5:
@@ -161,7 +163,7 @@ class ClockView(BaseView):
                     compass = "W"
                 else:
                     compass = "NW"
-                
+
                 draw.text(
                     (self.width - 115, y),
                     "Sun Position",

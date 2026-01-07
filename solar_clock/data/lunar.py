@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 # Try to import ephem (optional dependency)
 try:
     import ephem
+
     EPHEM_AVAILABLE = True
 except ImportError:
     EPHEM_AVAILABLE = False
@@ -19,9 +20,10 @@ except ImportError:
 @dataclass
 class MoonPhase:
     """Moon phase data."""
-    phase: float           # 0-1 (0=new, 0.5=full, 1=new)
-    illumination: float    # 0-100 percentage
-    phase_name: str        # "New Moon", "Waxing Crescent", etc.
+
+    phase: float  # 0-1 (0=new, 0.5=full, 1=new)
+    illumination: float  # 0-100 percentage
+    phase_name: str  # "New Moon", "Waxing Crescent", etc.
     next_new: datetime.date
     next_full: datetime.date
     days_to_new: int
@@ -31,6 +33,7 @@ class MoonPhase:
 @dataclass
 class MoonTimes:
     """Moon rise and set times."""
+
     moonrise: Optional[datetime.datetime]
     moonset: Optional[datetime.datetime]
 
@@ -38,6 +41,7 @@ class MoonTimes:
 @dataclass
 class SolsticeEquinox:
     """Solstice and equinox dates for a year."""
+
     spring_equinox: datetime.date
     summer_solstice: datetime.date
     fall_equinox: datetime.date
@@ -47,6 +51,7 @@ class SolsticeEquinox:
 @dataclass
 class AnalemmaPoint:
     """Sun position data for analemma calculation."""
+
     elevation: float
     equation_of_time: float  # Minutes early/late
     date: datetime.date
@@ -243,8 +248,8 @@ class LunarProvider:
         try:
             # Set up observer at prime meridian for standard calculation
             observer = ephem.Observer()
-            observer.lat = '0'
-            observer.lon = '0'
+            observer.lat = "0"
+            observer.lon = "0"
             observer.elevation = 0
             observer.pressure = 0  # No atmospheric refraction
 
@@ -259,7 +264,9 @@ class LunarProvider:
             # Equation of time = 12:00 - transit time (in minutes)
             # Positive = sun is early (ahead of clock), negative = sun is late
             transit_dt = ephem.Date(transit).datetime()
-            eot_minutes = (12 * 60) - (transit_dt.hour * 60 + transit_dt.minute + transit_dt.second / 60)
+            eot_minutes = (12 * 60) - (
+                transit_dt.hour * 60 + transit_dt.minute + transit_dt.second / 60
+            )
 
             return eot_minutes
 
