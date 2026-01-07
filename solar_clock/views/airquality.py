@@ -1,7 +1,6 @@
 """Air Quality view - AQI and pollutant levels."""
 
 import datetime
-from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
@@ -11,7 +10,6 @@ from .base import (
     BLACK,
     GRAY,
     LIGHT_GRAY,
-    GREEN,
     AQI_GOOD,
     AQI_MODERATE,
     AQI_UNHEALTHY_SENSITIVE,
@@ -19,10 +17,6 @@ from .base import (
     AQI_VERY_UNHEALTHY,
     AQI_HAZARDOUS,
 )
-
-if TYPE_CHECKING:
-    from ..config import Config
-    from .base import DataProviders
 
 
 class AirQualityView(BaseView):

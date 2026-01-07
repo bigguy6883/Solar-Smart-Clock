@@ -1,16 +1,8 @@
 """Moon phase view - lunar cycle visualization."""
 
-import datetime
-import math
-from typing import TYPE_CHECKING
-
 from PIL import Image, ImageDraw
 
-from .base import BaseView, WHITE, BLACK, YELLOW, GRAY, LIGHT_GRAY, PURPLE, MOON_YELLOW
-
-if TYPE_CHECKING:
-    from ..config import Config
-    from .base import DataProviders
+from .base import BaseView, WHITE, GRAY, LIGHT_GRAY, PURPLE, MOON_YELLOW
 
 
 class MoonView(BaseView):
@@ -78,12 +70,10 @@ class MoonView(BaseView):
         # phase: 0 = new, 0.25 = first quarter, 0.5 = full, 0.75 = last quarter
         if phase < 0.5:
             # Waxing: shadow on left, shrinking
-            shadow_offset = int((0.5 - phase) * 2 * radius)
-            shadow_x = center_x - shadow_offset
+            pass
         else:
             # Waning: shadow on right, growing
-            shadow_offset = int((phase - 0.5) * 2 * radius)
-            shadow_x = center_x + shadow_offset
+            pass
 
         # Draw shadow ellipse
         if phase < 0.03 or phase > 0.97:
@@ -133,7 +123,6 @@ class MoonView(BaseView):
 
     def _render_phase_info(self, draw: ImageDraw.ImageDraw, moon, x: int) -> None:
         """Render phase name and illumination."""
-        font = self.get_font(14)
         font_large = self.get_bold_font(36)
         font_name = self.get_font(18)
 

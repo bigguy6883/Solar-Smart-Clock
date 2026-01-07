@@ -2,7 +2,6 @@
 
 import datetime
 import math
-from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
@@ -11,15 +10,7 @@ from .base import (
     WHITE,
     BLACK,
     GRAY,
-    LIGHT_GRAY,
-    DARK_BLUE,
-    LIGHT_BLUE,
-    ORANGE,
 )
-
-if TYPE_CHECKING:
-    from ..config import Config
-    from .base import DataProviders
 
 
 class AnalogClockView(BaseView):

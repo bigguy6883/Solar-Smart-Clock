@@ -1,14 +1,12 @@
 """Weather view - current conditions and forecast."""
 
 import datetime
-from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
 from .base import (
     BaseView,
     WHITE,
-    BLACK,
     YELLOW,
     ORANGE,
     GRAY,
@@ -16,10 +14,6 @@ from .base import (
     BLUE,
     LIGHT_BLUE,
 )
-
-if TYPE_CHECKING:
-    from ..config import Config
-    from .base import DataProviders
 
 
 class WeatherView(BaseView):
@@ -79,7 +73,6 @@ class WeatherView(BaseView):
     def _render_current_conditions(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render current weather conditions."""
         font_large = self.get_bold_font(48)
-        font_med = self.get_font(16)
         font_small = self.get_font(14)
 
         x = 20

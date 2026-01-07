@@ -2,26 +2,19 @@
 
 import datetime
 import math
-from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
 from .base import (
     BaseView,
     WHITE,
-    BLACK,
     YELLOW,
     ORANGE,
     GRAY,
     LIGHT_GRAY,
     BLUE,
     GREEN,
-    PURPLE,
 )
-
-if TYPE_CHECKING:
-    from ..config import Config
-    from .base import DataProviders
 
 
 class DayLengthView(BaseView):

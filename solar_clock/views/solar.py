@@ -1,15 +1,10 @@
 """Solar details view - comprehensive sun timing information."""
 
 import datetime
-from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, PURPLE
-
-if TYPE_CHECKING:
-    from ..config import Config
-    from .base import DataProviders
+from .base import BaseView, WHITE, YELLOW, ORANGE, GRAY, LIGHT_GRAY, PURPLE
 
 
 class SolarView(BaseView):

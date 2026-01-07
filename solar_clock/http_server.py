@@ -7,7 +7,7 @@ import threading
 import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from io import BytesIO
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from .config import HttpServerConfig

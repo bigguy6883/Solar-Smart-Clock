@@ -1,7 +1,6 @@
 """Framebuffer display handling for Solar Smart Clock."""
 
 import logging
-import struct
 from typing import TYPE_CHECKING, Optional
 
 from PIL import Image

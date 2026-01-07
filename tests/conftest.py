@@ -2,18 +2,16 @@
 
 import datetime
 import json
-import os
-import pytest
+import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+
+import pytest
 
 # Add parent to path for imports
-import sys
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from solar_clock.config import Config, load_config
-from solar_clock.views.base import DataProviders
+from solar_clock.views.base import DataProviders  # noqa: E402
 
 
 @pytest.fixture
