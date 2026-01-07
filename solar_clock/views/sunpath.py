@@ -53,10 +53,13 @@ class SunPathView(BaseView):
         chart_height = 120
         chart_y = y + 10
 
-        # Y-axis labels
+        # Y-axis labels at correct positions for 40° to -90° range
         font_tiny = self.get_font(10)
+        elev_range = 130  # 40 - (-90)
         draw.text((5, chart_y), "40°", fill=GRAY, font=font_tiny)
-        draw.text((10, chart_y + chart_height // 2), "0°", fill=GRAY, font=font_tiny)
+        # 0° is at 40/130 = ~31% down from top
+        zero_y = chart_y + int((40 / elev_range) * chart_height) - 5
+        draw.text((10, zero_y), "0°", fill=GRAY, font=font_tiny)
         draw.text((5, chart_y + chart_height - 10), "-90°", fill=GRAY, font=font_tiny)
 
         # X-axis labels (hours)
@@ -68,8 +71,10 @@ class SunPathView(BaseView):
             label = f"{hour:02d}"
             draw.text((x - 8, chart_y + chart_height + 2), label, fill=GRAY, font=font_tiny)
 
-        # Horizon line
-        horizon_y = chart_y + chart_height // 2 + 20
+        # Horizon line at 0° elevation
+        # Range is 40° to -90° (130° total), so 0° is at 40/130 from top
+        elev_range = 40 - (-90)  # 130 degrees
+        horizon_y = chart_y + int((40 / elev_range) * chart_height)
         draw.line([(chart_x, horizon_y), (chart_x + chart_width, horizon_y)], fill=GRAY, width=1)
 
         # Draw sun path curve
