@@ -142,8 +142,8 @@ class SunPathView(BaseView):
                 hours = int(delta.total_seconds() // 3600)
                 minutes = int((delta.total_seconds() % 3600) // 60)
 
-                draw.text((20, y + 5), event_name, fill=ORANGE, font=font_value)
-                draw.text((20, y + 5), f"in {hours}h {minutes}m", fill=WHITE, font=font)
+                draw.text((20, y + 5), event_name, fill=ORANGE, font=font)
+                draw.text((115, y + 5), f"in {hours}h {minutes}m", fill=WHITE, font=font)
                 draw.text((20, y + 30), f"at {event_time.strftime('%I:%M %p').lstrip('0')}", fill=LIGHT_GRAY, font=font)
 
         # Right box: Current elevation

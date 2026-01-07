@@ -149,7 +149,7 @@ class ClockView(BaseView):
                 )
                 draw.text(
                     (self.width - 120, y + 18),
-                    f"{pos_str}{direction}",
+                    f"{pos_str} {direction}",
                     fill=YELLOW if pos.elevation > 0 else ORANGE,
                     font=font,
                 )

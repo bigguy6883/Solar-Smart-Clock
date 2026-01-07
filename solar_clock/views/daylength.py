@@ -55,7 +55,7 @@ class DayLengthView(BaseView):
         draw.text((5, chart_y + chart_height - 10), "11h", fill=GRAY, font=font_tiny)
 
         # X-axis month labels
-        months = ["J", "A", "S", "O", "N", "D", "J", "F", "M", "A", "M", "J"]
+        months = ["Jl", "Au", "S", "O", "N", "D", "Ja", "F", "Mr", "Ap", "My", "Jn"]
         for i, month in enumerate(months):
             x = chart_x + int((i / 12) * chart_width)
             draw.text((x, chart_y + chart_height + 2), month, fill=GRAY, font=font_tiny)

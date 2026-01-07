@@ -151,6 +151,24 @@ class MoonView(BaseView):
         draw.text((175, y + 5), "Moonset", fill=GRAY, font=font)
         draw.text((330, y + 5), "Lunar Cycle", fill=GRAY, font=font)
 
+        # Lunar cycle progress bar
+        if self.providers.lunar:
+            moon_data = self.providers.lunar.get_moon_phase()
+            if moon_data:
+                bar_x = 330
+                bar_width = self.width - 10 - bar_x - 10
+                bar_y = y + 22
+                bar_height = 10
+                # Background
+                draw.rectangle([(bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height)], fill=(50, 50, 50))
+                # Progress (phase 0-1, where 0.5 is full moon)
+                fill_width = int(moon_data.phase * bar_width)
+                if fill_width > 0:
+                    draw.rectangle([(bar_x, bar_y), (bar_x + fill_width, bar_y + bar_height)], fill=PURPLE)
+                # Full moon marker at center
+                full_x = bar_x + bar_width // 2
+                draw.line([(full_x, bar_y - 2), (full_x, bar_y + bar_height + 2)], fill=MOON_YELLOW, width=2)
+
         if self.providers.lunar:
             times = self.providers.lunar.get_moon_times()
             if times:

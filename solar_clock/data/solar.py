@@ -146,15 +146,17 @@ class SolarProvider:
         evening = None
 
         if sun_times.sunrise:
+            # Morning golden hour: sunrise to ~45 min after (sun rises through golden zone)
             morning = GoldenHour(
-                start=sun_times.sunrise - datetime.timedelta(minutes=30),
-                end=sun_times.sunrise + datetime.timedelta(minutes=30),
+                start=sun_times.sunrise,
+                end=sun_times.sunrise + datetime.timedelta(minutes=45),
             )
 
         if sun_times.sunset:
+            # Evening golden hour: ~45 min before sunset to sunset
             evening = GoldenHour(
-                start=sun_times.sunset - datetime.timedelta(minutes=30),
-                end=sun_times.sunset + datetime.timedelta(minutes=30),
+                start=sun_times.sunset - datetime.timedelta(minutes=45),
+                end=sun_times.sunset,
             )
 
         return morning, evening
