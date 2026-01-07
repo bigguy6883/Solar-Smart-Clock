@@ -442,32 +442,36 @@ class SolarClock:
             return None
 
     def get_golden_hour(self):
-        """Get golden hour times - approximately 30 min before/after sunrise and sunset"""
+        """Get golden hour times - when sun is low (0-6° above horizon)
+
+        Morning golden hour: starts at sunrise, ends ~45 min after
+        Evening golden hour: starts ~45 min before sunset, ends at sunset
+        """
         try:
             sun_times = self.get_sun_times()
             if not sun_times:
                 return None, None
-            
+
             sunrise = sun_times.get("sunrise")
             sunset = sun_times.get("sunset")
-            
+
             morning = None
             evening = None
-            
+
             if sunrise:
-                # Morning golden hour: 30 min before to 30 min after sunrise
+                # Morning golden hour: sunrise to ~45 min after (sun rises through golden zone)
                 morning = (
-                    sunrise - datetime.timedelta(minutes=30),
-                    sunrise + datetime.timedelta(minutes=30)
+                    sunrise,
+                    sunrise + datetime.timedelta(minutes=45)
                 )
-            
+
             if sunset:
-                # Evening golden hour: 30 min before to 30 min after sunset
+                # Evening golden hour: ~45 min before sunset to sunset (sun descends through golden zone)
                 evening = (
-                    sunset - datetime.timedelta(minutes=30),
-                    sunset + datetime.timedelta(minutes=30)
+                    sunset - datetime.timedelta(minutes=45),
+                    sunset
                 )
-            
+
             return morning, evening
         except:
             return None, None
@@ -645,7 +649,13 @@ class SolarClock:
             return None
 
     def get_moon_rise_set(self):
-        """Get moonrise and moonset times for today using ephem"""
+        """Get moonrise and moonset times for today using ephem
+
+        Shows the most relevant rise/set times:
+        - If moon hasn't risen yet today, show today's upcoming rise
+        - If moon has risen, show when it rose (previous rise)
+        - Similar logic for moonset
+        """
         if not EPHEM_AVAILABLE:
             return None, None
 
@@ -654,26 +664,52 @@ class SolarClock:
             obs.lat = str(LOCATION.latitude)
             obs.lon = str(LOCATION.longitude)
             obs.date = datetime.datetime.now(datetime.timezone.utc)
+            tz = ZoneInfo(LOCATION.timezone)
+            today = datetime.date.today()
 
             moon = ephem.Moon()
 
-            # Get next moonrise and moonset
+            # Get moonrise - prefer today's rise time
+            rise_time = None
             try:
-                next_rise = obs.next_rising(moon)
-                rise_time = ephem.Date(next_rise).datetime()
-                # Convert to local timezone
-                tz = ZoneInfo(LOCATION.timezone)
-                rise_time = rise_time.replace(tzinfo=datetime.timezone.utc).astimezone(tz)
+                # First check previous rise (might be today)
+                prev_rise = obs.previous_rising(moon)
+                prev_rise_dt = ephem.Date(prev_rise).datetime().replace(tzinfo=datetime.timezone.utc).astimezone(tz)
+                if prev_rise_dt.date() == today:
+                    rise_time = prev_rise_dt
+                else:
+                    # Use next rise if previous wasn't today
+                    next_rise = obs.next_rising(moon)
+                    next_rise_dt = ephem.Date(next_rise).datetime().replace(tzinfo=datetime.timezone.utc).astimezone(tz)
+                    if next_rise_dt.date() == today:
+                        rise_time = next_rise_dt
+                    else:
+                        # No rise today, show next
+                        rise_time = next_rise_dt
             except:
-                rise_time = None
+                pass
 
+            # Get moonset - prefer today's set time
+            set_time = None
             try:
-                next_set = obs.next_setting(moon)
-                set_time = ephem.Date(next_set).datetime()
-                tz = ZoneInfo(LOCATION.timezone)
-                set_time = set_time.replace(tzinfo=datetime.timezone.utc).astimezone(tz)
+                # Reset observer date for moonset calculation
+                obs.date = datetime.datetime.now(datetime.timezone.utc)
+                # First check previous set (might be today)
+                prev_set = obs.previous_setting(moon)
+                prev_set_dt = ephem.Date(prev_set).datetime().replace(tzinfo=datetime.timezone.utc).astimezone(tz)
+                if prev_set_dt.date() == today:
+                    set_time = prev_set_dt
+                else:
+                    # Use next set if previous wasn't today
+                    next_set = obs.next_setting(moon)
+                    next_set_dt = ephem.Date(next_set).datetime().replace(tzinfo=datetime.timezone.utc).astimezone(tz)
+                    if next_set_dt.date() == today:
+                        set_time = next_set_dt
+                    else:
+                        # No set today, show next
+                        set_time = next_set_dt
             except:
-                set_time = None
+                pass
 
             return rise_time, set_time
         except Exception as e:
@@ -1375,9 +1411,11 @@ class SolarClock:
                 max_temp = day.get('maxtempF', '--')
                 min_temp = day.get('mintempF', '--')
 
+                # Get maximum rain chance for the day (not just one hour)
                 rain_chance = '0'
-                if 'hourly' in day and len(day['hourly']) > 4:
-                    rain_chance = day['hourly'][4].get('chanceofrain', '0')
+                if 'hourly' in day and len(day['hourly']) > 0:
+                    max_rain = max(int(h.get('chanceofrain', '0')) for h in day['hourly'])
+                    rain_chance = str(max_rain)
 
                 try:
                     dt = datetime.datetime.strptime(date, "%Y-%m-%d")
@@ -1497,11 +1535,14 @@ class SolarClock:
             draw.rounded_rectangle([(cycle_box_x1, row1_y1), (470, row1_y2)], radius=6, fill=(25, 25, 35))
             draw.text((cycle_box_x1 + 10, row1_y1 + 6), "Lunar Cycle", fill=GRAY, font=self.fonts["micro"])
             
-            # Cycle progress bar
+            # Cycle progress bar - shows lunar cycle with full moon at center
             cycle_bar_x = cycle_box_x1 + 10
             cycle_bar_width = 470 - cycle_box_x1 - 20
             cycle_fill = int(moon["phase"] * cycle_bar_width)
             draw.rounded_rectangle([(cycle_bar_x, row1_y1 + 24), (cycle_bar_x + cycle_bar_width, row1_y1 + 34)], radius=3, fill=DARK_GRAY)
+            # Mark full moon position at center
+            full_moon_x = cycle_bar_x + cycle_bar_width // 2
+            draw.line([(full_moon_x, row1_y1 + 22), (full_moon_x, row1_y1 + 36)], fill=MOON_YELLOW, width=2)
             if cycle_fill > 2:
                 draw.rounded_rectangle([(cycle_bar_x, row1_y1 + 24), (cycle_bar_x + cycle_fill, row1_y1 + 34)], radius=3, fill=PURPLE)
 
@@ -1607,13 +1648,21 @@ class SolarClock:
             elev_color = YELLOW if elev > 0 else PURPLE
             draw.text((255, 137), f"{elev:.1f}° {status}", fill=elev_color, font=self.fonts["med"])
             
-            # Direction
-            if azim < 90:
+            # Direction - use 8-point compass for better accuracy
+            if azim < 22.5 or azim >= 337.5:
+                direction = "N"
+            elif azim < 67.5:
                 direction = "NE"
-            elif azim < 180:
+            elif azim < 112.5:
+                direction = "E"
+            elif azim < 157.5:
                 direction = "SE"
-            elif azim < 270:
+            elif azim < 202.5:
+                direction = "S"
+            elif azim < 247.5:
                 direction = "SW"
+            elif azim < 292.5:
+                direction = "W"
             else:
                 direction = "NW"
             draw.text((370, 140), direction, fill=LIGHT_GRAY, font=self.fonts["small"])
@@ -1799,11 +1848,22 @@ class SolarClock:
             draw.rectangle([(bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height)], fill=DARK_GRAY)
             # Bar fill
             if max_val > 0:
-                fill_width = min(int((value / max_val) * bar_width), bar_width)
+                ratio = value / max_val
+                fill_width = min(int(ratio * bar_width), bar_width)
                 if fill_width > 0:
-                    ratio = value / max_val
-                    bar_color = AQI_GOOD if ratio < 0.5 else (AQI_MODERATE if ratio < 0.75 else AQI_UNHEALTHY)
+                    # Color based on ratio - red if exceeds scale
+                    if ratio > 1.0:
+                        bar_color = AQI_UNHEALTHY  # Red for overflow
+                    elif ratio < 0.5:
+                        bar_color = AQI_GOOD
+                    elif ratio < 0.75:
+                        bar_color = AQI_MODERATE
+                    else:
+                        bar_color = AQI_UNHEALTHY_SENSITIVE
                     draw.rectangle([(bar_x, bar_y), (bar_x + fill_width, bar_y + bar_height)], fill=bar_color)
+                    # Add overflow indicator if value exceeds scale
+                    if ratio > 1.0:
+                        draw.text((bar_x + bar_width - 8, bar_y + 2), "!", fill=WHITE, font=self.fonts["small"])
             # Value on bar
             val_text = f"{value:.1f}"
             draw.text((bar_x + 5, bar_y + 2), val_text, fill=WHITE, font=self.fonts["small"])
@@ -1891,10 +1951,10 @@ class SolarClock:
         today_day = today.timetuple().tm_yday
         half_year = 182  # days to show on each side
         
-        # Month labels centered on today
-        months_full = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
+        # Month labels centered on today - use 3-letter abbreviations to avoid ambiguity
+        months_abbrev = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         month_starts = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]  # day of year
-        
+
         for i in range(12):
             # Calculate offset from today
             month_mid = month_starts[i] + 15  # middle of month
@@ -1904,10 +1964,18 @@ class SolarClock:
                 offset -= 365
             elif offset < -half_year:
                 offset += 365
-            
+
             if -half_year <= offset <= half_year:
                 x = chart_left + int((offset + half_year) / (2 * half_year) * chart_width)
-                draw.text((x - 3, chart_bottom + 3), months_full[i], fill=GRAY, font=self.fonts["micro"])
+                # Use single letter for space, but disambiguate J/M/A months
+                label = months_abbrev[i][0]
+                if i in [0, 5, 6]:  # Jan, Jun, Jul - all start with J
+                    label = months_abbrev[i][:2]  # Ja, Ju, Jl
+                elif i in [2, 4]:  # Mar, May
+                    label = months_abbrev[i][:2]  # Ma, My
+                elif i in [3, 7]:  # Apr, Aug
+                    label = months_abbrev[i][:2]  # Ap, Au
+                draw.text((x - 6, chart_bottom + 3), label, fill=GRAY, font=self.fonts["micro"])
 
         # Solstice/equinox dates
         sol_eq = self.get_solstice_equinox_dates(year)
@@ -2107,11 +2175,13 @@ class SolarClock:
         # Horizontal axis (equation of time = sun fast/slow)
         draw.line([(18, chart_cy), (292, chart_cy)], fill=(50, 50, 60), width=1)
 
-        # Axis labels
+        # Axis labels - clearer explanation
         draw.text((chart_cx + 5, 52), "Summer", fill=YELLOW, font=self.fonts["micro"])
-        draw.text((chart_cx + 5, 252), "Winter", fill=LIGHT_BLUE, font=self.fonts["micro"])
+        draw.text((chart_cx + 5, 252), "winter", fill=LIGHT_BLUE, font=self.fonts["micro"])
+        # Left side: sun ahead of clock (rises/sets early)
         draw.text((15, chart_cy - 12), "Sun", fill=GRAY, font=self.fonts["micro"])
         draw.text((15, chart_cy + 2), "early", fill=GRAY, font=self.fonts["micro"])
+        # Right side: sun behind clock (rises/sets late)
         draw.text((260, chart_cy - 12), "Sun", fill=GRAY, font=self.fonts["micro"])
         draw.text((260, chart_cy + 2), "late", fill=GRAY, font=self.fonts["micro"])
 
@@ -2280,6 +2350,7 @@ class SolarClock:
         now = datetime.datetime.now()
         hour = now.hour
         minute = now.minute
+        second = now.second
 
         # Get time-based color scheme
         colors = self.get_time_colors(hour)
@@ -2343,6 +2414,17 @@ class SolarClock:
         minute_x = cx + minute_length * math.cos(minute_angle)
         minute_y = cy + minute_length * math.sin(minute_angle)
         draw.line([(cx, cy), (minute_x, minute_y)], fill=colors['hand_minute'], width=6)
+
+        # Draw second hand (thin red line)
+        second_angle = math.radians(second * 6 - 90)  # 6 degrees per second
+        second_length = 100  # Slightly longer than minute hand
+        second_x = cx + second_length * math.cos(second_angle)
+        second_y = cy + second_length * math.sin(second_angle)
+        # Tail extends opposite direction
+        tail_length = 20
+        tail_x = cx - tail_length * math.cos(second_angle)
+        tail_y = cy - tail_length * math.sin(second_angle)
+        draw.line([(tail_x, tail_y), (second_x, second_y)], fill=(200, 60, 60), width=2)
 
         # Draw center with contrasting ring
         outer_radius = 12
