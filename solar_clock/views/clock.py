@@ -139,23 +139,44 @@ class ClockView(BaseView):
         if self.providers.solar:
             pos = self.providers.solar.get_solar_position()
             if pos:
-                pos_str = f"{pos.elevation:.1f}°"
-                direction = "below" if pos.elevation < 0 else "above"
+                # Elevation with up/down indicator
+                elev_abs = abs(pos.elevation)
+                elev_arrow = "↑" if pos.elevation >= 0 else "↓"
+                
+                # Calculate compass direction from azimuth
+                az = pos.azimuth
+                if az >= 337.5 or az < 22.5:
+                    compass = "N"
+                elif az < 67.5:
+                    compass = "NE"
+                elif az < 112.5:
+                    compass = "E"
+                elif az < 157.5:
+                    compass = "SE"
+                elif az < 202.5:
+                    compass = "S"
+                elif az < 247.5:
+                    compass = "SW"
+                elif az < 292.5:
+                    compass = "W"
+                else:
+                    compass = "NW"
+                
                 draw.text(
-                    (self.width - 120, y),
+                    (self.width - 115, y),
                     "Sun Position",
                     fill=GRAY,
                     font=font,
                 )
                 draw.text(
-                    (self.width - 120, y + 18),
-                    f"{pos_str} {direction}",
+                    (self.width - 115, y + 18),
+                    f"El: {elev_abs:.0f}° {elev_arrow}",
                     fill=YELLOW if pos.elevation > 0 else ORANGE,
                     font=font,
                 )
                 draw.text(
-                    (self.width - 120, y + 36),
-                    f"{pos.azimuth:.0f}° E",
+                    (self.width - 115, y + 36),
+                    f"Az: {pos.azimuth:.0f}° {compass}",
                     fill=LIGHT_GRAY,
                     font=font,
                 )
