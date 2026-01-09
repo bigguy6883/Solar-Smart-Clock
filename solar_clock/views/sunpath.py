@@ -13,6 +13,7 @@ from .base import (
     GRAY,
     LIGHT_GRAY,
     DARK_BLUE,
+    FontSize,
 )
 
 
@@ -26,16 +27,7 @@ class SunPathView(BaseView):
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the sun path view content."""
         # Header
-        draw.rectangle(((0, 0), (self.width, 35)), fill=ORANGE)
-        font_title = self.get_bold_font(24)
-        title_bbox = draw.textbbox((0, 0), "Sun Path", font=font_title)
-        title_width = title_bbox[2] - title_bbox[0]
-        draw.text(
-            ((self.width - title_width) // 2, 5),
-            "Sun Path",
-            fill=WHITE,
-            font=font_title,
-        )
+        self.render_header(draw, "Sun Path", ORANGE)
 
         # Time and date in header corners
         now = datetime.datetime.now()
@@ -59,7 +51,7 @@ class SunPathView(BaseView):
         chart_y = y + 10
 
         # Y-axis labels at correct positions for 40° to -90° range
-        font_tiny = self.get_font(10)
+        font_tiny = self.get_font(FontSize.AXIS_LABEL)
         elev_range = 130  # 40 - (-90)
         draw.text((5, chart_y), "40°", fill=GRAY, font=font_tiny)
         # 0° is at 40/130 = ~31% down from top

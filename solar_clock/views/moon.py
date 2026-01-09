@@ -10,6 +10,7 @@ from .base import (
     LIGHT_GRAY,
     PURPLE,
     MOON_YELLOW,
+    FontSize,
 )
 
 
@@ -137,7 +138,7 @@ class MoonView(BaseView):
 
     def _render_moon_times(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render moonrise and moonset times."""
-        font = self.get_font(12)
+        font = self.get_font(FontSize.CAPTION)
         font_value = self.get_font(16)
 
         # Background boxes
@@ -191,7 +192,7 @@ class MoonView(BaseView):
 
     def _render_upcoming_dates(self, draw: ImageDraw.ImageDraw, moon, y: int) -> None:
         """Render upcoming new and full moon dates."""
-        font = self.get_font(12)
+        font = self.get_font(FontSize.CAPTION)
         font_value = self.get_bold_font(18)
         font_days = self.get_font(14)
 

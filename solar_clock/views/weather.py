@@ -14,6 +14,7 @@ from .base import (
     LIGHT_GRAY,
     BLUE,
     LIGHT_BLUE,
+    FontSize,
 )
 
 
@@ -110,7 +111,7 @@ class WeatherView(BaseView):
 
     def _render_forecast(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render 3-day forecast."""
-        font_header = self.get_font(12)
+        font_header = self.get_font(FontSize.CAPTION)
         font_day = self.get_font(16)
         font_temp = self.get_bold_font(18)
 

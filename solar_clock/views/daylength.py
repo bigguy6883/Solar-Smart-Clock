@@ -15,6 +15,7 @@ from .base import (
     LIGHT_GRAY,
     BLUE,
     GREEN,
+    FontSize,
 )
 
 
@@ -28,16 +29,7 @@ class DayLengthView(BaseView):
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the day length view content."""
         # Header
-        draw.rectangle(((0, 0), (self.width, 35)), fill=ORANGE)
-        font_title = self.get_bold_font(24)
-        title_bbox = draw.textbbox((0, 0), "Day Length", font=font_title)
-        title_width = title_bbox[2] - title_bbox[0]
-        draw.text(
-            ((self.width - title_width) // 2, 5),
-            "Day Length",
-            fill=WHITE,
-            font=font_title,
-        )
+        self.render_header(draw, "Day Length", ORANGE)
 
         # Day length curve
         self._render_yearly_curve(draw, 45)
@@ -52,7 +44,7 @@ class DayLengthView(BaseView):
         chart_height = 100
         chart_y = y
 
-        font_tiny = self.get_font(10)
+        font_tiny = self.get_font(FontSize.AXIS_LABEL)
 
         # Y-axis labels
         draw.text((5, chart_y), "13h", fill=GRAY, font=font_tiny)
@@ -132,7 +124,7 @@ class DayLengthView(BaseView):
         """Render info boxes at bottom."""
         font = self.get_font(12)
         font_value = self.get_bold_font(18)
-        font_small = self.get_font(10)
+        font_small = self.get_font(FontSize.AXIS_LABEL)
 
         box_width = 150
         gap = 10

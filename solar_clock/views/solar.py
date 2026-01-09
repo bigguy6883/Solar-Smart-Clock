@@ -13,6 +13,7 @@ from .base import (
     GRAY,
     LIGHT_GRAY,
     PURPLE,
+    FontSize,
 )
 
 
@@ -104,9 +105,9 @@ class SolarView(BaseView):
 
     def _render_current_info(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render current sun position and day length info."""
-        font = self.get_font(12)
+        font = self.get_font(FontSize.CAPTION)
         font_value = self.get_bold_font(18)
-        font_small = self.get_font(11)
+        font_small = self.get_font(FontSize.CAPTION)
 
         # Sun position - rounded box
         draw.rounded_rectangle(((10, y), (155, y + 58)), radius=6, fill=(35, 35, 40))

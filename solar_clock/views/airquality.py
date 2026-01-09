@@ -17,6 +17,7 @@ from .base import (
     AQI_UNHEALTHY,
     AQI_VERY_UNHEALTHY,
     AQI_HAZARDOUS,
+    FontSize,
 )
 
 
@@ -151,7 +152,7 @@ class AirQualityView(BaseView):
     def _render_pollutants(self, draw: ImageDraw.ImageDraw, aqi_data, y: int) -> None:
         """Render pollutant breakdown with bars."""
         font_label = self.get_font(14)
-        font_value = self.get_font(12)
+        font_value = self.get_font(FontSize.CAPTION)
 
         # Background panel
         draw.rounded_rectangle(

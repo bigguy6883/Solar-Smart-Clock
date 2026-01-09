@@ -13,6 +13,7 @@ from .base import (
     LIGHT_GRAY,
     GREEN,
     BLUE,
+    FontSize,
 )
 
 
@@ -57,7 +58,7 @@ class AnalemmaView(BaseView):
         scale_x = 50  # Horizontal scale (equation of time: ±15 min)
         scale_y = 170  # Vertical scale (elevation: ~32° to ~79°)
 
-        font_tiny = self.get_font(10)
+        font_tiny = self.get_font(FontSize.AXIS_LABEL)
 
         # Axis labels
         draw.text((center_x - 15, y), "Summer", fill=YELLOW, font=font_tiny)

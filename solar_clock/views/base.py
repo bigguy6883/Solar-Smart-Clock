@@ -7,6 +7,9 @@ from typing import TYPE_CHECKING, Optional, Union
 
 from PIL import Image, ImageDraw, ImageFont
 
+from .font_manager import get_font_manager
+from .renderers import NavBarRenderer
+
 if TYPE_CHECKING:
     from ..config import Config
     from ..data import WeatherProvider, SolarProvider, LunarProvider
@@ -49,6 +52,41 @@ ROW_HEIGHT = 50
 SECTION_PADDING = 10
 FOOTER_HEIGHT = 25
 
+
+class Spacing:
+    """Standard spacing for consistent layouts."""
+
+    TINY = 3
+    SMALL = 5
+    MEDIUM = 10
+    LARGE = 20
+    XLARGE = 35
+
+    MARGIN_SMALL = 10
+    MARGIN_MEDIUM = 20
+
+    ROW_SPACING = 18
+    SECTION_GAP = 22
+    COLUMN_GAP = 10
+
+
+class Layout:
+    """Standard layout positions."""
+
+    HEADER_HEIGHT = 35
+    CONTENT_START = 45
+
+    # Common row positions from top
+    ROW_1 = 45
+    ROW_2 = 85
+    ROW_3 = 145
+    ROW_4 = 230
+
+    # Panel sizes
+    INFO_BOX_HEIGHT = 55
+    ROUNDED_RADIUS = 6
+
+
 # Update interval constants (seconds)
 UPDATE_REALTIME = 1  # Clock displays that update every second
 UPDATE_FREQUENT = 60  # Weather, solar position
@@ -81,10 +119,15 @@ class FontSize:
     SMALL = 14
     CAPTION = 12
 
+    # Chart-specific sizes (minimum 12pt for readability)
+    AXIS_LABEL = 12  # Chart axes (increased from 10pt)
+    CHART_LABEL = 14  # Chart text
+
     # Value display sizes
     VALUE_LARGE = 48
     VALUE_MEDIUM = 36
     VALUE_SMALL = 24
+    VALUE_TINY = 20  # Compact values
 
 
 class DataProviders:
@@ -133,11 +176,8 @@ class BaseView(ABC):
         self.nav_height = config.display.nav_bar_height
         self.content_height = self.height - self.nav_height
 
-        # Font cache
-        self._fonts: dict[int, Union[ImageFont.FreeTypeFont, ImageFont.ImageFont]] = {}
-        self._bold_fonts: dict[
-            int, Union[ImageFont.FreeTypeFont, ImageFont.ImageFont]
-        ] = {}
+        # Get font manager singleton
+        self._font_manager = get_font_manager()
 
     def get_font(self, size: int) -> Union[ImageFont.FreeTypeFont, ImageFont.ImageFont]:
         """
@@ -146,23 +186,16 @@ class BaseView(ABC):
         Uses DejaVu Sans as the default font, with fallbacks for different
         platforms. Falls back to PIL default if no system fonts available.
 
+        Note: This now uses the global FontManager singleton for better
+        memory efficiency and faster font access.
+
         Args:
             size: Font size in points
 
         Returns:
             PIL ImageFont
         """
-        if size not in self._fonts:
-            for path in FONT_PATHS:
-                try:
-                    self._fonts[size] = ImageFont.truetype(path, size)
-                    break
-                except OSError:
-                    continue
-            else:
-                # No fonts found, use PIL default
-                self._fonts[size] = ImageFont.load_default()
-        return self._fonts[size]
+        return self._font_manager.get_font(size)
 
     def get_bold_font(
         self, size: int
@@ -171,18 +204,17 @@ class BaseView(ABC):
         Get a bold font at the specified size.
 
         Tries multiple font paths, falling back to regular font if bold unavailable.
+
+        Note: This now uses the global FontManager singleton for better
+        memory efficiency and faster font access.
+
+        Args:
+            size: Font size in points
+
+        Returns:
+            PIL ImageFont
         """
-        if size not in self._bold_fonts:
-            for path in BOLD_FONT_PATHS:
-                try:
-                    self._bold_fonts[size] = ImageFont.truetype(path, size)
-                    break
-                except OSError:
-                    continue
-            else:
-                # No bold fonts found, fall back to regular font
-                self._bold_fonts[size] = self.get_font(size)
-        return self._bold_fonts[size]
+        return self._font_manager.get_bold_font(size)
 
     def render_centered_message(
         self, draw: ImageDraw.ImageDraw, message: str, font_size: int = 18
@@ -201,6 +233,98 @@ class BaseView(ABC):
         x = (self.width - msg_width) // 2
         y = self.content_height // 2
         draw.text((x, y), message, fill=LIGHT_GRAY, font=font)
+
+    def render_header(
+        self, draw: ImageDraw.ImageDraw, title: str, color: tuple[int, int, int]
+    ) -> None:
+        """
+        Render a standard header bar with centered title.
+
+        Args:
+            draw: ImageDraw instance
+            title: Title text to display
+            color: Background color for header
+        """
+        # Draw header background
+        draw.rectangle(((0, 0), (self.width, Layout.HEADER_HEIGHT)), fill=color)
+
+        # Draw centered title
+        font_title = self.get_bold_font(FontSize.TITLE)
+        title_bbox = draw.textbbox((0, 0), title, font=font_title)
+        title_width = title_bbox[2] - title_bbox[0]
+        title_x = (self.width - title_width) // 2
+        draw.text((title_x, 5), title, fill=WHITE, font=font_title)
+
+    def render_text_centered(
+        self,
+        draw: ImageDraw.ImageDraw,
+        text: str,
+        y: int,
+        color: tuple[int, int, int],
+        font_size: int,
+    ) -> None:
+        """
+        Render horizontally centered text at a specific Y position.
+
+        Args:
+            draw: ImageDraw instance
+            text: Text to display
+            y: Y position for text
+            color: Text color
+            font_size: Font size to use
+        """
+        font = self.get_font(font_size)
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        x = (self.width - text_width) // 2
+        draw.text((x, y), text, fill=color, font=font)
+
+    def render_info_box(
+        self,
+        draw: ImageDraw.ImageDraw,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        label: str,
+        value: str,
+        label_color: tuple[int, int, int] = LIGHT_GRAY,
+        value_color: tuple[int, int, int] = WHITE,
+    ) -> None:
+        """
+        Render an info box with label and value.
+
+        Args:
+            draw: ImageDraw instance
+            x: X position of box
+            y: Y position of box
+            width: Box width
+            height: Box height
+            label: Label text (smaller, above)
+            value: Value text (larger, below)
+            label_color: Color for label text
+            value_color: Color for value text
+        """
+        # Draw box background
+        draw.rounded_rectangle(
+            ((x, y), (x + width, y + height)),
+            radius=Layout.ROUNDED_RADIUS,
+            fill=DARK_GRAY,
+        )
+
+        # Draw label (centered, top portion)
+        font_label = self.get_font(FontSize.SMALL)
+        label_bbox = draw.textbbox((0, 0), label, font=font_label)
+        label_width = label_bbox[2] - label_bbox[0]
+        label_x = x + (width - label_width) // 2
+        draw.text((label_x, y + 8), label, fill=label_color, font=font_label)
+
+        # Draw value (centered, bottom portion)
+        font_value = self.get_bold_font(FontSize.BODY)
+        value_bbox = draw.textbbox((0, 0), value, font=font_value)
+        value_width = value_bbox[2] - value_bbox[0]
+        value_x = x + (width - value_width) // 2
+        draw.text((value_x, y + 30), value, fill=value_color, font=font_value)
 
     @abstractmethod
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
@@ -243,53 +367,18 @@ class BaseView(ABC):
         self, draw: ImageDraw.ImageDraw, current_index: int, total_views: int
     ) -> None:
         """Render the bottom navigation bar with buttons and page indicators."""
-        nav_top = self.height - self.nav_height
-
-        # Background
-        draw.rectangle(((0, nav_top), (self.width, self.height)), fill=BLACK)
-
-        # Prev button (<)
-        button_width = 50
-        button_height = 30
-        button_y = nav_top + (self.nav_height - button_height) // 2
-
-        draw.rectangle(
-            ((10, button_y), (10 + button_width, button_y + button_height)),
-            fill=NAV_BUTTON_COLOR,
-            outline=GRAY,
+        NavBarRenderer.render(
+            draw=draw,
+            width=self.width,
+            height=self.height,
+            nav_height=self.nav_height,
+            current_index=current_index,
+            total_views=total_views,
+            button_color=NAV_BUTTON_COLOR,
+            dot_color_active=WHITE,
+            dot_color_inactive=GRAY,
+            background_color=BLACK,
         )
-        font = self.get_font(20)
-        draw.text((28, button_y + 2), "<", fill=WHITE, font=font)
-
-        # Next button (>)
-        draw.rectangle(
-            (
-                (self.width - 10 - button_width, button_y),
-                (self.width - 10, button_y + button_height),
-            ),
-            fill=NAV_BUTTON_COLOR,
-            outline=GRAY,
-        )
-        draw.text((self.width - 32, button_y + 2), ">", fill=WHITE, font=font)
-
-        # Page indicator dots
-        dot_radius = 4
-        # Dynamic spacing scales down if more views are added
-        dot_spacing = min(14, (self.width - 100) // total_views)
-        total_width = (total_views - 1) * dot_spacing
-        start_x = (self.width - total_width) // 2
-        dot_y = nav_top + self.nav_height // 2
-
-        for i in range(total_views):
-            x = start_x + i * dot_spacing
-            color = WHITE if i == current_index else GRAY
-            draw.ellipse(
-                [
-                    (x - dot_radius, dot_y - dot_radius),
-                    (x + dot_radius, dot_y + dot_radius),
-                ],
-                fill=color,
-            )
 
     def get_time_header_color(self) -> tuple[int, int, int]:
         """
