@@ -170,6 +170,10 @@ def mock_providers():
         days_to_new=5,
         days_to_full=13,
     )
+    lunar.get_moon_times.return_value = MagicMock(
+        moonrise=datetime.datetime(2024, 1, 15, 18, 30),
+        moonset=datetime.datetime(2024, 1, 15, 6, 45),
+    )
     lunar.get_solstice_equinox.return_value = MagicMock(
         spring_equinox=datetime.date(2024, 3, 20),
         summer_solstice=datetime.date(2024, 6, 21),
