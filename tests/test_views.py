@@ -8,6 +8,11 @@ from solar_clock.views.clock import ClockView
 from solar_clock.views.weather import WeatherView
 from solar_clock.views.airquality import AirQualityView
 from solar_clock.views.analogclock import AnalogClockView
+from solar_clock.views.sunpath import SunPathView
+from solar_clock.views.daylength import DayLengthView
+from solar_clock.views.moon import MoonView
+from solar_clock.views.solar import SolarView
+from solar_clock.views.analemma import AnalemmaView
 
 
 class TestViewManager:
@@ -195,3 +200,119 @@ class TestAnalogClockView:
     def test_update_interval_fast(self, view):
         """Test analog clock updates every second."""
         assert view.update_interval == 1
+
+
+class TestSunPathView:
+    """Tests for SunPathView."""
+
+    @pytest.fixture
+    def view(self, sample_config, mock_providers):
+        """Create a sun path view instance."""
+        return SunPathView(sample_config, mock_providers)
+
+    def test_renders(self, view):
+        """Test sun path view renders."""
+        image = view.render(3, 9)
+        assert image is not None
+        assert image.size == (480, 320)
+
+    def test_view_metadata(self, view):
+        """Test sun path view has correct metadata."""
+        assert view.name == "sunpath"
+        assert view.title == "Sun Path"
+
+
+class TestDayLengthView:
+    """Tests for DayLengthView."""
+
+    @pytest.fixture
+    def view(self, sample_config, mock_providers):
+        """Create a day length view instance."""
+        return DayLengthView(sample_config, mock_providers)
+
+    def test_renders(self, view):
+        """Test day length view renders."""
+        image = view.render(4, 9)
+        assert image is not None
+        assert image.size == (480, 320)
+
+    def test_view_metadata(self, view):
+        """Test day length view has correct metadata."""
+        assert view.name == "daylength"
+        assert view.title == "Day Length"
+
+
+class TestMoonView:
+    """Tests for MoonView."""
+
+    @pytest.fixture
+    def view(self, sample_config, mock_providers):
+        """Create a moon view instance."""
+        return MoonView(sample_config, mock_providers)
+
+    def test_renders(self, view):
+        """Test moon view renders."""
+        image = view.render(6, 9)
+        assert image is not None
+        assert image.size == (480, 320)
+
+    def test_view_metadata(self, view):
+        """Test moon view has correct metadata."""
+        assert view.name == "moon"
+        assert view.title == "Moon Phase"
+
+    def test_renders_without_lunar_data(self, sample_config):
+        """Test moon view renders without lunar provider."""
+        providers = DataProviders(weather=None, solar=None, lunar=None)
+        view = MoonView(sample_config, providers)
+
+        image = view.render(6, 9)
+        assert image is not None
+
+
+class TestSolarView:
+    """Tests for SolarView."""
+
+    @pytest.fixture
+    def view(self, sample_config, mock_providers):
+        """Create a solar view instance."""
+        return SolarView(sample_config, mock_providers)
+
+    def test_renders(self, view):
+        """Test solar view renders."""
+        image = view.render(5, 9)
+        assert image is not None
+        assert image.size == (480, 320)
+
+    def test_view_metadata(self, view):
+        """Test solar view has correct metadata."""
+        assert view.name == "solar"
+        assert view.title == "Solar Details"
+
+
+class TestAnalemmaView:
+    """Tests for AnalemmaView."""
+
+    @pytest.fixture
+    def view(self, sample_config, mock_providers):
+        """Create an analemma view instance."""
+        return AnalemmaView(sample_config, mock_providers)
+
+    def test_renders(self, view):
+        """Test analemma view renders."""
+        image = view.render(7, 9)
+        assert image is not None
+        assert image.size == (480, 320)
+
+    def test_view_metadata(self, view):
+        """Test analemma view has correct metadata."""
+        assert view.name == "analemma"
+        assert view.title == "Analemma"
+
+    def test_renders_without_lunar_data(self, sample_config):
+        """Test analemma view renders without lunar provider."""
+        providers = DataProviders(weather=None, solar=None, lunar=None)
+        view = AnalemmaView(sample_config, providers)
+
+        image = view.render(7, 9)
+        assert image is not None

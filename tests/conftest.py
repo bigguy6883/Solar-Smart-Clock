@@ -170,5 +170,13 @@ def mock_providers():
         days_to_new=5,
         days_to_full=13,
     )
+    lunar.get_solstice_equinox.return_value = MagicMock(
+        spring_equinox=datetime.date(2024, 3, 20),
+        summer_solstice=datetime.date(2024, 6, 21),
+        fall_equinox=datetime.date(2024, 9, 22),
+        winter_solstice=datetime.date(2024, 12, 21),
+    )
+    lunar.get_analemma_data.return_value = []
+    lunar.get_equation_of_time.return_value = 5.2  # Minutes
 
     return DataProviders(weather=weather, solar=solar, lunar=lunar)
