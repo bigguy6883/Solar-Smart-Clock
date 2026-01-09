@@ -11,6 +11,8 @@ from .base import (
     PURPLE,
     MOON_YELLOW,
     FontSize,
+    Layout,
+    Spacing,
 )
 
 
@@ -24,16 +26,7 @@ class MoonView(BaseView):
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the moon phase view content."""
         # Header
-        draw.rectangle(((0, 0), (self.width, 35)), fill=PURPLE)
-        font_title = self.get_bold_font(24)
-        title_bbox = draw.textbbox((0, 0), "Moon Phase", font=font_title)
-        title_width = title_bbox[2] - title_bbox[0]
-        draw.text(
-            ((self.width - title_width) // 2, 5),
-            "Moon Phase",
-            fill=WHITE,
-            font=font_title,
-        )
+        self.render_header(draw, "Moon Phase", PURPLE)
 
         if self.providers.lunar is None or not self.providers.lunar.available:
             self.render_centered_message(draw, "Lunar data unavailable")
@@ -197,7 +190,11 @@ class MoonView(BaseView):
         font_days = self.get_font(14)
 
         # New moon box - dark panel
-        draw.rounded_rectangle(((10, y), (235, y + 48)), radius=6, fill=(35, 35, 45))
+        draw.rounded_rectangle(
+            ((Spacing.MEDIUM, y), (235, y + 48)),
+            radius=Layout.ROUNDED_RADIUS,
+            fill=(35, 35, 45),
+        )
         draw.text((20, y + 5), "New Moon", fill=GRAY, font=font)
         draw.text(
             (20, y + 24), moon.next_new.strftime("%b %d"), fill=WHITE, font=font_value
@@ -208,7 +205,9 @@ class MoonView(BaseView):
 
         # Full moon box - matching dark panel with yellow accent
         draw.rounded_rectangle(
-            ((245, y), (self.width - 10, y + 48)), radius=6, fill=(35, 35, 45)
+            ((245, y), (self.width - Spacing.MEDIUM, y + 48)),
+            radius=Layout.ROUNDED_RADIUS,
+            fill=(35, 35, 45),
         )
         draw.text((255, y + 5), "Full Moon", fill=GRAY, font=font)
         draw.text(

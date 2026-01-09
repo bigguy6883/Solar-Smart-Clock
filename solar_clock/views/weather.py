@@ -15,6 +15,7 @@ from .base import (
     BLUE,
     LIGHT_BLUE,
     FontSize,
+    Layout,
 )
 
 
@@ -27,25 +28,14 @@ class WeatherView(BaseView):
 
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the weather view content."""
-        header_color = LIGHT_BLUE
-
         # Header
-        draw.rectangle(((0, 0), (self.width, 35)), fill=header_color)
-        font_title = self.get_bold_font(24)
-        title_bbox = draw.textbbox((0, 0), "Weather", font=font_title)
-        title_width = title_bbox[2] - title_bbox[0]
-        draw.text(
-            ((self.width - title_width) // 2, 5),
-            "Weather",
-            fill=WHITE,
-            font=font_title,
-        )
+        self.render_header(draw, "Weather", LIGHT_BLUE)
 
         # Current conditions (left side)
-        self._render_current_conditions(draw, 45)
+        self._render_current_conditions(draw, Layout.CONTENT_START)
 
         # Forecast (right side)
-        self._render_forecast(draw, 45)
+        self._render_forecast(draw, Layout.CONTENT_START)
 
         # Location and weather description
         font_small = self.get_font(14)

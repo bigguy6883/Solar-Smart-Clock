@@ -12,6 +12,7 @@ from .base import (
     GRAY,
     LIGHT_GRAY,
     UPDATE_REALTIME,
+    Layout,
 )
 
 
@@ -64,13 +65,13 @@ class ClockView(BaseView):
         )
 
         # Sun times section
-        self._render_sun_info(draw, 85)
+        self._render_sun_info(draw, Layout.ROW_2)
 
         # Weather section
-        self._render_weather_info(draw, 145)
+        self._render_weather_info(draw, Layout.ROW_3)
 
         # Day progress bar
-        self._render_day_progress(draw, 230)
+        self._render_day_progress(draw, Layout.ROW_4)
 
     def _render_sun_info(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render sunrise/sunset times and day length."""

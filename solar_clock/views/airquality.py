@@ -18,6 +18,8 @@ from .base import (
     AQI_VERY_UNHEALTHY,
     AQI_HAZARDOUS,
     FontSize,
+    Layout,
+    Spacing,
 )
 
 
@@ -135,9 +137,11 @@ class AirQualityView(BaseView):
 
         x = 25
 
-        # Background panel
+        # Background panel (increased width from 130px to 160px for better balance with 56pt font)
         draw.rounded_rectangle(
-            ((10, y - 5), (140, y + 115)), radius=8, fill=(25, 30, 25)
+            ((Spacing.MEDIUM, y - 5), (170, y + 115)),
+            radius=Layout.ROUNDED_RADIUS,
+            fill=(25, 30, 25),
         )
 
         # Label
@@ -156,10 +160,12 @@ class AirQualityView(BaseView):
 
         # Background panel
         draw.rounded_rectangle(
-            ((150, y - 5), (self.width - 10, y + 165)), radius=8, fill=(25, 30, 25)
+            ((180, y - 5), (self.width - Spacing.MEDIUM, y + 165)),
+            radius=Layout.ROUNDED_RADIUS,
+            fill=(25, 30, 25),
         )
 
-        x = 165
+        x = 195
         draw.text((x, y + 2), "Pollutants", fill=WHITE, font=self.get_bold_font(16))
 
         pollutants = [

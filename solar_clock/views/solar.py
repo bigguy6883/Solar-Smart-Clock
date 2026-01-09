@@ -14,6 +14,8 @@ from .base import (
     LIGHT_GRAY,
     PURPLE,
     FontSize,
+    Layout,
+    Spacing,
 )
 
 
@@ -27,19 +29,10 @@ class SolarView(BaseView):
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the solar details view content."""
         # Header
-        draw.rectangle(((0, 0), (self.width, 35)), fill=ORANGE)
-        font_title = self.get_bold_font(24)
-        title_bbox = draw.textbbox((0, 0), "Solar Details", font=font_title)
-        title_width = title_bbox[2] - title_bbox[0]
-        draw.text(
-            ((self.width - title_width) // 2, 5),
-            "Solar Details",
-            fill=WHITE,
-            font=font_title,
-        )
+        self.render_header(draw, "Solar Details", ORANGE)
 
         # Sun times grid
-        self._render_sun_times(draw, 45)
+        self._render_sun_times(draw, Layout.CONTENT_START)
 
         # Golden hour
         self._render_golden_hour(draw, 160)
@@ -110,7 +103,11 @@ class SolarView(BaseView):
         font_small = self.get_font(FontSize.CAPTION)
 
         # Sun position - rounded box
-        draw.rounded_rectangle(((10, y), (155, y + 58)), radius=6, fill=(35, 35, 40))
+        draw.rounded_rectangle(
+            ((Spacing.MEDIUM, y), (155, y + 58)),
+            radius=Layout.ROUNDED_RADIUS,
+            fill=(35, 35, 40),
+        )
         draw.text((20, y + 5), "Sun Position", fill=GRAY, font=font)
 
         if self.providers.solar:
@@ -122,7 +119,9 @@ class SolarView(BaseView):
                 draw.text((20, y + 40), az_str, fill=LIGHT_GRAY, font=font)
 
         # Day length - rounded box
-        draw.rounded_rectangle(((165, y), (310, y + 58)), radius=6, fill=(35, 35, 40))
+        draw.rounded_rectangle(
+            ((165, y), (310, y + 58)), radius=Layout.ROUNDED_RADIUS, fill=(35, 35, 40)
+        )
         draw.text((175, y + 5), "Day Length", fill=GRAY, font=font)
 
         if self.providers.solar:
@@ -146,7 +145,9 @@ class SolarView(BaseView):
 
         # Next event - rounded box
         draw.rounded_rectangle(
-            ((320, y), (self.width - 10, y + 58)), radius=6, fill=(35, 35, 40)
+            ((320, y), (self.width - Spacing.MEDIUM, y + 58)),
+            radius=Layout.ROUNDED_RADIUS,
+            fill=(35, 35, 40),
         )
         draw.text((330, y + 5), "Next Event", fill=GRAY, font=font)
 
