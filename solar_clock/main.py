@@ -4,6 +4,7 @@ import argparse
 import logging
 import signal
 import sys
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -72,7 +73,9 @@ class SolarClock:
         )
 
         # Initialize views
-        views = [ViewClass(config, self.providers) for ViewClass in VIEW_CLASSES]
+        views = [
+            ViewClass(config, self.providers) for ViewClass in VIEW_CLASSES  # type: ignore[abstract]
+        ]
         self.view_manager = ViewManager(views, config.appearance.default_view)
 
         # Initialize display
@@ -80,7 +83,7 @@ class SolarClock:
 
         # Initialize HTTP server
         self.http_server = create_server(config.http_server, self)
-        self.http_thread = None
+        self.http_thread: Optional[threading.Thread] = None
 
         # Initialize touch handler
         self.touch_handler = TouchHandler(
