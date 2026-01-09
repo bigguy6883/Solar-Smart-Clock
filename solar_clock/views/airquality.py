@@ -73,7 +73,7 @@ class AirQualityView(BaseView):
         aqi_text_color = self._get_aqi_text_color(aqi_data.aqi)
 
         # Header with AQI color
-        draw.rectangle([(0, 0), (self.width, 35)], fill=aqi_color)
+        draw.rectangle(((0, 0), (self.width, 35)), fill=aqi_color)
         font_title = self.get_bold_font(24)
         title_bbox = draw.textbbox((0, 0), "Air Quality", font=font_title)
         title_width = title_bbox[2] - title_bbox[0]
@@ -87,7 +87,9 @@ class AirQualityView(BaseView):
         )
 
         # AQI value and category (left side)
-        self._render_aqi_value(draw, aqi_data.aqi, aqi_data.category, aqi_text_color, 50)
+        self._render_aqi_value(
+            draw, aqi_data.aqi, aqi_data.category, aqi_text_color, 50
+        )
 
         # Pollutant breakdown (right side)
         self._render_pollutants(draw, aqi_data, 50)
@@ -110,7 +112,7 @@ class AirQualityView(BaseView):
 
     def _render_no_data(self, draw: ImageDraw.ImageDraw) -> None:
         """Render view when no data available."""
-        draw.rectangle([(0, 0), (self.width, 35)], fill=GRAY)
+        draw.rectangle(((0, 0), (self.width, 35)), fill=GRAY)
         font_title = self.get_bold_font(24)
         draw.text((150, 5), "Air Quality", fill=WHITE, font=font_title)
 
@@ -134,7 +136,7 @@ class AirQualityView(BaseView):
 
         # Background panel
         draw.rounded_rectangle(
-            [(10, y - 5), (140, y + 115)], radius=8, fill=(25, 30, 25)
+            ((10, y - 5), (140, y + 115)), radius=8, fill=(25, 30, 25)
         )
 
         # Label
@@ -153,7 +155,7 @@ class AirQualityView(BaseView):
 
         # Background panel
         draw.rounded_rectangle(
-            [(150, y - 5), (self.width - 10, y + 165)], radius=8, fill=(25, 30, 25)
+            ((150, y - 5), (self.width - 10, y + 165)), radius=8, fill=(25, 30, 25)
         )
 
         x = 165
@@ -186,7 +188,7 @@ class AirQualityView(BaseView):
             # Bar background with rounded corners
             bar_x = x + 55
             draw.rounded_rectangle(
-                [(bar_x, row_y), (bar_x + bar_width, row_y + bar_height)],
+                ((bar_x, row_y), (bar_x + bar_width, row_y + bar_height)),
                 radius=3,
                 fill=(50, 50, 55),
             )
@@ -204,7 +206,7 @@ class AirQualityView(BaseView):
                     bar_color = AQI_UNHEALTHY
 
                 draw.rounded_rectangle(
-                    [(bar_x, row_y), (bar_x + fill_width, row_y + bar_height)],
+                    ((bar_x, row_y), (bar_x + fill_width, row_y + bar_height)),
                     radius=3,
                     fill=bar_color,
                 )

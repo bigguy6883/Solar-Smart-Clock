@@ -1,15 +1,19 @@
 """Solar details view - comprehensive sun timing information."""
 
 import datetime
-from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, UPDATE_FREQUENT, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, PURPLE
-
-if TYPE_CHECKING:
-    from ..config import Config
-    from .base import DataProviders
+from .base import (
+    BaseView,
+    UPDATE_FREQUENT,
+    WHITE,
+    YELLOW,
+    ORANGE,
+    GRAY,
+    LIGHT_GRAY,
+    PURPLE,
+)
 
 
 class SolarView(BaseView):
@@ -22,7 +26,7 @@ class SolarView(BaseView):
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the solar details view content."""
         # Header
-        draw.rectangle([(0, 0), (self.width, 35)], fill=ORANGE)
+        draw.rectangle(((0, 0), (self.width, 35)), fill=ORANGE)
         font_title = self.get_bold_font(24)
         title_bbox = draw.textbbox((0, 0), "Solar Details", font=font_title)
         title_width = title_bbox[2] - title_bbox[0]
@@ -71,7 +75,9 @@ class SolarView(BaseView):
         for name, time, x, row_y in events:
             draw.text((x, row_y), name, fill=GRAY, font=font)
             time_str = time.strftime("%-I:%M %p")
-            color = YELLOW if "Sun" in name else ORANGE if name == "Dusk" else LIGHT_GRAY
+            color = (
+                YELLOW if "Sun" in name else ORANGE if name == "Dusk" else LIGHT_GRAY
+            )
             draw.text((x, row_y + 15), time_str, fill=color, font=font_value)
 
     def _render_golden_hour(self, draw: ImageDraw.ImageDraw, y: int) -> None:
@@ -103,7 +109,7 @@ class SolarView(BaseView):
         font_small = self.get_font(11)
 
         # Sun position - rounded box
-        draw.rounded_rectangle([(10, y), (155, y + 58)], radius=6, fill=(35, 35, 40))
+        draw.rounded_rectangle(((10, y), (155, y + 58)), radius=6, fill=(35, 35, 40))
         draw.text((20, y + 5), "Sun Position", fill=GRAY, font=font)
 
         if self.providers.solar:
@@ -115,7 +121,7 @@ class SolarView(BaseView):
                 draw.text((20, y + 40), az_str, fill=LIGHT_GRAY, font=font)
 
         # Day length - rounded box
-        draw.rounded_rectangle([(165, y), (310, y + 58)], radius=6, fill=(35, 35, 40))
+        draw.rounded_rectangle(((165, y), (310, y + 58)), radius=6, fill=(35, 35, 40))
         draw.text((175, y + 5), "Day Length", fill=GRAY, font=font)
 
         if self.providers.solar:
@@ -124,14 +130,23 @@ class SolarView(BaseView):
             if length:
                 hours = int(length)
                 minutes = int((length - hours) * 60)
-                draw.text((175, y + 22), f"{hours}h {minutes}m", fill=WHITE, font=font_value)
+                draw.text(
+                    (175, y + 22), f"{hours}h {minutes}m", fill=WHITE, font=font_value
+                )
             if change:
                 sign = "+" if change > 0 else ""
                 color = YELLOW if change > 0 else PURPLE
-                draw.text((175, y + 42), f"{sign}{change:.1f}m vs yday", fill=color, font=font_small)
+                draw.text(
+                    (175, y + 42),
+                    f"{sign}{change:.1f}m vs yday",
+                    fill=color,
+                    font=font_small,
+                )
 
         # Next event - rounded box
-        draw.rounded_rectangle([(320, y), (self.width - 10, y + 58)], radius=6, fill=(35, 35, 40))
+        draw.rounded_rectangle(
+            ((320, y), (self.width - 10, y + 58)), radius=6, fill=(35, 35, 40)
+        )
         draw.text((330, y + 5), "Next Event", fill=GRAY, font=font)
 
         if self.providers.solar:
@@ -143,4 +158,6 @@ class SolarView(BaseView):
                 hours = int(delta.total_seconds() // 3600)
                 minutes = int((delta.total_seconds() % 3600) // 60)
                 draw.text((330, y + 22), name, fill=ORANGE, font=font_value)
-                draw.text((330, y + 42), f"in {hours}h {minutes}m", fill=LIGHT_GRAY, font=font)
+                draw.text(
+                    (330, y + 42), f"in {hours}h {minutes}m", fill=LIGHT_GRAY, font=font
+                )

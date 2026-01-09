@@ -3,7 +3,7 @@
 import logging
 import threading
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -50,35 +50,37 @@ SECTION_PADDING = 10
 FOOTER_HEIGHT = 25
 
 # Update interval constants (seconds)
-UPDATE_REALTIME = 1      # Clock displays that update every second
-UPDATE_FREQUENT = 60     # Weather, solar position
-UPDATE_HOURLY = 3600     # Moon phase, analemma
+UPDATE_REALTIME = 1  # Clock displays that update every second
+UPDATE_FREQUENT = 60  # Weather, solar position
+UPDATE_HOURLY = 3600  # Moon phase, analemma
 
 # Font paths (in order of preference)
 FONT_PATHS = [
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",      # Debian/Ubuntu/Raspbian
-    "/usr/share/fonts/TTF/DejaVuSans.ttf",                  # Arch Linux
-    "/System/Library/Fonts/Helvetica.ttc",                   # macOS
-    "/usr/share/fonts/dejavu/DejaVuSans.ttf",               # Alternative Linux path
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Debian/Ubuntu/Raspbian
+    "/usr/share/fonts/TTF/DejaVuSans.ttf",  # Arch Linux
+    "/System/Library/Fonts/Helvetica.ttc",  # macOS
+    "/usr/share/fonts/dejavu/DejaVuSans.ttf",  # Alternative Linux path
 ]
 
 BOLD_FONT_PATHS = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",  # Debian/Ubuntu/Raspbian
-    "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",              # Arch Linux
-    "/System/Library/Fonts/Helvetica.ttc",                    # macOS (bold variant)
-    "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",           # Alternative Linux path
+    "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",  # Arch Linux
+    "/System/Library/Fonts/Helvetica.ttc",  # macOS (bold variant)
+    "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",  # Alternative Linux path
 ]
+
 
 # Typography scale constants
 class FontSize:
     """Standard font sizes for consistent typography."""
+
     # Text sizes
     TITLE = 24
     SUBTITLE = 20
     BODY = 16
     SMALL = 14
     CAPTION = 12
-    
+
     # Value display sizes
     VALUE_LARGE = 48
     VALUE_MEDIUM = 36
@@ -132,10 +134,12 @@ class BaseView(ABC):
         self.content_height = self.height - self.nav_height
 
         # Font cache
-        self._fonts: dict[int, ImageFont.FreeTypeFont] = {}
-        self._bold_fonts: dict[int, ImageFont.FreeTypeFont] = {}
+        self._fonts: dict[int, Union[ImageFont.FreeTypeFont, ImageFont.ImageFont]] = {}
+        self._bold_fonts: dict[
+            int, Union[ImageFont.FreeTypeFont, ImageFont.ImageFont]
+        ] = {}
 
-    def get_font(self, size: int) -> ImageFont.FreeTypeFont:
+    def get_font(self, size: int) -> Union[ImageFont.FreeTypeFont, ImageFont.ImageFont]:
         """
         Get a font at the specified size.
 
@@ -160,7 +164,9 @@ class BaseView(ABC):
                 self._fonts[size] = ImageFont.load_default()
         return self._fonts[size]
 
-    def get_bold_font(self, size: int) -> ImageFont.FreeTypeFont:
+    def get_bold_font(
+        self, size: int
+    ) -> Union[ImageFont.FreeTypeFont, ImageFont.ImageFont]:
         """
         Get a bold font at the specified size.
 
@@ -178,7 +184,9 @@ class BaseView(ABC):
                 self._bold_fonts[size] = self.get_font(size)
         return self._bold_fonts[size]
 
-    def render_centered_message(self, draw: ImageDraw.ImageDraw, message: str, font_size: int = 18) -> None:
+    def render_centered_message(
+        self, draw: ImageDraw.ImageDraw, message: str, font_size: int = 18
+    ) -> None:
         """
         Render a centered message (typically for error/no-data states).
 
@@ -238,7 +246,7 @@ class BaseView(ABC):
         nav_top = self.height - self.nav_height
 
         # Background
-        draw.rectangle([(0, nav_top), (self.width, self.height)], fill=BLACK)
+        draw.rectangle(((0, nav_top), (self.width, self.height)), fill=BLACK)
 
         # Prev button (<)
         button_width = 50
@@ -246,7 +254,7 @@ class BaseView(ABC):
         button_y = nav_top + (self.nav_height - button_height) // 2
 
         draw.rectangle(
-            [(10, button_y), (10 + button_width, button_y + button_height)],
+            ((10, button_y), (10 + button_width, button_y + button_height)),
             fill=NAV_BUTTON_COLOR,
             outline=GRAY,
         )
@@ -255,10 +263,10 @@ class BaseView(ABC):
 
         # Next button (>)
         draw.rectangle(
-            [
+            (
                 (self.width - 10 - button_width, button_y),
                 (self.width - 10, button_y + button_height),
-            ],
+            ),
             fill=NAV_BUTTON_COLOR,
             outline=GRAY,
         )

@@ -1,16 +1,16 @@
 """Moon phase view - lunar cycle visualization."""
 
-import datetime
-import math
-from typing import TYPE_CHECKING
-
 from PIL import Image, ImageDraw
 
-from .base import BaseView, UPDATE_HOURLY, WHITE, BLACK, YELLOW, GRAY, LIGHT_GRAY, PURPLE, MOON_YELLOW
-
-if TYPE_CHECKING:
-    from ..config import Config
-    from .base import DataProviders
+from .base import (
+    BaseView,
+    UPDATE_HOURLY,
+    WHITE,
+    GRAY,
+    LIGHT_GRAY,
+    PURPLE,
+    MOON_YELLOW,
+)
 
 
 class MoonView(BaseView):
@@ -23,7 +23,7 @@ class MoonView(BaseView):
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the moon phase view content."""
         # Header
-        draw.rectangle([(0, 0), (self.width, 35)], fill=PURPLE)
+        draw.rectangle(((0, 0), (self.width, 35)), fill=PURPLE)
         font_title = self.get_bold_font(24)
         title_bbox = draw.textbbox((0, 0), "Moon Phase", font=font_title)
         title_width = title_bbox[2] - title_bbox[0]
@@ -65,26 +65,24 @@ class MoonView(BaseView):
 
         # Draw full moon (background)
         draw.ellipse(
-            [(center_x - radius, center_y - radius), (center_x + radius, center_y + radius)],
+            [
+                (center_x - radius, center_y - radius),
+                (center_x + radius, center_y + radius),
+            ],
             fill=MOON_YELLOW,
         )
 
         # Draw shadow based on phase
         # phase: 0 = new, 0.25 = first quarter, 0.5 = full, 0.75 = last quarter
-        if phase < 0.5:
-            # Waxing: shadow on left, shrinking
-            shadow_offset = int((0.5 - phase) * 2 * radius)
-            shadow_x = center_x - shadow_offset
-        else:
-            # Waning: shadow on right, growing
-            shadow_offset = int((phase - 0.5) * 2 * radius)
-            shadow_x = center_x + shadow_offset
 
         # Draw shadow ellipse
         if phase < 0.03 or phase > 0.97:
             # New moon - full shadow
             draw.ellipse(
-                [(center_x - radius, center_y - radius), (center_x + radius, center_y + radius)],
+                [
+                    (center_x - radius, center_y - radius),
+                    (center_x + radius, center_y + radius),
+                ],
                 fill=(30, 30, 30),
             )
         elif 0.47 <= phase <= 0.53:
@@ -115,14 +113,16 @@ class MoonView(BaseView):
 
         # Moon outline
         draw.ellipse(
-            [(center_x - radius, center_y - radius), (center_x + radius, center_y + radius)],
+            [
+                (center_x - radius, center_y - radius),
+                (center_x + radius, center_y + radius),
+            ],
             outline=GRAY,
             width=1,
         )
 
     def _render_phase_info(self, draw: ImageDraw.ImageDraw, moon, x: int) -> None:
         """Render phase name and illumination."""
-        font = self.get_font(14)
         font_large = self.get_bold_font(36)
         font_name = self.get_font(18)
 
@@ -141,9 +141,11 @@ class MoonView(BaseView):
         font_value = self.get_font(16)
 
         # Background boxes
-        draw.rectangle([(10, y), (155, y + 40)], fill=(30, 30, 30), outline=GRAY)
-        draw.rectangle([(165, y), (310, y + 40)], fill=(30, 30, 30), outline=GRAY)
-        draw.rectangle([(320, y), (self.width - 10, y + 40)], fill=(30, 30, 30), outline=GRAY)
+        draw.rectangle(((10, y), (155, y + 40)), fill=(30, 30, 30), outline=GRAY)
+        draw.rectangle(((165, y), (310, y + 40)), fill=(30, 30, 30), outline=GRAY)
+        draw.rectangle(
+            ((320, y), (self.width - 10, y + 40)), fill=(30, 30, 30), outline=GRAY
+        )
 
         draw.text((20, y + 5), "Moonrise", fill=GRAY, font=font)
         draw.text((175, y + 5), "Moonset", fill=GRAY, font=font)
@@ -158,14 +160,24 @@ class MoonView(BaseView):
                 bar_y = y + 22
                 bar_height = 10
                 # Background
-                draw.rectangle([(bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height)], fill=(50, 50, 50))
+                draw.rectangle(
+                    ((bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height)),
+                    fill=(50, 50, 50),
+                )
                 # Progress (phase 0-1, where 0.5 is full moon)
                 fill_width = int(moon_data.phase * bar_width)
                 if fill_width > 0:
-                    draw.rectangle([(bar_x, bar_y), (bar_x + fill_width, bar_y + bar_height)], fill=PURPLE)
+                    draw.rectangle(
+                        ((bar_x, bar_y), (bar_x + fill_width, bar_y + bar_height)),
+                        fill=PURPLE,
+                    )
                 # Full moon marker at center
                 full_x = bar_x + bar_width // 2
-                draw.line([(full_x, bar_y - 2), (full_x, bar_y + bar_height + 2)], fill=MOON_YELLOW, width=2)
+                draw.line(
+                    [(full_x, bar_y - 2), (full_x, bar_y + bar_height + 2)],
+                    fill=MOON_YELLOW,
+                    width=2,
+                )
 
         if self.providers.lunar:
             times = self.providers.lunar.get_moon_times()
@@ -184,13 +196,26 @@ class MoonView(BaseView):
         font_days = self.get_font(14)
 
         # New moon box - dark panel
-        draw.rounded_rectangle([(10, y), (235, y + 48)], radius=6, fill=(35, 35, 45))
+        draw.rounded_rectangle(((10, y), (235, y + 48)), radius=6, fill=(35, 35, 45))
         draw.text((20, y + 5), "New Moon", fill=GRAY, font=font)
-        draw.text((20, y + 24), moon.next_new.strftime("%b %d"), fill=WHITE, font=font_value)
-        draw.text((120, y + 24), f"{moon.days_to_new}d", fill=LIGHT_GRAY, font=font_days)
+        draw.text(
+            (20, y + 24), moon.next_new.strftime("%b %d"), fill=WHITE, font=font_value
+        )
+        draw.text(
+            (120, y + 24), f"{moon.days_to_new}d", fill=LIGHT_GRAY, font=font_days
+        )
 
         # Full moon box - matching dark panel with yellow accent
-        draw.rounded_rectangle([(245, y), (self.width - 10, y + 48)], radius=6, fill=(35, 35, 45))
+        draw.rounded_rectangle(
+            ((245, y), (self.width - 10, y + 48)), radius=6, fill=(35, 35, 45)
+        )
         draw.text((255, y + 5), "Full Moon", fill=GRAY, font=font)
-        draw.text((255, y + 24), moon.next_full.strftime("%b %d"), fill=MOON_YELLOW, font=font_value)
-        draw.text((355, y + 24), f"{moon.days_to_full}d", fill=LIGHT_GRAY, font=font_days)
+        draw.text(
+            (255, y + 24),
+            moon.next_full.strftime("%b %d"),
+            fill=MOON_YELLOW,
+            font=font_value,
+        )
+        draw.text(
+            (355, y + 24), f"{moon.days_to_full}d", fill=LIGHT_GRAY, font=font_days
+        )

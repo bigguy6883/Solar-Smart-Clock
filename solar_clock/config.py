@@ -135,9 +135,12 @@ class AppearanceConfig:
         errors = []
         # Lazy import to avoid circular dependency
         from .views import VIEW_CLASSES
+
         max_view = len(VIEW_CLASSES) - 1
         if not 0 <= self.default_view <= max_view:
-            errors.append(f"Invalid default_view {self.default_view}: must be 0-{max_view}")
+            errors.append(
+                f"Invalid default_view {self.default_view}: must be 0-{max_view}"
+            )
         return errors
 
 

@@ -1,15 +1,18 @@
 """Clock view - main time display with weather and sun info."""
 
 import datetime
-from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, UPDATE_REALTIME
-
-if TYPE_CHECKING:
-    from ..config import Config
-    from .base import DataProviders
+from .base import (
+    BaseView,
+    WHITE,
+    YELLOW,
+    ORANGE,
+    GRAY,
+    LIGHT_GRAY,
+    UPDATE_REALTIME,
+)
 
 
 class ClockView(BaseView):
@@ -25,7 +28,7 @@ class ClockView(BaseView):
         header_color = self.get_time_header_color()
 
         # Header bar
-        draw.rectangle([(0, 0), (self.width, 45)], fill=header_color)
+        draw.rectangle(((0, 0), (self.width, 45)), fill=header_color)
 
         # Time display
         time_str = now.strftime("%-I:%M:%S")
@@ -44,7 +47,9 @@ class ClockView(BaseView):
         start_x = (self.width - total_width) // 2
 
         draw.text((start_x, -1), time_str, fill=WHITE, font=font_time)
-        draw.text((start_x + time_width + 5, 20), am_pm, fill=LIGHT_GRAY, font=font_ampm)
+        draw.text(
+            (start_x + time_width + 5, 20), am_pm, fill=LIGHT_GRAY, font=font_ampm
+        )
 
         # Date
         date_str = now.strftime("%A, %B %d, %Y")
@@ -142,7 +147,7 @@ class ClockView(BaseView):
                 # Elevation with up/down indicator
                 elev_abs = abs(pos.elevation)
                 elev_arrow = "↑" if pos.elevation >= 0 else "↓"
-                
+
                 # Calculate compass direction from azimuth
                 az = pos.azimuth
                 if az >= 337.5 or az < 22.5:
@@ -161,7 +166,7 @@ class ClockView(BaseView):
                     compass = "W"
                 else:
                     compass = "NW"
-                
+
                 draw.text(
                     (self.width - 115, y),
                     "Sun Position",
@@ -198,7 +203,7 @@ class ClockView(BaseView):
 
         # Background
         draw.rectangle(
-            [(bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height)],
+            ((bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height)),
             fill=GRAY,
             outline=LIGHT_GRAY,
         )
@@ -207,7 +212,7 @@ class ClockView(BaseView):
         fill_width = int(bar_width * day_progress)
         if fill_width > 0:
             draw.rectangle(
-                [(bar_x, bar_y), (bar_x + fill_width, bar_y + bar_height)],
+                ((bar_x, bar_y), (bar_x + fill_width, bar_y + bar_height)),
                 fill=YELLOW,
             )
 

@@ -20,7 +20,7 @@ class RateLimiter:
 
     def __init__(self, rate_per_second: int = 10):
         self.rate = rate_per_second
-        self.tokens = rate_per_second
+        self.tokens: float = float(rate_per_second)
         self.last_update = time.time()
         self.lock = threading.Lock()
 

@@ -1,16 +1,19 @@
 """Analemma view - figure-8 sun position diagram."""
 
 import datetime
-import math
-from typing import TYPE_CHECKING
-
 from PIL import Image, ImageDraw
 
-from .base import BaseView, UPDATE_HOURLY, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, GREEN, BLUE
-
-if TYPE_CHECKING:
-    from ..config import Config
-    from .base import DataProviders
+from .base import (
+    BaseView,
+    UPDATE_HOURLY,
+    WHITE,
+    YELLOW,
+    ORANGE,
+    GRAY,
+    LIGHT_GRAY,
+    GREEN,
+    BLUE,
+)
 
 
 class AnalemmaView(BaseView):
@@ -29,7 +32,7 @@ class AnalemmaView(BaseView):
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the analemma view content."""
         # Header
-        draw.rectangle([(0, 0), (self.width, 35)], fill=ORANGE)
+        draw.rectangle(((0, 0), (self.width, 35)), fill=ORANGE)
         font_title = self.get_bold_font(24)
         title_bbox = draw.textbbox((0, 0), "Analemma", font=font_title)
         title_width = title_bbox[2] - title_bbox[0]
@@ -112,7 +115,9 @@ class AnalemmaView(BaseView):
         # Highlight today's position
         if today_point:
             x, y_pos = today_point
-            draw.ellipse([(x - 6, y_pos - 6), (x + 6, y_pos + 6)], fill=WHITE, outline=YELLOW)
+            draw.ellipse(
+                [(x - 6, y_pos - 6), (x + 6, y_pos + 6)], fill=WHITE, outline=YELLOW
+            )
 
     def _render_info_panel(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render the info panel on the right side."""
@@ -123,7 +128,9 @@ class AnalemmaView(BaseView):
         x = 250
 
         # Today box
-        draw.rectangle([(x, y), (self.width - 10, y + 90)], fill=(30, 30, 30), outline=GRAY)
+        draw.rectangle(
+            ((x, y), (self.width - 10, y + 90)), fill=(30, 30, 30), outline=GRAY
+        )
         draw.text((x + 10, y + 5), "Today", fill=WHITE, font=self.get_bold_font(16))
 
         if self.providers.lunar:
@@ -131,19 +138,33 @@ class AnalemmaView(BaseView):
             if eot:
                 sign = "early" if eot > 0 else "late"
                 draw.text((x + 10, y + 25), "Sun is", fill=GRAY, font=font)
-                draw.text((x + 10, y + 42), f"{abs(eot):.1f} min", fill=YELLOW, font=font_large)
+                draw.text(
+                    (x + 10, y + 42),
+                    f"{abs(eot):.1f} min",
+                    fill=YELLOW,
+                    font=font_large,
+                )
                 draw.text((x + 10, y + 70), sign, fill=LIGHT_GRAY, font=font)
 
         # Sun path info
-        draw.rectangle([(x, y + 100), (self.width - 10, y + 175)], fill=(30, 30, 30), outline=GRAY)
-        draw.text((x + 10, y + 105), "Sun path", fill=WHITE, font=self.get_bold_font(16))
+        draw.rectangle(
+            ((x, y + 100), (self.width - 10, y + 175)), fill=(30, 30, 30), outline=GRAY
+        )
+        draw.text(
+            (x + 10, y + 105), "Sun path", fill=WHITE, font=self.get_bold_font(16)
+        )
 
         if self.providers.solar:
             pos = self.providers.solar.get_solar_position()
             if pos:
                 height = "high" if pos.elevation > 45 else "low"
                 draw.text((x + 10, y + 130), height, fill=YELLOW, font=font_large)
-                draw.text((x + 10, y + 155), f"{pos.elevation:.1f}° S", fill=LIGHT_GRAY, font=font)
+                draw.text(
+                    (x + 10, y + 155),
+                    f"{pos.elevation:.1f}° S",
+                    fill=LIGHT_GRAY,
+                    font=font,
+                )
 
         # Season legend
         draw.text((x, y + 185), "Legend:", fill=GRAY, font=font_small)

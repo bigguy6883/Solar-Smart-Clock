@@ -1,7 +1,7 @@
 """Framebuffer display handling for Solar Smart Clock."""
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, BinaryIO
 
 from PIL import Image
 
@@ -25,7 +25,7 @@ class Display:
         self.width = config.width
         self.height = config.height
         self.framebuffer = config.framebuffer
-        self._fb_handle: Optional[int] = None
+        self._fb_handle: Optional[BinaryIO] = None
 
     def open(self) -> bool:
         """

@@ -2,15 +2,20 @@
 
 import datetime
 import math
-from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, UPDATE_HOURLY, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, BLUE, GREEN, PURPLE
-
-if TYPE_CHECKING:
-    from ..config import Config
-    from .base import DataProviders
+from .base import (
+    BaseView,
+    UPDATE_HOURLY,
+    WHITE,
+    YELLOW,
+    ORANGE,
+    GRAY,
+    LIGHT_GRAY,
+    BLUE,
+    GREEN,
+)
 
 
 class DayLengthView(BaseView):
@@ -23,7 +28,7 @@ class DayLengthView(BaseView):
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the day length view content."""
         # Header
-        draw.rectangle([(0, 0), (self.width, 35)], fill=ORANGE)
+        draw.rectangle(((0, 0), (self.width, 35)), fill=ORANGE)
         font_title = self.get_bold_font(24)
         title_bbox = draw.textbbox((0, 0), "Day Length", font=font_title)
         title_width = title_bbox[2] - title_bbox[0]
@@ -77,8 +82,13 @@ class DayLengthView(BaseView):
             else:
                 # Simplified approximation
                 latitude = self.config.location.latitude
-                declination = 23.45 * math.sin(math.radians((360/365) * (day_of_year - 81)))
-                hour_angle = math.acos(-math.tan(math.radians(latitude)) * math.tan(math.radians(declination)))
+                declination = 23.45 * math.sin(
+                    math.radians((360 / 365) * (day_of_year - 81))
+                )
+                hour_angle = math.acos(
+                    -math.tan(math.radians(latitude))
+                    * math.tan(math.radians(declination))
+                )
                 length = 2 * math.degrees(hour_angle) / 15
 
             # Map to chart coordinates
@@ -107,7 +117,11 @@ class DayLengthView(BaseView):
         if self.providers.solar:
             today_length = self.providers.solar.get_day_length()
             if today_length:
-                today_y = chart_y + chart_height - int(((today_length - 9) / 6) * chart_height)
+                today_y = (
+                    chart_y
+                    + chart_height
+                    - int(((today_length - 9) / 6) * chart_height)
+                )
                 draw.ellipse(
                     [(today_x - 5, today_y - 5), (today_x + 5, today_y + 5)],
                     fill=WHITE,
@@ -124,7 +138,9 @@ class DayLengthView(BaseView):
         gap = 10
 
         # Box 1: Today
-        draw.rounded_rectangle([(10, y), (10 + box_width, y + 55)], radius=6, fill=(35, 35, 40))
+        draw.rounded_rectangle(
+            ((10, y), (10 + box_width, y + 55)), radius=6, fill=(35, 35, 40)
+        )
         draw.text((15, y + 3), "Today", fill=GRAY, font=font)
 
         if self.providers.solar:
@@ -133,31 +149,56 @@ class DayLengthView(BaseView):
             if length:
                 hours = int(length)
                 minutes = int((length - hours) * 60)
-                draw.text((15, y + 18), f"{hours}h {minutes}m", fill=WHITE, font=font_value)
+                draw.text(
+                    (15, y + 18), f"{hours}h {minutes}m", fill=WHITE, font=font_value
+                )
             if change:
                 sign = "+" if change > 0 else ""
-                draw.text((15, y + 40), f"{sign}{change:.1f}m/day", fill=YELLOW if change > 0 else BLUE, font=font_small)
+                draw.text(
+                    (15, y + 40),
+                    f"{sign}{change:.1f}m/day",
+                    fill=YELLOW if change > 0 else BLUE,
+                    font=font_small,
+                )
 
         # Box 2: Shortest/Longest
         x2 = 10 + box_width + gap
-        draw.rounded_rectangle([(x2, y), (x2 + box_width, y + 55)], radius=6, fill=(35, 35, 40))
+        draw.rounded_rectangle(
+            ((x2, y), (x2 + box_width, y + 55)), radius=6, fill=(35, 35, 40)
+        )
         draw.text((x2 + 5, y + 3), "Shortest", fill=GRAY, font=font_small)
         draw.text((x2 + 75, y + 3), "Longest", fill=GRAY, font=font_small)
 
         if self.providers.lunar:
-            dates = self.providers.lunar.get_solstice_equinox(datetime.date.today().year)
+            dates = self.providers.lunar.get_solstice_equinox(
+                datetime.date.today().year
+            )
             draw.text((x2 + 5, y + 15), "9h 49m", fill=BLUE, font=font)
-            draw.text((x2 + 5, y + 30), dates.winter_solstice.strftime("%b %d"), fill=LIGHT_GRAY, font=font_small)
+            draw.text(
+                (x2 + 5, y + 30),
+                dates.winter_solstice.strftime("%b %d"),
+                fill=LIGHT_GRAY,
+                font=font_small,
+            )
             draw.text((x2 + 75, y + 15), "14h 28m", fill=ORANGE, font=font)
-            draw.text((x2 + 75, y + 30), dates.summer_solstice.strftime("%b %d"), fill=LIGHT_GRAY, font=font_small)
+            draw.text(
+                (x2 + 75, y + 30),
+                dates.summer_solstice.strftime("%b %d"),
+                fill=LIGHT_GRAY,
+                font=font_small,
+            )
 
         # Box 3: Next event
         x3 = x2 + box_width + gap
-        draw.rounded_rectangle([(x3, y), (self.width - 10, y + 55)], radius=6, fill=(35, 35, 40))
+        draw.rounded_rectangle(
+            ((x3, y), (self.width - 10, y + 55)), radius=6, fill=(35, 35, 40)
+        )
         draw.text((x3 + 5, y + 3), "Next", fill=GRAY, font=font)
 
         if self.providers.lunar:
-            dates = self.providers.lunar.get_solstice_equinox(datetime.date.today().year)
+            dates = self.providers.lunar.get_solstice_equinox(
+                datetime.date.today().year
+            )
             today = datetime.date.today()
 
             # Find next event
@@ -172,7 +213,12 @@ class DayLengthView(BaseView):
                 if date > today:
                     days = (date - today).days
                     draw.text((x3 + 5, y + 18), name, fill=GREEN, font=font)
-                    draw.text((x3 + 5, y + 35), date.strftime("%b %d"), fill=LIGHT_GRAY, font=font_small)
+                    draw.text(
+                        (x3 + 5, y + 35),
+                        date.strftime("%b %d"),
+                        fill=LIGHT_GRAY,
+                        font=font_small,
+                    )
                     draw.text((x3 + 70, y + 18), str(days), fill=WHITE, font=font_value)
                     draw.text((x3 + 70, y + 40), "days", fill=GRAY, font=font_small)
                     break

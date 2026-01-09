@@ -164,7 +164,11 @@ class WeatherProvider:
                 temperature=main.get("temp", 0),
                 feels_like=main.get("feels_like", 0),
                 humidity=main.get("humidity", 0),
-                description=weather_list[0].get("description", "Unknown").title() if weather_list else "Unknown",
+                description=(
+                    weather_list[0].get("description", "Unknown").title()
+                    if weather_list
+                    else "Unknown"
+                ),
                 wind_speed=wind.get("speed", 0),
                 wind_direction=self._degrees_to_compass(wind.get("deg", 0)),
             )

@@ -1,16 +1,19 @@
 """Sun Path view - sun trajectory visualization."""
 
 import datetime
-import math
-from typing import TYPE_CHECKING
 
 from PIL import Image, ImageDraw
 
-from .base import BaseView, UPDATE_FREQUENT, WHITE, BLACK, YELLOW, ORANGE, GRAY, LIGHT_GRAY, DARK_BLUE, LIGHT_BLUE
-
-if TYPE_CHECKING:
-    from ..config import Config
-    from .base import DataProviders
+from .base import (
+    BaseView,
+    UPDATE_FREQUENT,
+    WHITE,
+    YELLOW,
+    ORANGE,
+    GRAY,
+    LIGHT_GRAY,
+    DARK_BLUE,
+)
 
 
 class SunPathView(BaseView):
@@ -23,7 +26,7 @@ class SunPathView(BaseView):
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the sun path view content."""
         # Header
-        draw.rectangle([(0, 0), (self.width, 35)], fill=ORANGE)
+        draw.rectangle(((0, 0), (self.width, 35)), fill=ORANGE)
         font_title = self.get_bold_font(24)
         title_bbox = draw.textbbox((0, 0), "Sun Path", font=font_title)
         title_width = title_bbox[2] - title_bbox[0]
@@ -48,7 +51,9 @@ class SunPathView(BaseView):
         # Info boxes at bottom
         self._render_info_boxes(draw, self.content_height - 65)
 
-    def _render_sun_chart(self, draw: ImageDraw.ImageDraw, image: Image.Image, y: int) -> None:
+    def _render_sun_chart(
+        self, draw: ImageDraw.ImageDraw, image: Image.Image, y: int
+    ) -> None:
         """Render the sun elevation chart."""
         chart_height = 120
         chart_y = y + 10
@@ -69,13 +74,19 @@ class SunPathView(BaseView):
         for hour in [0, 6, 12, 18, 24]:
             x = chart_x + int((hour / 24) * chart_width)
             label = f"{hour:02d}"
-            draw.text((x - 8, chart_y + chart_height + 2), label, fill=GRAY, font=font_tiny)
+            draw.text(
+                (x - 8, chart_y + chart_height + 2), label, fill=GRAY, font=font_tiny
+            )
 
         # Horizon line at 0° elevation
         # Range is 40° to -90° (130° total), so 0° is at 40/130 from top
         elev_range = 40 - (-90)  # 130 degrees
         horizon_y = chart_y + int((40 / elev_range) * chart_height)
-        draw.line([(chart_x, horizon_y), (chart_x + chart_width, horizon_y)], fill=GRAY, width=1)
+        draw.line(
+            [(chart_x, horizon_y), (chart_x + chart_width, horizon_y)],
+            fill=GRAY,
+            width=1,
+        )
 
         # Draw sun path curve
         if self.providers.solar:
@@ -94,7 +105,9 @@ class SunPathView(BaseView):
 
         # Sample every 30 minutes
         for minutes in range(0, 24 * 60, 30):
-            dt = datetime.datetime.combine(today, datetime.time()) + datetime.timedelta(minutes=minutes)
+            dt = datetime.datetime.combine(today, datetime.time()) + datetime.timedelta(
+                minutes=minutes
+            )
             dt = dt.replace(tzinfo=now.astimezone().tzinfo)
 
             pos = self.providers.solar.get_solar_position(dt)
@@ -128,7 +141,9 @@ class SunPathView(BaseView):
             cy = y + int(((40 - current_pos.elevation) / elev_range) * height)
 
             # Sun marker
-            draw.ellipse([(cx - 8, cy - 8), (cx + 8, cy + 8)], fill=YELLOW, outline=ORANGE)
+            draw.ellipse(
+                [(cx - 8, cy - 8), (cx + 8, cy + 8)], fill=YELLOW, outline=ORANGE
+            )
 
     def _render_info_boxes(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render info boxes at bottom."""
@@ -136,7 +151,7 @@ class SunPathView(BaseView):
         font_value = self.get_bold_font(20)
 
         # Left box: Next event countdown
-        draw.rounded_rectangle([(10, y), (230, y + 55)], radius=6, fill=(35, 35, 40))
+        draw.rounded_rectangle(((10, y), (230, y + 55)), radius=6, fill=(35, 35, 40))
 
         if self.providers.solar:
             next_event = self.providers.solar.get_next_solar_event()
@@ -148,11 +163,20 @@ class SunPathView(BaseView):
                 minutes = int((delta.total_seconds() % 3600) // 60)
 
                 draw.text((20, y + 5), event_name, fill=ORANGE, font=font)
-                draw.text((115, y + 5), f"in {hours}h {minutes}m", fill=WHITE, font=font)
-                draw.text((20, y + 30), f"at {event_time.strftime('%-I:%M %p')}", fill=LIGHT_GRAY, font=font)
+                draw.text(
+                    (115, y + 5), f"in {hours}h {minutes}m", fill=WHITE, font=font
+                )
+                draw.text(
+                    (20, y + 30),
+                    f"at {event_time.strftime('%-I:%M %p')}",
+                    fill=LIGHT_GRAY,
+                    font=font,
+                )
 
         # Right box: Current elevation
-        draw.rounded_rectangle([(250, y), (self.width - 10, y + 55)], radius=6, fill=(35, 35, 40))
+        draw.rounded_rectangle(
+            ((250, y), (self.width - 10, y + 55)), radius=6, fill=(35, 35, 40)
+        )
 
         if self.providers.solar:
             pos = self.providers.solar.get_solar_position()
