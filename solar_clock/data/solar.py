@@ -254,6 +254,7 @@ class SolarProvider:
         events = [
             ("Dawn", sun_times.dawn),
             ("Sunrise", sun_times.sunrise),
+            ("Solar Noon", sun_times.noon),
             ("Sunset", sun_times.sunset),
             ("Dusk", sun_times.dusk),
         ]
