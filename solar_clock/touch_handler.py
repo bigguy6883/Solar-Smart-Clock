@@ -134,10 +134,13 @@ class TouchHandler:
     def _process_event(self, event) -> None:
         """Process a single input event."""
         if event.type == ecodes.EV_ABS:
+            # For 90-degree rotation: swap X and Y axes
             if event.code == ecodes.ABS_X:
-                self.current_x = self._transform_x(event.value)
-            elif event.code == ecodes.ABS_Y:
+                # Raw X becomes screen Y (inverted)
                 self.current_y = self._transform_y(event.value)
+            elif event.code == ecodes.ABS_Y:
+                # Raw Y becomes screen X
+                self.current_x = self._transform_x(event.value)
 
         elif event.type == ecodes.EV_KEY:
             if event.code == ecodes.BTN_TOUCH:
@@ -170,20 +173,30 @@ class TouchHandler:
             return
 
         dx = self.current_x - self.touch_start_x
+        dy = self.current_y - self.touch_start_y if self.touch_start_y else 0
         elapsed = time.time() - self.touch_start_time
+        abs_dx = abs(dx)
 
-        # Check for swipe
-        if abs(dx) > self.config.swipe_threshold:
+        logger.debug(
+            f"Touch end: dx={dx}, dy={dy}, elapsed={elapsed:.2f}s, "
+            f"pos=({self.current_x}, {self.current_y})"
+        )
+
+        # Swipe: significant horizontal movement (distance-first, no dead zone)
+        if abs_dx >= self.config.swipe_threshold:
             if dx > 0:
-                logger.debug("Swipe right detected -> prev view")
+                logger.debug(f"Swipe right detected (dx={dx}) -> prev view")
                 self.on_prev()
             else:
-                logger.debug("Swipe left detected -> next view")
+                logger.debug(f"Swipe left detected (dx={dx}) -> next view")
                 self.on_next()
 
-        # Check for tap on nav buttons
-        elif abs(dx) < self.config.tap_threshold and elapsed < self.config.tap_timeout:
+        # Tap: small movement AND quick duration (everything else that's quick)
+        elif elapsed < self.config.tap_timeout:
+            logger.debug(f"Tap detected (dx={abs_dx}, elapsed={elapsed:.2f}s)")
             self._check_nav_button_tap()
+
+        # Else: slow drag with small movement - intentionally ignored
 
         # Reset state
         self.touch_start_x = None

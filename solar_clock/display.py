@@ -3,6 +3,7 @@
 import logging
 from typing import TYPE_CHECKING, Optional, BinaryIO
 
+import numpy as np
 from PIL import Image
 
 if TYPE_CHECKING:
@@ -108,7 +109,7 @@ class Display:
 
     def _rgb_to_rgb565(self, image: Image.Image) -> bytes:
         """
-        Convert RGB image to RGB565 format.
+        Convert RGB image to RGB565 format using NumPy vectorization.
 
         RGB565 format:
         - Red: 5 bits (bits 11-15)
@@ -119,30 +120,21 @@ class Display:
             image: PIL Image in RGB mode
 
         Returns:
-            Bytes in RGB565 format
+            Bytes in RGB565 format (little-endian)
         """
-        pixels = image.load()
-        data = bytearray(self.width * self.height * 2)
+        # Convert PIL image to numpy array (H, W, 3) with uint16 for bit ops
+        arr = np.array(image, dtype=np.uint16)
 
-        idx = 0
-        for y in range(self.height):
-            for x in range(self.width):
-                r, g, b = pixels[x, y]
+        # Extract color channels
+        r = arr[:, :, 0]
+        g = arr[:, :, 1]
+        b = arr[:, :, 2]
 
-                # Convert to 5-6-5 bit format
-                r5 = (r >> 3) & 0x1F
-                g6 = (g >> 2) & 0x3F
-                b5 = (b >> 3) & 0x1F
+        # Convert to RGB565: RRRRR GGGGGG BBBBB
+        rgb565 = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
 
-                # Pack into 16-bit value (little-endian)
-                rgb565 = (r5 << 11) | (g6 << 5) | b5
-
-                # Store as little-endian
-                data[idx] = rgb565 & 0xFF
-                data[idx + 1] = (rgb565 >> 8) & 0xFF
-                idx += 2
-
-        return bytes(data)
+        # Convert to little-endian bytes
+        return rgb565.astype("<u2").tobytes()
 
     def clear(self, color: tuple[int, int, int] = (0, 0, 0)) -> bool:
         """
