@@ -115,12 +115,7 @@ class AirQualityView(BaseView):
 
     def _render_no_data(self, draw: ImageDraw.ImageDraw) -> None:
         """Render view when no data available."""
-        draw.rectangle(((0, 0), (self.width, 35)), fill=GRAY)
-        font_title = self.get_bold_font(24)
-        draw.text((150, 5), "Air Quality", fill=WHITE, font=font_title)
-
-        font = self.get_font(20)
-        draw.text((150, 120), "No data available", fill=GRAY, font=font)
+        self.render_centered_message(draw, "No data available")
 
     def _render_aqi_value(
         self,
