@@ -6,12 +6,12 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/home/pi/solar-clock
+WorkingDirectory=/home/pi/Solar-Smart-Clock
 
 # Load API key from secrets file (not in git)
 EnvironmentFile=-/etc/solar-clock/secrets
 
-ExecStart=/home/pi/solar-clock/venv/bin/python3 -m solar_clock
+ExecStart=/home/pi/Solar-Smart-Clock/venv/bin/python3 -m solar_clock
 Restart=always
 RestartSec=10
 TimeoutStartSec=30
