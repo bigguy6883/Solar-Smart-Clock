@@ -243,7 +243,7 @@ class SolarProvider:
         Get the next upcoming solar event.
 
         Returns:
-            Tuple of (event_name, event_time) for dawn, sunrise, sunset, or dusk
+            Tuple of (event_name, event_time) for dawn, sunrise, solar noon, sunset, or dusk
         """
         now = datetime.datetime.now(self.tz)
         sun_times = self.get_sun_times(now.date())

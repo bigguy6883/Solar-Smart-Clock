@@ -77,7 +77,7 @@ class SunPathView(BaseView):
         draw.line(
             [(chart_x, horizon_y), (chart_x + chart_width, horizon_y)],
             fill=GRAY,
-            width=1,
+            width=3,
         )
 
         # Draw sun path curve
@@ -122,7 +122,7 @@ class SunPathView(BaseView):
                     color = DARK_BLUE
                 else:
                     color = YELLOW
-                draw.line([p1, p2], fill=color, width=2)
+                draw.line([p1, p2], fill=color, width=4)
 
         # Current sun position
         current_pos = self.providers.solar.get_solar_position()
@@ -142,15 +142,35 @@ class SunPathView(BaseView):
         font = self.get_font(14)
         font_value = self.get_bold_font(20)
 
-        # Left box: Next event countdown
+        # Left box: Solar noon until it passes, then next event
         draw.rounded_rectangle(((10, y), (230, y + 55)), radius=6, fill=(35, 35, 40))
 
         if self.providers.solar:
-            next_event = self.providers.solar.get_next_solar_event()
-            if next_event:
-                event_name, event_time = next_event
-                now = datetime.datetime.now(event_time.tzinfo)
-                delta = event_time - now
+            # Get today's sun times to check solar noon
+            now = datetime.datetime.now()
+            sun_times = self.providers.solar.get_sun_times(now.date())
+
+            # Determine which event to display
+            event_name = None
+            event_time = None
+
+            # If solar noon hasn't passed yet today, show it
+            if sun_times and sun_times.noon:
+                solar_noon = sun_times.noon
+                if solar_noon > now.astimezone(solar_noon.tzinfo):
+                    event_name = "Solar Noon"
+                    event_time = solar_noon
+
+            # Otherwise, show next event
+            if event_name is None:
+                next_event = self.providers.solar.get_next_solar_event()
+                if next_event:
+                    event_name, event_time = next_event
+
+            # Display the chosen event
+            if event_name and event_time:
+                now_tz = datetime.datetime.now(event_time.tzinfo)
+                delta = event_time - now_tz
                 hours = int(delta.total_seconds() // 3600)
                 minutes = int((delta.total_seconds() % 3600) // 60)
 
