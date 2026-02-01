@@ -63,6 +63,10 @@ class TouchHandler:
         self.current_x: int = 0
         self.current_y: int = 0
 
+        # Debouncing - minimum time between gestures (seconds)
+        self.last_gesture_time: float = 0.0
+        self.gesture_cooldown: float = 0.15  # 150ms between gestures
+
         # Threading
         self._thread: Optional[threading.Thread] = None
         self._running = False
@@ -172,9 +176,23 @@ class TouchHandler:
         if self.touch_start_x is None or self.touch_start_time is None:
             return
 
+        # Debouncing: ignore gestures that happen too quickly after previous one
+        now = time.time()
+        time_since_last_gesture = now - self.last_gesture_time
+        if time_since_last_gesture < self.gesture_cooldown:
+            logger.debug(
+                f"Ignoring gesture (debounce: {time_since_last_gesture:.3f}s < "
+                f"{self.gesture_cooldown}s)"
+            )
+            # Still reset touch state
+            self.touch_start_x = None
+            self.touch_start_y = None
+            self.touch_start_time = None
+            return
+
         dx = self.current_x - self.touch_start_x
         dy = self.current_y - self.touch_start_y if self.touch_start_y else 0
-        elapsed = time.time() - self.touch_start_time
+        elapsed = now - self.touch_start_time
         abs_dx = abs(dx)
 
         logger.debug(
@@ -190,11 +208,13 @@ class TouchHandler:
             else:
                 logger.debug(f"Swipe left detected (dx={dx}) -> next view")
                 self.on_next()
+            self.last_gesture_time = now  # Update last gesture time
 
         # Tap: small movement AND quick duration (everything else that's quick)
         elif elapsed < self.config.tap_timeout:
             logger.debug(f"Tap detected (dx={abs_dx}, elapsed={elapsed:.2f}s)")
             self._check_nav_button_tap()
+            self.last_gesture_time = now  # Update last gesture time
 
         # Else: slow drag with small movement - intentionally ignored
 
