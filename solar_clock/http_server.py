@@ -1,6 +1,7 @@
 """HTTP server for screenshots and view navigation with security features."""
 
 import base64
+import json
 import logging
 import os
 import threading
@@ -90,6 +91,13 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(text.encode("utf-8"))
 
+    def _send_json(self, status: int, data: dict) -> None:
+        """Send a JSON response."""
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode("utf-8"))
+
     def _send_png(self, image_data: bytes) -> None:
         """Send a PNG image response."""
         self.send_response(200)
@@ -169,6 +177,41 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
             index = self.clock_instance.view_manager.get_index()
             count = self.clock_instance.view_manager.get_count()
             self._send_text(200, f"{view} ({index + 1}/{count})")
+
+        elif path == "/theme":
+            if self.clock_instance is None:
+                self._send_text(503, "Clock not initialized")
+                return
+
+            status = self.clock_instance.theme_manager.get_status()
+            self._send_json(200, status)
+
+        elif path == "/theme/auto":
+            if self.clock_instance is None:
+                self._send_text(503, "Clock not initialized")
+                return
+
+            self.clock_instance.theme_manager.set_mode("auto")
+            status = self.clock_instance.theme_manager.get_status()
+            self._send_json(200, status)
+
+        elif path == "/theme/day":
+            if self.clock_instance is None:
+                self._send_text(503, "Clock not initialized")
+                return
+
+            self.clock_instance.theme_manager.set_mode("day")
+            status = self.clock_instance.theme_manager.get_status()
+            self._send_json(200, status)
+
+        elif path == "/theme/night":
+            if self.clock_instance is None:
+                self._send_text(503, "Clock not initialized")
+                return
+
+            self.clock_instance.theme_manager.set_mode("night")
+            status = self.clock_instance.theme_manager.get_status()
+            self._send_json(200, status)
 
         else:
             self._send_text(404, "Not Found")

@@ -6,11 +6,8 @@ from PIL import Image, ImageDraw
 
 from .base import (
     BaseView,
-    WHITE,
     YELLOW,
     ORANGE,
-    GRAY,
-    LIGHT_GRAY,
     UPDATE_REALTIME,
     Layout,
 )
@@ -27,6 +24,7 @@ class ClockView(BaseView):
         """Render the clock view content."""
         now = datetime.datetime.now()
         header_color = self.get_time_header_color()
+        theme = self.get_theme()
 
         # Header bar
         draw.rectangle(((0, 0), (self.width, 45)), fill=header_color)
@@ -47,9 +45,12 @@ class ClockView(BaseView):
         total_width = time_width + ampm_width + 5
         start_x = (self.width - total_width) // 2
 
-        draw.text((start_x, -1), time_str, fill=WHITE, font=font_time)
+        draw.text((start_x, -1), time_str, fill=theme.text_primary, font=font_time)
         draw.text(
-            (start_x + time_width + 5, 20), am_pm, fill=LIGHT_GRAY, font=font_ampm
+            (start_x + time_width + 5, 20),
+            am_pm,
+            fill=theme.text_secondary,
+            font=font_ampm,
         )
 
         # Date
@@ -60,7 +61,7 @@ class ClockView(BaseView):
         draw.text(
             ((self.width - date_width) // 2, 55),
             date_str,
-            fill=WHITE,
+            fill=theme.text_primary,
             font=font_date,
         )
 
@@ -77,6 +78,7 @@ class ClockView(BaseView):
         """Render sunrise/sunset times and day length."""
         font = self.get_font(16)
         font_value = self.get_bold_font(20)
+        theme = self.get_theme()
 
         if self.providers.solar is None:
             return
@@ -87,7 +89,7 @@ class ClockView(BaseView):
 
         # Sunrise
         sunrise_str = sun_times.sunrise.strftime("%-I:%M %p")
-        draw.text((20, y), "Sunrise", fill=GRAY, font=font)
+        draw.text((20, y), "Sunrise", fill=theme.text_tertiary, font=font)
         draw.text((20, y + 18), sunrise_str, fill=YELLOW, font=font_value)
 
         # Day length
@@ -102,15 +104,22 @@ class ClockView(BaseView):
             length_width = length_bbox[2] - length_bbox[0]
             center_x = (self.width - length_width) // 2
 
-            draw.text((center_x, y), "daylight", fill=GRAY, font=font)
-            draw.text((center_x, y + 18), length_str, fill=WHITE, font=font_value)
+            draw.text((center_x, y), "daylight", fill=theme.text_tertiary, font=font)
+            draw.text(
+                (center_x, y + 18), length_str, fill=theme.text_primary, font=font_value
+            )
 
         # Sunset
         sunset_str = sun_times.sunset.strftime("%-I:%M %p")
         sunset_bbox = draw.textbbox((0, 0), sunset_str, font=font_value)
         sunset_width = sunset_bbox[2] - sunset_bbox[0]
 
-        draw.text((self.width - sunset_width - 20, y), "Sunset", fill=GRAY, font=font)
+        draw.text(
+            (self.width - sunset_width - 20, y),
+            "Sunset",
+            fill=theme.text_tertiary,
+            font=font,
+        )
         draw.text(
             (self.width - sunset_width - 20, y + 18),
             sunset_str,
@@ -122,14 +131,19 @@ class ClockView(BaseView):
         """Render current weather conditions."""
         font = self.get_font(16)
         font_value = self.get_bold_font(20)
+        theme = self.get_theme()
 
         if self.providers.weather is None:
-            draw.text((20, y), "Weather: unavailable", fill=LIGHT_GRAY, font=font)
+            draw.text(
+                (20, y), "Weather: unavailable", fill=theme.text_secondary, font=font
+            )
             return
 
         weather = self.providers.weather.get_current_weather()
         if weather is None:
-            draw.text((20, y), "Weather: unavailable", fill=LIGHT_GRAY, font=font)
+            draw.text(
+                (20, y), "Weather: unavailable", fill=theme.text_secondary, font=font
+            )
             return
 
         # Description and temperature
@@ -137,9 +151,11 @@ class ClockView(BaseView):
         temp = f"{weather.temperature:.0f}°F"
         humidity = f"{weather.humidity}%"
 
-        draw.text((20, y), desc, fill=WHITE, font=font_value)
+        draw.text((20, y), desc, fill=theme.text_primary, font=font_value)
         draw.text((20, y + 28), f"Temp: {temp}", fill=YELLOW, font=font)
-        draw.text((150, y + 28), f"Humidity: {humidity}", fill=LIGHT_GRAY, font=font)
+        draw.text(
+            (150, y + 28), f"Humidity: {humidity}", fill=theme.text_secondary, font=font
+        )
 
         # Sun position
         if self.providers.solar:
@@ -171,7 +187,7 @@ class ClockView(BaseView):
                 draw.text(
                     (self.width - 115, y),
                     "Sun Position",
-                    fill=GRAY,
+                    fill=theme.text_tertiary,
                     font=font,
                 )
                 draw.text(
@@ -183,13 +199,14 @@ class ClockView(BaseView):
                 draw.text(
                     (self.width - 115, y + 36),
                     f"Az: {pos.azimuth:.0f}° {compass}",
-                    fill=LIGHT_GRAY,
+                    fill=theme.text_secondary,
                     font=font,
                 )
 
     def _render_day_progress(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render day progress bar and next event countdown."""
         font = self.get_font(14)
+        theme = self.get_theme()
 
         # Calculate day progress
         now = datetime.datetime.now()
@@ -205,8 +222,8 @@ class ClockView(BaseView):
         # Background
         draw.rectangle(
             ((bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height)),
-            fill=GRAY,
-            outline=LIGHT_GRAY,
+            fill=theme.text_tertiary,
+            outline=theme.text_secondary,
         )
 
         # Progress fill
@@ -224,7 +241,7 @@ class ClockView(BaseView):
         draw.text(
             ((self.width - text_width) // 2, y + 18),
             progress_text,
-            fill=LIGHT_GRAY,
+            fill=theme.text_secondary,
             font=font,
         )
 
@@ -248,6 +265,6 @@ class ClockView(BaseView):
                 draw.text(
                     ((self.width - countdown_width) // 2, y + 38),
                     countdown,
-                    fill=WHITE,
+                    fill=theme.text_primary,
                     font=font,
                 )

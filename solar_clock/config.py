@@ -5,7 +5,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +130,7 @@ class AppearanceConfig:
     """Appearance settings."""
 
     default_view: int = 0
+    theme_mode: Literal["auto", "day", "night"] = "auto"
 
     def validate(self) -> list[str]:
         errors = []
@@ -140,6 +141,10 @@ class AppearanceConfig:
         if not 0 <= self.default_view <= max_view:
             errors.append(
                 f"Invalid default_view {self.default_view}: must be 0-{max_view}"
+            )
+        if self.theme_mode not in ("auto", "day", "night"):
+            errors.append(
+                f"Invalid theme_mode '{self.theme_mode}': must be 'auto', 'day', or 'night'"
             )
         return errors
 
@@ -234,6 +239,7 @@ def _dict_to_config(data: dict) -> Config:
         appearance = data["appearance"]
         config.appearance = AppearanceConfig(
             default_view=appearance.get("default_view", config.appearance.default_view),
+            theme_mode=appearance.get("theme_mode", config.appearance.theme_mode),
         )
 
     return config

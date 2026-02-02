@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Deployment
+
+**The clock service runs on `clock.local`, NOT on `homelab`.**
+
+- `clock.local` - Raspberry Pi with TFT display (runs the solar-clock service)
+- `homelab` - Development machine (code editing, git operations, tests only)
+
+Do not attempt to start/restart the solar-clock service on homelab - it has no display hardware.
+
 ## Project Overview
 
 Solar Smart Clock - A modular Python application that renders 9 interactive views to a Waveshare 3.5" TFT LCD touchscreen (480x320) on Raspberry Pi. Writes directly to framebuffer `/dev/fb1` using RGB565 format.

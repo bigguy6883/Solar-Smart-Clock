@@ -9,8 +9,6 @@ from .base import (
     WHITE,
     YELLOW,
     ORANGE,
-    GRAY,
-    LIGHT_GRAY,
     GREEN,
     BLUE,
     FontSize,
@@ -52,6 +50,7 @@ class AnalemmaView(BaseView):
 
     def _render_analemma_diagram(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render the figure-8 analemma pattern."""
+        theme = self.get_theme()
         # Diagram area - figure-8 should be taller than wide
         center_x = 120
         center_y = y + 95
@@ -63,14 +62,16 @@ class AnalemmaView(BaseView):
         # Axis labels
         draw.text((center_x - 15, y), "Summer", fill=YELLOW, font=font_tiny)
         draw.text((center_x - 15, y + 195), "winter", fill=BLUE, font=font_tiny)
-        draw.text((5, center_y - 5), "Sun", fill=GRAY, font=font_tiny)
-        draw.text((5, center_y + 8), "early", fill=GRAY, font=font_tiny)
-        draw.text((200, center_y - 5), "Sun", fill=GRAY, font=font_tiny)
-        draw.text((200, center_y + 8), "late", fill=GRAY, font=font_tiny)
+        draw.text((5, center_y - 5), "Sun", fill=theme.text_tertiary, font=font_tiny)
+        draw.text((5, center_y + 8), "early", fill=theme.text_tertiary, font=font_tiny)
+        draw.text((200, center_y - 5), "Sun", fill=theme.text_tertiary, font=font_tiny)
+        draw.text((200, center_y + 8), "late", fill=theme.text_tertiary, font=font_tiny)
 
         # Draw axis lines
-        draw.line([(center_x, y + 20), (center_x, y + 190)], fill=GRAY, width=1)
-        draw.line([(30, center_y), (210, center_y)], fill=GRAY, width=1)
+        draw.line(
+            [(center_x, y + 20), (center_x, y + 190)], fill=theme.text_tertiary, width=1
+        )
+        draw.line([(30, center_y), (210, center_y)], fill=theme.text_tertiary, width=1)
 
         if self.providers.lunar is None or not self.providers.lunar.available:
             self.render_centered_message(draw, "Data unavailable")
@@ -122,6 +123,7 @@ class AnalemmaView(BaseView):
 
     def _render_info_panel(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render the info panel on the right side."""
+        theme = self.get_theme()
         font = self.get_font(14)
         font_large = self.get_bold_font(24)
         font_small = self.get_font(12)
@@ -130,29 +132,43 @@ class AnalemmaView(BaseView):
 
         # Today box
         draw.rectangle(
-            ((x, y), (self.width - 10, y + 90)), fill=(30, 30, 30), outline=GRAY
+            ((x, y), (self.width - 10, y + 90)),
+            fill=theme.background_panel,
+            outline=theme.outline,
         )
-        draw.text((x + 10, y + 5), "Today", fill=WHITE, font=self.get_bold_font(16))
+        draw.text(
+            (x + 10, y + 5),
+            "Today",
+            fill=theme.text_primary,
+            font=self.get_bold_font(16),
+        )
 
         if self.providers.lunar:
             eot = self.providers.lunar.get_equation_of_time()
             if eot:
                 sign = "early" if eot > 0 else "late"
-                draw.text((x + 10, y + 25), "Sun is", fill=GRAY, font=font)
+                draw.text(
+                    (x + 10, y + 25), "Sun is", fill=theme.text_tertiary, font=font
+                )
                 draw.text(
                     (x + 10, y + 42),
                     f"{abs(eot):.1f} min",
                     fill=YELLOW,
                     font=font_large,
                 )
-                draw.text((x + 10, y + 70), sign, fill=LIGHT_GRAY, font=font)
+                draw.text((x + 10, y + 70), sign, fill=theme.text_secondary, font=font)
 
         # Sun path info
         draw.rectangle(
-            ((x, y + 100), (self.width - 10, y + 175)), fill=(30, 30, 30), outline=GRAY
+            ((x, y + 100), (self.width - 10, y + 175)),
+            fill=theme.background_panel,
+            outline=theme.outline,
         )
         draw.text(
-            (x + 10, y + 105), "Sun path", fill=WHITE, font=self.get_bold_font(16)
+            (x + 10, y + 105),
+            "Sun path",
+            fill=theme.text_primary,
+            font=self.get_bold_font(16),
         )
 
         if self.providers.solar:
@@ -163,12 +179,12 @@ class AnalemmaView(BaseView):
                 draw.text(
                     (x + 10, y + 155),
                     f"{pos.elevation:.1f}° S",
-                    fill=LIGHT_GRAY,
+                    fill=theme.text_secondary,
                     font=font,
                 )
 
         # Season legend
-        draw.text((x, y + 185), "Legend:", fill=GRAY, font=font_small)
+        draw.text((x, y + 185), "Legend:", fill=theme.text_tertiary, font=font_small)
         legend_items = [
             ("Sp", self.SPRING_COLOR),
             ("Su", self.SUMMER_COLOR),
@@ -178,5 +194,10 @@ class AnalemmaView(BaseView):
         legend_x = x + 50
         for label, color in legend_items:
             draw.ellipse([(legend_x, y + 188), (legend_x + 8, y + 196)], fill=color)
-            draw.text((legend_x + 12, y + 185), label, fill=LIGHT_GRAY, font=font_small)
+            draw.text(
+                (legend_x + 12, y + 185),
+                label,
+                fill=theme.text_secondary,
+                font=font_small,
+            )
             legend_x += 40

@@ -10,6 +10,7 @@ from .solar import SolarView
 from .moon import MoonView
 from .analemma import AnalemmaView
 from .analogclock import AnalogClockView
+from .theme import Theme, ThemeManager, DAY_THEME, NIGHT_THEME, get_theme
 
 # View order for navigation
 VIEW_CLASSES = [
@@ -37,4 +38,9 @@ __all__ = [
     "MoonView",
     "AnalemmaView",
     "AnalogClockView",
+    "Theme",
+    "ThemeManager",
+    "DAY_THEME",
+    "NIGHT_THEME",
+    "get_theme",
 ]

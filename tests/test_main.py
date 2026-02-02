@@ -50,6 +50,7 @@ class TestSolarClock:
 
         # Appearance config
         config.appearance.default_view = 0
+        config.appearance.theme_mode = "auto"
 
         return config
 
@@ -65,7 +66,13 @@ class TestSolarClock:
                                 with patch("solar_clock.main.Display"):
                                     with patch("solar_clock.main.create_server"):
                                         with patch("solar_clock.main.TouchHandler"):
-                                            clock = SolarClock(mock_config)
+                                            with patch(
+                                                "solar_clock.main.ThemeManager"
+                                            ) as mock_theme:
+                                                mock_theme.initialize.return_value = (
+                                                    MagicMock()
+                                                )
+                                                clock = SolarClock(mock_config)
         return clock
 
     def test_initialization(self, solar_clock, mock_config):
@@ -89,7 +96,13 @@ class TestSolarClock:
                                 with patch("solar_clock.main.Display"):
                                     with patch("solar_clock.main.create_server"):
                                         with patch("solar_clock.main.TouchHandler"):
-                                            SolarClock(mock_config)
+                                            with patch(
+                                                "solar_clock.main.ThemeManager"
+                                            ) as mock_theme:
+                                                mock_theme.initialize.return_value = (
+                                                    MagicMock()
+                                                )
+                                                SolarClock(mock_config)
 
         mock_weather.assert_called_once()
         call_kwargs = mock_weather.call_args[1]
@@ -107,7 +120,13 @@ class TestSolarClock:
                             with patch("solar_clock.main.Display"):
                                 with patch("solar_clock.main.create_server"):
                                     with patch("solar_clock.main.TouchHandler"):
-                                        test_clock = SolarClock(mock_config)
+                                        with patch(
+                                            "solar_clock.main.ThemeManager"
+                                        ) as mock_theme:
+                                            mock_theme.initialize.return_value = (
+                                                MagicMock()
+                                            )
+                                            test_clock = SolarClock(mock_config)
 
         assert test_clock.providers.weather is None
 

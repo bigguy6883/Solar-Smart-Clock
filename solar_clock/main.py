@@ -17,6 +17,7 @@ from .touch_handler import TouchHandler
 from .data import WeatherProvider, SolarProvider, LunarProvider
 from .views import VIEW_CLASSES, ViewManager
 from .views.base import DataProviders
+from .views.theme import ThemeManager
 
 # Configure logging
 logging.basicConfig(
@@ -46,6 +47,15 @@ class SolarClock:
 
         # Initialize data providers
         api_key = get_api_key()
+        # Create solar provider first (needed for theme manager)
+        solar_provider = SolarProvider(
+            name=config.location.name,
+            region=config.location.region,
+            timezone=config.location.timezone,
+            latitude=config.location.latitude,
+            longitude=config.location.longitude,
+        )
+
         self.providers = DataProviders(
             weather=(
                 WeatherProvider(
@@ -59,18 +69,16 @@ class SolarClock:
                 if api_key
                 else None
             ),
-            solar=SolarProvider(
-                name=config.location.name,
-                region=config.location.region,
-                timezone=config.location.timezone,
-                latitude=config.location.latitude,
-                longitude=config.location.longitude,
-            ),
+            solar=solar_provider,
             lunar=LunarProvider(
                 latitude=config.location.latitude,
                 longitude=config.location.longitude,
             ),
         )
+
+        # Initialize theme manager with solar provider for sunrise/sunset detection
+        self.theme_manager = ThemeManager.initialize(solar_provider)
+        self.theme_manager.set_mode(config.appearance.theme_mode)
 
         # Initialize views
         views = [

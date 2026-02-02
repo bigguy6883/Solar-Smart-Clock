@@ -9,8 +9,6 @@ from .base import (
     UPDATE_FREQUENT,
     WHITE,
     BLACK,
-    GRAY,
-    LIGHT_GRAY,
     AQI_GOOD,
     AQI_MODERATE,
     AQI_UNHEALTHY_SENSITIVE,
@@ -63,6 +61,8 @@ class AirQualityView(BaseView):
 
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the air quality view content."""
+        theme = self.get_theme()
+
         if self.providers.weather is None:
             self._render_no_data(draw)
             return
@@ -100,7 +100,12 @@ class AirQualityView(BaseView):
         # Footer with location and update time
         font_small = self.get_font(14)
         location = self.config.location.name
-        draw.text((10, self.content_height - 25), location, fill=GRAY, font=font_small)
+        draw.text(
+            (10, self.content_height - 25),
+            location,
+            fill=theme.text_tertiary,
+            font=font_small,
+        )
 
         updated = datetime.datetime.fromtimestamp(aqi_data.updated_at)
         update_str = f"Updated {updated.strftime('%-I:%M %p')}"
@@ -109,7 +114,7 @@ class AirQualityView(BaseView):
         draw.text(
             (self.width - update_width - 10, self.content_height - 25),
             update_str,
-            fill=GRAY,
+            fill=theme.text_tertiary,
             font=font_small,
         )
 
@@ -126,6 +131,7 @@ class AirQualityView(BaseView):
         y: int,
     ) -> None:
         """Render the main AQI value and category."""
+        theme = self.get_theme()
         font_label = self.get_font(14)
         font_aqi = self.get_bold_font(56)
         font_category = self.get_bold_font(20)
@@ -136,11 +142,11 @@ class AirQualityView(BaseView):
         draw.rounded_rectangle(
             ((Spacing.MEDIUM, y - 5), (170, y + 115)),
             radius=Layout.ROUNDED_RADIUS,
-            fill=(25, 30, 25),
+            fill=theme.background_panel_dark,
         )
 
         # Label
-        draw.text((x, y), "US EPA AQI", fill=GRAY, font=font_label)
+        draw.text((x, y), "US EPA AQI", fill=theme.text_tertiary, font=font_label)
 
         # AQI value - larger for emphasis, using text-friendly color
         draw.text((x, y + 18), str(aqi), fill=text_color, font=font_aqi)
@@ -150,6 +156,7 @@ class AirQualityView(BaseView):
 
     def _render_pollutants(self, draw: ImageDraw.ImageDraw, aqi_data, y: int) -> None:
         """Render pollutant breakdown with bars."""
+        theme = self.get_theme()
         font_label = self.get_font(14)
         font_value = self.get_font(FontSize.CAPTION)
 
@@ -157,11 +164,16 @@ class AirQualityView(BaseView):
         draw.rounded_rectangle(
             ((180, y - 5), (self.width - Spacing.MEDIUM, y + 165)),
             radius=Layout.ROUNDED_RADIUS,
-            fill=(25, 30, 25),
+            fill=theme.background_panel_dark,
         )
 
         x = 195
-        draw.text((x, y + 2), "Pollutants", fill=WHITE, font=self.get_bold_font(16))
+        draw.text(
+            (x, y + 2),
+            "Pollutants",
+            fill=theme.text_primary,
+            font=self.get_bold_font(16),
+        )
 
         pollutants = [
             ("PM2.5", aqi_data.pm25, 50),
@@ -183,7 +195,7 @@ class AirQualityView(BaseView):
             draw.text(
                 (x + 45 - label_width, row_y + 1),
                 name,
-                fill=LIGHT_GRAY,
+                fill=theme.text_secondary,
                 font=font_label,
             )
 
@@ -192,7 +204,7 @@ class AirQualityView(BaseView):
             draw.rounded_rectangle(
                 ((bar_x, row_y), (bar_x + bar_width, row_y + bar_height)),
                 radius=3,
-                fill=(50, 50, 55),
+                fill=theme.divider,
             )
 
             # Bar fill
@@ -218,7 +230,7 @@ class AirQualityView(BaseView):
             draw.text(
                 (bar_x + bar_width + 8, row_y + 1),
                 value_str,
-                fill=WHITE,
+                fill=theme.text_primary,
                 font=font_value,
             )
 

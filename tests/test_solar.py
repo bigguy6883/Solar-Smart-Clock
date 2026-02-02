@@ -112,7 +112,7 @@ class TestSolarProvider:
 
         assert event is not None
         name, time = event
-        assert name in ["Dawn", "Sunrise", "Sunset", "Dusk"]
+        assert name in ["Dawn", "Sunrise", "Solar Noon", "Sunset", "Dusk"]
         assert time > datetime.datetime.now(time.tzinfo)
 
     def test_get_twilight_times(self, provider):

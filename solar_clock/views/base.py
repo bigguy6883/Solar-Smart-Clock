@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from .font_manager import get_font_manager
 from .renderers import NavBarRenderer
+from .theme import Theme, get_theme
 
 if TYPE_CHECKING:
     from ..config import Config
@@ -216,6 +217,15 @@ class BaseView(ABC):
         """
         return self._font_manager.get_bold_font(size)
 
+    def get_theme(self) -> Theme:
+        """
+        Get the current theme.
+
+        Returns:
+            Current Theme instance from ThemeManager
+        """
+        return get_theme()
+
     def render_centered_message(
         self, draw: ImageDraw.ImageDraw, message: str, font_size: int = 18
     ) -> None:
@@ -227,12 +237,13 @@ class BaseView(ABC):
             message: Message to display
             font_size: Font size to use (default 18)
         """
+        theme = self.get_theme()
         font = self.get_font(font_size)
         bbox = draw.textbbox((0, 0), message, font=font)
         msg_width = bbox[2] - bbox[0]
         x = (self.width - msg_width) // 2
         y = self.content_height // 2
-        draw.text((x, y), message, fill=LIGHT_GRAY, font=font)
+        draw.text((x, y), message, fill=theme.text_secondary, font=font)
 
     def render_header(
         self, draw: ImageDraw.ImageDraw, title: str, color: tuple[int, int, int]
@@ -288,8 +299,8 @@ class BaseView(ABC):
         height: int,
         label: str,
         value: str,
-        label_color: tuple[int, int, int] = LIGHT_GRAY,
-        value_color: tuple[int, int, int] = WHITE,
+        label_color: tuple[int, int, int] | None = None,
+        value_color: tuple[int, int, int] | None = None,
     ) -> None:
         """
         Render an info box with label and value.
@@ -302,14 +313,22 @@ class BaseView(ABC):
             height: Box height
             label: Label text (smaller, above)
             value: Value text (larger, below)
-            label_color: Color for label text
-            value_color: Color for value text
+            label_color: Color for label text (defaults to theme.text_secondary)
+            value_color: Color for value text (defaults to theme.text_primary)
         """
+        theme = self.get_theme()
+
+        # Use theme defaults if colors not specified
+        if label_color is None:
+            label_color = theme.text_secondary
+        if value_color is None:
+            value_color = theme.text_primary
+
         # Draw box background
         draw.rounded_rectangle(
             ((x, y), (x + width, y + height)),
             radius=Layout.ROUNDED_RADIUS,
-            fill=DARK_GRAY,
+            fill=theme.background_panel,
         )
 
         # Draw label (centered, top portion)
@@ -351,8 +370,10 @@ class BaseView(ABC):
         Returns:
             PIL Image ready for display
         """
-        # Create image
-        image = Image.new("RGB", (self.width, self.height), BLACK)
+        theme = self.get_theme()
+
+        # Create image with themed background
+        image = Image.new("RGB", (self.width, self.height), theme.background)
         draw = ImageDraw.Draw(image)
 
         # Render view-specific content
@@ -367,6 +388,7 @@ class BaseView(ABC):
         self, draw: ImageDraw.ImageDraw, current_index: int, total_views: int
     ) -> None:
         """Render the bottom navigation bar with buttons and page indicators."""
+        theme = self.get_theme()
         NavBarRenderer.render(
             draw=draw,
             width=self.width,
@@ -374,10 +396,10 @@ class BaseView(ABC):
             nav_height=self.nav_height,
             current_index=current_index,
             total_views=total_views,
-            button_color=NAV_BUTTON_COLOR,
-            dot_color_active=WHITE,
-            dot_color_inactive=GRAY,
-            background_color=BLACK,
+            button_color=theme.nav_button,
+            dot_color_active=theme.nav_dot_active,
+            dot_color_inactive=theme.nav_dot_inactive,
+            background_color=theme.nav_background,
         )
 
     def get_time_header_color(self) -> tuple[int, int, int]:

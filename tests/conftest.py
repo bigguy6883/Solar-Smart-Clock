@@ -12,6 +12,15 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from solar_clock.views.base import DataProviders  # noqa: E402
+from solar_clock.views.theme import ThemeManager  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def reset_theme_manager():
+    """Reset ThemeManager singleton before and after each test."""
+    ThemeManager.reset()
+    yield
+    ThemeManager.reset()
 
 
 @pytest.fixture
@@ -41,7 +50,7 @@ def sample_config_dict():
             "tap_threshold": 30,
             "tap_timeout": 0.4,
         },
-        "appearance": {"default_view": 0},
+        "appearance": {"default_view": 0, "theme_mode": "auto"},
     }
 
 
@@ -121,6 +130,10 @@ def mock_aqi_response():
 @pytest.fixture
 def mock_providers():
     """Create mock data providers."""
+    from zoneinfo import ZoneInfo
+
+    tz = ZoneInfo("America/New_York")
+
     weather = MagicMock()
     weather.get_current_weather.return_value = MagicMock(
         temperature=72.5,
@@ -132,30 +145,28 @@ def mock_providers():
     )
 
     solar = MagicMock()
+    # Use timezone-aware datetimes for sun_times
     solar.get_sun_times.return_value = MagicMock(
-        dawn=datetime.datetime(2024, 1, 15, 6, 30),
-        sunrise=datetime.datetime(2024, 1, 15, 7, 0),
-        noon=datetime.datetime(2024, 1, 15, 12, 30),
-        sunset=datetime.datetime(2024, 1, 15, 17, 30),
-        dusk=datetime.datetime(2024, 1, 15, 18, 0),
+        dawn=datetime.datetime(2024, 1, 15, 6, 30, tzinfo=tz),
+        sunrise=datetime.datetime(2024, 1, 15, 7, 0, tzinfo=tz),
+        noon=datetime.datetime(2024, 1, 15, 12, 30, tzinfo=tz),
+        sunset=datetime.datetime(2024, 1, 15, 17, 30, tzinfo=tz),
+        dusk=datetime.datetime(2024, 1, 15, 18, 0, tzinfo=tz),
     )
     solar.get_day_length.return_value = 10.5
     solar.get_day_length_change.return_value = 1.5
     solar.get_solar_position.return_value = MagicMock(elevation=35.5, azimuth=180.0)
     solar.get_golden_hour.return_value = (
         MagicMock(
-            start=datetime.datetime(2024, 1, 15, 6, 30),
-            end=datetime.datetime(2024, 1, 15, 7, 30),
+            start=datetime.datetime(2024, 1, 15, 6, 30, tzinfo=tz),
+            end=datetime.datetime(2024, 1, 15, 7, 30, tzinfo=tz),
         ),
         MagicMock(
-            start=datetime.datetime(2024, 1, 15, 17, 0),
-            end=datetime.datetime(2024, 1, 15, 18, 0),
+            start=datetime.datetime(2024, 1, 15, 17, 0, tzinfo=tz),
+            end=datetime.datetime(2024, 1, 15, 18, 0, tzinfo=tz),
         ),
     )
     # Return a proper tuple for next_solar_event
-    from zoneinfo import ZoneInfo
-
-    tz = ZoneInfo("America/New_York")
     future_time = datetime.datetime.now(tz) + datetime.timedelta(hours=2)
     solar.get_next_solar_event.return_value = ("Sunset", future_time)
 

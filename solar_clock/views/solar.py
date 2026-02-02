@@ -7,11 +7,8 @@ from PIL import Image, ImageDraw
 from .base import (
     BaseView,
     UPDATE_FREQUENT,
-    WHITE,
     YELLOW,
     ORANGE,
-    GRAY,
-    LIGHT_GRAY,
     PURPLE,
     FontSize,
     Layout,
@@ -42,6 +39,7 @@ class SolarView(BaseView):
 
     def _render_sun_times(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render sun event times in a grid."""
+        theme = self.get_theme()
         font = self.get_font(14)
         font_value = self.get_bold_font(18)
 
@@ -67,15 +65,18 @@ class SolarView(BaseView):
         ]
 
         for name, time, x, row_y in events:
-            draw.text((x, row_y), name, fill=GRAY, font=font)
+            draw.text((x, row_y), name, fill=theme.text_tertiary, font=font)
             time_str = time.strftime("%-I:%M %p")
             color = (
-                YELLOW if "Sun" in name else ORANGE if name == "Dusk" else LIGHT_GRAY
+                YELLOW
+                if "Sun" in name
+                else ORANGE if name == "Dusk" else theme.text_secondary
             )
             draw.text((x, row_y + 15), time_str, fill=color, font=font_value)
 
     def _render_golden_hour(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render golden hour information."""
+        theme = self.get_theme()
         font = self.get_font(14)
         font_value = self.get_font(16)
 
@@ -88,16 +89,17 @@ class SolarView(BaseView):
 
         if morning:
             morning_str = f"{morning.start.strftime('%-I:%M')} - {morning.end.strftime('%-I:%M %p')}"
-            draw.text((20, y + 22), "Morning:", fill=GRAY, font=font)
+            draw.text((20, y + 22), "Morning:", fill=theme.text_tertiary, font=font)
             draw.text((90, y + 22), morning_str, fill=YELLOW, font=font_value)
 
         if evening:
             evening_str = f"{evening.start.strftime('%-I:%M')} - {evening.end.strftime('%-I:%M %p')}"
-            draw.text((250, y + 22), "Evening:", fill=GRAY, font=font)
+            draw.text((250, y + 22), "Evening:", fill=theme.text_tertiary, font=font)
             draw.text((320, y + 22), evening_str, fill=ORANGE, font=font_value)
 
     def _render_current_info(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render current sun position and day length info."""
+        theme = self.get_theme()
         font = self.get_font(FontSize.CAPTION)
         font_value = self.get_bold_font(18)
         font_small = self.get_font(FontSize.CAPTION)
@@ -106,9 +108,9 @@ class SolarView(BaseView):
         draw.rounded_rectangle(
             ((Spacing.MEDIUM, y), (155, y + 58)),
             radius=Layout.ROUNDED_RADIUS,
-            fill=(35, 35, 40),
+            fill=theme.background_panel,
         )
-        draw.text((20, y + 5), "Sun Position", fill=GRAY, font=font)
+        draw.text((20, y + 5), "Sun Position", fill=theme.text_tertiary, font=font)
 
         if self.providers.solar:
             pos = self.providers.solar.get_solar_position()
@@ -116,13 +118,15 @@ class SolarView(BaseView):
                 elev_str = f"El: {pos.elevation:.1f}°"
                 az_str = f"Az: {pos.azimuth:.0f}°"
                 draw.text((20, y + 22), elev_str, fill=YELLOW, font=font_value)
-                draw.text((20, y + 40), az_str, fill=LIGHT_GRAY, font=font)
+                draw.text((20, y + 40), az_str, fill=theme.text_secondary, font=font)
 
         # Day length - rounded box
         draw.rounded_rectangle(
-            ((165, y), (310, y + 58)), radius=Layout.ROUNDED_RADIUS, fill=(35, 35, 40)
+            ((165, y), (310, y + 58)),
+            radius=Layout.ROUNDED_RADIUS,
+            fill=theme.background_panel,
         )
-        draw.text((175, y + 5), "Day Length", fill=GRAY, font=font)
+        draw.text((175, y + 5), "Day Length", fill=theme.text_tertiary, font=font)
 
         if self.providers.solar:
             length = self.providers.solar.get_day_length()
@@ -131,7 +135,10 @@ class SolarView(BaseView):
                 hours = int(length)
                 minutes = int((length - hours) * 60)
                 draw.text(
-                    (175, y + 22), f"{hours}h {minutes}m", fill=WHITE, font=font_value
+                    (175, y + 22),
+                    f"{hours}h {minutes}m",
+                    fill=theme.text_primary,
+                    font=font_value,
                 )
             if change:
                 sign = "+" if change > 0 else ""
@@ -147,9 +154,9 @@ class SolarView(BaseView):
         draw.rounded_rectangle(
             ((320, y), (self.width - Spacing.MEDIUM, y + 58)),
             radius=Layout.ROUNDED_RADIUS,
-            fill=(35, 35, 40),
+            fill=theme.background_panel,
         )
-        draw.text((330, y + 5), "Next Event", fill=GRAY, font=font)
+        draw.text((330, y + 5), "Next Event", fill=theme.text_tertiary, font=font)
 
         if self.providers.solar:
             next_event = self.providers.solar.get_next_solar_event()
@@ -161,5 +168,8 @@ class SolarView(BaseView):
                 minutes = int((delta.total_seconds() % 3600) // 60)
                 draw.text((330, y + 22), name, fill=ORANGE, font=font_value)
                 draw.text(
-                    (330, y + 42), f"in {hours}h {minutes}m", fill=LIGHT_GRAY, font=font
+                    (330, y + 42),
+                    f"in {hours}h {minutes}m",
+                    fill=theme.text_secondary,
+                    font=font,
                 )
