@@ -270,8 +270,8 @@ class TestTouchHandler:
                 reload(th_module)
                 touch_handler._process_event(event)
 
-                # Should have transformed and stored X coordinate
-                assert 239 <= touch_handler.current_x <= 241
+                # ABS_X maps to current_y due to 90-degree rotation
+                assert 159 <= touch_handler.current_y <= 161
 
     def test_process_event_abs_y(self, touch_handler):
         """Test processing absolute Y coordinate event."""
@@ -292,8 +292,8 @@ class TestTouchHandler:
                 reload(th_module)
                 touch_handler._process_event(event)
 
-                # Should have transformed and stored Y coordinate
-                assert 159 <= touch_handler.current_y <= 161
+                # ABS_Y maps to current_x due to 90-degree rotation
+                assert 239 <= touch_handler.current_x <= 241
 
     def test_process_event_touch_down(self, touch_handler):
         """Test processing touch down event."""

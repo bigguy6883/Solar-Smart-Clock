@@ -157,7 +157,12 @@ class SunPathView(BaseView):
             # If solar noon hasn't passed yet today, show it
             if sun_times and sun_times.noon:
                 solar_noon = sun_times.noon
-                if solar_noon > now.astimezone(solar_noon.tzinfo):
+                # Handle timezone comparison safely
+                if solar_noon.tzinfo is not None:
+                    now_cmp = now.astimezone(solar_noon.tzinfo)
+                else:
+                    now_cmp = now
+                if solar_noon > now_cmp:
                     event_name = "Solar Noon"
                     event_time = solar_noon
 
