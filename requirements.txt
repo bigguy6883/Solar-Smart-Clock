@@ -1,4 +1,5 @@
 # Solar Smart Clock dependencies
+numpy>=1.24.0
 Pillow>=10.0.0
 requests>=2.31.0
 astral>=3.2
