@@ -299,8 +299,8 @@ class BaseView(ABC):
         height: int,
         label: str,
         value: str,
-        label_color: tuple[int, int, int] | None = None,
-        value_color: tuple[int, int, int] | None = None,
+        label_color: Optional[tuple[int, int, int]] = None,
+        value_color: Optional[tuple[int, int, int]] = None,
     ) -> None:
         """
         Render an info box with label and value.
