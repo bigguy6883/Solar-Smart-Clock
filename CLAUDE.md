@@ -90,7 +90,12 @@ solar_clock/
 │   └── lunar.py         # LunarProvider (ephem)
 └── views/
     ├── __init__.py      # VIEW_CLASSES list
-    ├── base.py          # BaseView, ViewManager, colors
+    ├── base.py          # BaseView, ViewManager, DataProviders, layout constants
+    ├── colors.py        # Semantic color definitions (Colors class + flat exports)
+    ├── font_manager.py  # FontManager singleton with caching
+    ├── layout_helpers.py # Grid/column/centering layout utilities
+    ├── renderers.py     # HeaderRenderer, PanelRenderer, NavBarRenderer
+    ├── theme.py         # Theme, ThemeManager, DAY_THEME/NIGHT_THEME
     ├── clock.py         # ClockView
     ├── weather.py       # WeatherView
     ├── airquality.py    # AirQualityView
@@ -115,6 +120,10 @@ solar_clock/
 | `views/base.py` | `BaseView` | Abstract base for all views |
 | `views/base.py` | `ViewManager` | View navigation and rendering |
 | `views/base.py` | `DataProviders` | Container for weather/solar/lunar providers |
+| `views/theme.py` | `Theme` | Frozen dataclass defining a color theme |
+| `views/theme.py` | `ThemeManager` | Singleton managing auto/day/night theme switching |
+| `views/font_manager.py` | `FontManager` | Singleton font cache with preloading |
+| `views/renderers.py` | `NavBarRenderer` | Bottom nav bar with page indicator dots |
 
 ### View System
 
@@ -163,7 +172,7 @@ class Config:
     weather: WeatherConfig        # update_interval_seconds, units
     air_quality: AirQualityConfig # update_interval_seconds
     touch: TouchConfig            # enabled, device, swipe/tap thresholds
-    appearance: AppearanceConfig  # default_view
+    appearance: AppearanceConfig  # default_view, theme_mode (auto/day/night)
 ```
 
 ### Example config.json
@@ -188,12 +197,11 @@ class Config:
 - `OPENWEATHER_API_KEY` - Required for weather/AQI data
 - `HTTP_AUTH_USER` / `HTTP_AUTH_PASS` - Optional HTTP Basic Auth
 
-## Key Constants (views/base.py)
+## Key Constants
 
-Colors are defined as RGB tuples:
-- `BLACK`, `WHITE`, `YELLOW`, `ORANGE`, `BLUE`, `DARK_BLUE`, `LIGHT_BLUE`
-- `GRAY`, `LIGHT_GRAY`, `DARK_GRAY`, `RED`, `PURPLE`, `GREEN`
-- `AQI_GOOD`, `AQI_MODERATE`, `AQI_UNHEALTHY`, etc.
+Colors are defined in `views/colors.py` as a semantic `Colors` class (e.g. `Colors.Solar.SUN`, `Colors.AQI.GOOD`) with flat backward-compatible exports (`BLACK`, `WHITE`, `YELLOW`, etc.). Legacy color constants also remain in `views/base.py` for existing imports.
+
+Layout constants (`Spacing`, `Layout`, `FontSize`) are in `views/base.py`.
 
 ## Adding a New View
 
@@ -201,7 +209,8 @@ Colors are defined as RGB tuples:
 2. Set class attributes: `name`, `title`, `update_interval`
 3. Implement `render_content(self, draw, image)` method
 4. Add to `VIEW_CLASSES` list in `views/__init__.py`
-5. Update `AppearanceConfig.validate()` in `config.py` if view count changed
+
+View count validation is dynamic (`len(VIEW_CLASSES)`), no config changes needed.
 
 ## Testing Views
 
