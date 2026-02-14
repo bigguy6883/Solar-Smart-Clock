@@ -4,13 +4,8 @@ import datetime
 
 from PIL import Image, ImageDraw
 
-from .base import (
-    BaseView,
-    YELLOW,
-    ORANGE,
-    UPDATE_REALTIME,
-    Layout,
-)
+from .base import BaseView, UPDATE_REALTIME, Layout
+from .colors import YELLOW, ORANGE
 
 
 class ClockView(BaseView):
@@ -148,7 +143,8 @@ class ClockView(BaseView):
 
         # Description and temperature
         desc = weather.description
-        temp = f"{weather.temperature:.0f}°F"
+        unit = "°C" if self.config.weather.units == "metric" else "°F"
+        temp = f"{weather.temperature:.0f}{unit}"
         humidity = f"{weather.humidity}%"
 
         draw.text((20, y), desc, fill=theme.text_primary, font=font_value)

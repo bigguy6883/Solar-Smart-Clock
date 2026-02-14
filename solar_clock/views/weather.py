@@ -4,16 +4,8 @@ import datetime
 
 from PIL import Image, ImageDraw
 
-from .base import (
-    BaseView,
-    UPDATE_FREQUENT,
-    YELLOW,
-    ORANGE,
-    BLUE,
-    LIGHT_BLUE,
-    FontSize,
-    Layout,
-)
+from .base import BaseView, UPDATE_FREQUENT, FontSize, Layout
+from .colors import YELLOW, ORANGE, BLUE, LIGHT_BLUE
 
 
 class WeatherView(BaseView):
@@ -89,7 +81,8 @@ class WeatherView(BaseView):
         )
 
         # Temperature - larger and bolder
-        temp = f"{weather.temperature:.0f}°F"
+        unit = "°C" if self.config.weather.units == "metric" else "°F"
+        temp = f"{weather.temperature:.0f}{unit}"
         draw.text((x, y + 5), temp, fill=theme.text_primary, font=font_large)
 
         # Feels like

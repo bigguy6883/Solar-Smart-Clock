@@ -4,16 +4,8 @@ import datetime
 
 from PIL import Image, ImageDraw
 
-from .base import (
-    BaseView,
-    UPDATE_FREQUENT,
-    YELLOW,
-    ORANGE,
-    PURPLE,
-    FontSize,
-    Layout,
-    Spacing,
-)
+from .base import BaseView, UPDATE_FREQUENT, FontSize, Layout, Spacing
+from .colors import YELLOW, ORANGE, PURPLE
 
 
 class SolarView(BaseView):

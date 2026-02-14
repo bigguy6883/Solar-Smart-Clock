@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Optional, Union
 
 from PIL import Image, ImageDraw, ImageFont
 
+from .colors import DARK_BLUE, LIGHT_BLUE, ORANGE, PURPLE, WHITE
 from .font_manager import get_font_manager
 from .renderers import NavBarRenderer
 from .theme import Theme, get_theme
@@ -17,34 +18,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-
-# Common colors
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-YELLOW = (255, 220, 50)
-ORANGE = (255, 140, 0)
-BLUE = (100, 149, 237)
-DARK_BLUE = (25, 25, 112)
-LIGHT_BLUE = (135, 206, 235)
-GRAY = (128, 128, 128)
-LIGHT_GRAY = (180, 180, 180)
-DARK_GRAY = (50, 50, 50)
-RED = (255, 80, 80)
-PURPLE = (147, 112, 219)
-GREEN = (0, 200, 0)
-MOON_YELLOW = (255, 248, 220)
-
-# AQI colors
-AQI_GOOD = (0, 228, 0)
-AQI_MODERATE = (255, 255, 0)
-AQI_UNHEALTHY_SENSITIVE = (255, 126, 0)
-AQI_UNHEALTHY = (255, 0, 0)
-AQI_VERY_UNHEALTHY = (143, 63, 151)
-AQI_HAZARDOUS = (126, 0, 35)
-
-# Navigation bar colors
-NAV_BUTTON_COLOR = (60, 60, 60)
-NAV_BUTTON_ACTIVE = (80, 80, 80)
 
 # Layout constants
 HEADER_HEIGHT = 35
@@ -92,21 +65,6 @@ class Layout:
 UPDATE_REALTIME = 1  # Clock displays that update every second
 UPDATE_FREQUENT = 60  # Weather, solar position
 UPDATE_HOURLY = 3600  # Moon phase, analemma
-
-# Font paths (in order of preference)
-FONT_PATHS = [
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Debian/Ubuntu/Raspbian
-    "/usr/share/fonts/TTF/DejaVuSans.ttf",  # Arch Linux
-    "/System/Library/Fonts/Helvetica.ttc",  # macOS
-    "/usr/share/fonts/dejavu/DejaVuSans.ttf",  # Alternative Linux path
-]
-
-BOLD_FONT_PATHS = [
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",  # Debian/Ubuntu/Raspbian
-    "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",  # Arch Linux
-    "/System/Library/Fonts/Helvetica.ttc",  # macOS (bold variant)
-    "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",  # Alternative Linux path
-]
 
 
 # Typography scale constants
@@ -406,17 +364,39 @@ class BaseView(ABC):
         """
         Get header color based on current time of day.
 
+        Uses solar provider data when available for accurate boundaries,
+        falls back to fixed hour thresholds otherwise.
+
         Returns appropriate colors for different times:
         - Night (before dawn): Dark blue
-        - Dawn/Dusk: Orange
+        - Dawn/Sunrise and Sunset/Dusk: Orange
         - Day: Light blue
-        - Evening: Purple
+        - After dusk: Purple
         """
         import datetime
 
         now = datetime.datetime.now()
-        hour = now.hour
 
+        if self.providers.solar is not None:
+            sun_times = self.providers.solar.get_sun_times()
+            if sun_times is not None:
+                # Make now tz-aware if sun_times are tz-aware
+                if sun_times.sunrise.tzinfo is not None:
+                    now = datetime.datetime.now(sun_times.sunrise.tzinfo)
+
+                if now < sun_times.dawn:
+                    return DARK_BLUE
+                elif now < sun_times.sunrise:
+                    return ORANGE
+                elif now < sun_times.sunset:
+                    return LIGHT_BLUE
+                elif now < sun_times.dusk:
+                    return ORANGE
+                else:
+                    return PURPLE
+
+        # Fallback: fixed hour thresholds
+        hour = now.hour
         if hour < 6:
             return DARK_BLUE
         elif hour < 8:

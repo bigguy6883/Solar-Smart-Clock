@@ -5,16 +5,8 @@ import math
 
 from PIL import Image, ImageDraw
 
-from .base import (
-    BaseView,
-    UPDATE_HOURLY,
-    WHITE,
-    YELLOW,
-    ORANGE,
-    BLUE,
-    GREEN,
-    FontSize,
-)
+from .base import BaseView, UPDATE_HOURLY, FontSize
+from .colors import WHITE, YELLOW, ORANGE, BLUE, GREEN
 
 
 class DayLengthView(BaseView):

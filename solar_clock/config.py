@@ -1,5 +1,6 @@
 """Configuration loading and validation for Solar Smart Clock."""
 
+import dataclasses
 import json
 import logging
 import os
@@ -174,74 +175,33 @@ class Config:
         return errors
 
 
+def _dataclass_from_dict(cls, data: dict):
+    """Create a dataclass instance from a dict, using defaults for missing keys."""
+    defaults = cls()
+    kwargs = {}
+    for f in dataclasses.fields(cls):
+        kwargs[f.name] = data.get(f.name, getattr(defaults, f.name))
+    return cls(**kwargs)
+
+
+# Mapping from config JSON keys to their dataclass types
+_CONFIG_SECTIONS = {
+    "location": ("location", LocationConfig),
+    "display": ("display", DisplayConfig),
+    "http_server": ("http_server", HttpServerConfig),
+    "weather": ("weather", WeatherConfig),
+    "air_quality": ("air_quality", AirQualityConfig),
+    "touch": ("touch", TouchConfig),
+    "appearance": ("appearance", AppearanceConfig),
+}
+
+
 def _dict_to_config(data: dict) -> Config:
     """Convert a dictionary to a Config object."""
     config = Config()
-
-    if "location" in data:
-        loc = data["location"]
-        config.location = LocationConfig(
-            name=loc.get("name", config.location.name),
-            region=loc.get("region", config.location.region),
-            timezone=loc.get("timezone", config.location.timezone),
-            latitude=loc.get("latitude", config.location.latitude),
-            longitude=loc.get("longitude", config.location.longitude),
-        )
-
-    if "display" in data:
-        disp = data["display"]
-        config.display = DisplayConfig(
-            width=disp.get("width", config.display.width),
-            height=disp.get("height", config.display.height),
-            framebuffer=disp.get("framebuffer", config.display.framebuffer),
-            nav_bar_height=disp.get("nav_bar_height", config.display.nav_bar_height),
-        )
-
-    if "http_server" in data:
-        http = data["http_server"]
-        config.http_server = HttpServerConfig(
-            enabled=http.get("enabled", config.http_server.enabled),
-            port=http.get("port", config.http_server.port),
-            bind_address=http.get("bind_address", config.http_server.bind_address),
-            rate_limit_per_second=http.get(
-                "rate_limit_per_second", config.http_server.rate_limit_per_second
-            ),
-        )
-
-    if "weather" in data:
-        weather = data["weather"]
-        config.weather = WeatherConfig(
-            update_interval_seconds=weather.get(
-                "update_interval_seconds", config.weather.update_interval_seconds
-            ),
-            units=weather.get("units", config.weather.units),
-        )
-
-    if "air_quality" in data:
-        aq = data["air_quality"]
-        config.air_quality = AirQualityConfig(
-            update_interval_seconds=aq.get(
-                "update_interval_seconds", config.air_quality.update_interval_seconds
-            ),
-        )
-
-    if "touch" in data:
-        touch = data["touch"]
-        config.touch = TouchConfig(
-            enabled=touch.get("enabled", config.touch.enabled),
-            device=touch.get("device", config.touch.device),
-            swipe_threshold=touch.get("swipe_threshold", config.touch.swipe_threshold),
-            tap_threshold=touch.get("tap_threshold", config.touch.tap_threshold),
-            tap_timeout=touch.get("tap_timeout", config.touch.tap_timeout),
-        )
-
-    if "appearance" in data:
-        appearance = data["appearance"]
-        config.appearance = AppearanceConfig(
-            default_view=appearance.get("default_view", config.appearance.default_view),
-            theme_mode=appearance.get("theme_mode", config.appearance.theme_mode),
-        )
-
+    for key, (attr, cls) in _CONFIG_SECTIONS.items():
+        if key in data:
+            setattr(config, attr, _dataclass_from_dict(cls, data[key]))
     return config
 
 
@@ -307,7 +267,4 @@ def get_api_key() -> Optional[str]:
     Returns:
         API key string, or None if not set.
     """
-    key = os.environ.get("OPENWEATHER_API_KEY")
-    if not key:
-        logger.warning("OPENWEATHER_API_KEY environment variable not set")
-    return key
+    return os.environ.get("OPENWEATHER_API_KEY") or None

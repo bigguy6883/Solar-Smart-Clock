@@ -2,15 +2,8 @@
 
 from PIL import Image, ImageDraw
 
-from .base import (
-    BaseView,
-    UPDATE_HOURLY,
-    PURPLE,
-    MOON_YELLOW,
-    FontSize,
-    Layout,
-    Spacing,
-)
+from .base import BaseView, UPDATE_HOURLY, FontSize, Layout, Spacing
+from .colors import PURPLE, MOON_YELLOW
 
 
 class MoonView(BaseView):

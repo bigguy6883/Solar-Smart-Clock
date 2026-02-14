@@ -3,16 +3,8 @@
 import datetime
 from PIL import Image, ImageDraw
 
-from .base import (
-    BaseView,
-    UPDATE_HOURLY,
-    WHITE,
-    YELLOW,
-    ORANGE,
-    GREEN,
-    BLUE,
-    FontSize,
-)
+from .base import BaseView, UPDATE_HOURLY, FontSize
+from .colors import WHITE, YELLOW, ORANGE, GREEN, BLUE
 
 
 class AnalemmaView(BaseView):

@@ -158,6 +158,10 @@ class ThemeManager:
         self._cached_theme = None  # Invalidate cache
         logger.info(f"Theme mode set to: {mode}")
 
+    def _fallback_is_daytime(self) -> bool:
+        """Fallback daytime check using fixed hour thresholds."""
+        return 6 <= datetime.datetime.now().hour < 20
+
     def is_daytime(self) -> bool:
         """
         Determine if it's currently daytime based on sunrise/sunset.
@@ -166,37 +170,18 @@ class ThemeManager:
             True if between sunrise and sunset, False otherwise
         """
         if self._solar_provider is None:
-            # Default to daytime during typical hours if no solar data
-            hour = datetime.datetime.now().hour
-            return 6 <= hour < 20
+            return self._fallback_is_daytime()
 
         try:
             sun_times = self._solar_provider.get_sun_times()
             if sun_times is None:
-                hour = datetime.datetime.now().hour
-                return 6 <= hour < 20
+                return self._fallback_is_daytime()
 
-            # Check if sunrise has a valid tzinfo
-            if sun_times.sunrise is None or sun_times.sunset is None:
-                hour = datetime.datetime.now().hour
-                return 6 <= hour < 20
-
-            # Handle timezone - may be None or a tzinfo instance
-            tzinfo = getattr(sun_times.sunrise, "tzinfo", None)
-            if tzinfo is not None:
-                try:
-                    now = datetime.datetime.now(tzinfo)
-                except (TypeError, AttributeError):
-                    # tzinfo is not a valid timezone object (e.g., MagicMock in tests)
-                    now = datetime.datetime.now()
-            else:
-                now = datetime.datetime.now()
-
+            tzinfo = sun_times.sunrise.tzinfo
+            now = datetime.datetime.now(tzinfo) if tzinfo else datetime.datetime.now()
             return sun_times.sunrise <= now <= sun_times.sunset
-        except (TypeError, AttributeError):
-            # Fallback for any unexpected errors (e.g., mock objects in tests)
-            hour = datetime.datetime.now().hour
-            return 6 <= hour < 20
+        except Exception:
+            return self._fallback_is_daytime()
 
     def get_current_theme(self) -> Theme:
         """

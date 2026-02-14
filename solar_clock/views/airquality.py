@@ -4,9 +4,8 @@ import datetime
 
 from PIL import Image, ImageDraw
 
-from .base import (
-    BaseView,
-    UPDATE_FREQUENT,
+from .base import BaseView, UPDATE_FREQUENT, FontSize, Layout, Spacing
+from .colors import (
     WHITE,
     BLACK,
     AQI_GOOD,
@@ -15,9 +14,6 @@ from .base import (
     AQI_UNHEALTHY,
     AQI_VERY_UNHEALTHY,
     AQI_HAZARDOUS,
-    FontSize,
-    Layout,
-    Spacing,
 )
 
 

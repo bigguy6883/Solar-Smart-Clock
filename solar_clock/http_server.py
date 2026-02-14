@@ -40,9 +40,14 @@ class RateLimiter:
 
 
 class ScreenshotHandler(BaseHTTPRequestHandler):
-    """HTTP request handler for screenshots and navigation."""
+    """HTTP request handler for screenshots and navigation.
 
-    # Class-level references (set by server)
+    Note: clock_instance, rate_limiter, and auth_credentials are stored as
+    class variables (required by BaseHTTPRequestHandler's design). This means
+    only one server configuration can exist at a time.
+    """
+
+    # Class-level references (set by create_server)
     clock_instance = None
     rate_limiter: Optional[RateLimiter] = None
     auth_credentials: Optional[tuple[str, str]] = None  # (user, pass)
@@ -107,6 +112,29 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(image_data)
 
+    def _require_clock(self) -> bool:
+        """Check that clock_instance is available. Sends 503 if not.
+
+        Returns:
+            True if clock_instance is available, False otherwise.
+        """
+        if self.clock_instance is None:
+            self._send_text(503, "Clock not initialized")
+            return False
+        return True
+
+    def _send_view_status(self) -> None:
+        """Send current view name and index as text response.
+
+        Must only be called after _require_clock() returns True.
+        """
+        clock = self.clock_instance
+        assert clock is not None
+        view = clock.view_manager.get_current()
+        index = clock.view_manager.get_index()
+        count = clock.view_manager.get_count()
+        self._send_text(200, f"{view} ({index + 1}/{count})")
+
     def do_GET(self) -> None:
         """Handle GET requests."""
         # Rate limiting
@@ -125,20 +153,17 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
             self._send_text(200, "OK")
 
         elif path == "/screenshot":
-            if self.clock_instance is None:
-                self._send_text(503, "Clock not initialized")
+            if not self._require_clock():
                 return
-
+            clock = self.clock_instance
+            assert clock is not None
             try:
-                # Render current view on-demand for accurate screenshot
-                frame = self.clock_instance.view_manager.render_current()
+                frame = clock.view_manager.render_current()
                 if frame is None:
-                    # Fall back to cached frame
-                    frame = self.clock_instance.get_last_frame()
+                    frame = clock.get_last_frame()
                 if frame is None:
                     self._send_text(503, "No frame available")
                     return
-
                 buffer = BytesIO()
                 frame.save(buffer, format="PNG")
                 self._send_png(buffer.getvalue())
@@ -147,71 +172,44 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
                 self._send_text(500, f"Error: {e}")
 
         elif path == "/next":
-            if self.clock_instance is None:
-                self._send_text(503, "Clock not initialized")
+            if not self._require_clock():
                 return
-
-            self.clock_instance.view_manager.next_view()
-            view = self.clock_instance.view_manager.get_current()
-            index = self.clock_instance.view_manager.get_index()
-            count = self.clock_instance.view_manager.get_count()
-            self._send_text(200, f"{view} ({index + 1}/{count})")
+            clock = self.clock_instance
+            assert clock is not None
+            clock.view_manager.next_view()
+            self._send_view_status()
 
         elif path == "/prev":
-            if self.clock_instance is None:
-                self._send_text(503, "Clock not initialized")
+            if not self._require_clock():
                 return
-
-            self.clock_instance.view_manager.prev_view()
-            view = self.clock_instance.view_manager.get_current()
-            index = self.clock_instance.view_manager.get_index()
-            count = self.clock_instance.view_manager.get_count()
-            self._send_text(200, f"{view} ({index + 1}/{count})")
+            clock = self.clock_instance
+            assert clock is not None
+            clock.view_manager.prev_view()
+            self._send_view_status()
 
         elif path == "/view":
-            if self.clock_instance is None:
-                self._send_text(503, "Clock not initialized")
+            if not self._require_clock():
                 return
-
-            view = self.clock_instance.view_manager.get_current()
-            index = self.clock_instance.view_manager.get_index()
-            count = self.clock_instance.view_manager.get_count()
-            self._send_text(200, f"{view} ({index + 1}/{count})")
+            self._send_view_status()
 
         elif path == "/theme":
-            if self.clock_instance is None:
-                self._send_text(503, "Clock not initialized")
+            if not self._require_clock():
                 return
+            clock = self.clock_instance
+            assert clock is not None
+            self._send_json(200, clock.theme_manager.get_status())
 
-            status = self.clock_instance.theme_manager.get_status()
-            self._send_json(200, status)
-
-        elif path == "/theme/auto":
-            if self.clock_instance is None:
-                self._send_text(503, "Clock not initialized")
+        elif path.startswith("/theme/"):
+            if not self._require_clock():
                 return
-
-            self.clock_instance.theme_manager.set_mode("auto")
-            status = self.clock_instance.theme_manager.get_status()
-            self._send_json(200, status)
-
-        elif path == "/theme/day":
-            if self.clock_instance is None:
-                self._send_text(503, "Clock not initialized")
-                return
-
-            self.clock_instance.theme_manager.set_mode("day")
-            status = self.clock_instance.theme_manager.get_status()
-            self._send_json(200, status)
-
-        elif path == "/theme/night":
-            if self.clock_instance is None:
-                self._send_text(503, "Clock not initialized")
-                return
-
-            self.clock_instance.theme_manager.set_mode("night")
-            status = self.clock_instance.theme_manager.get_status()
-            self._send_json(200, status)
+            clock = self.clock_instance
+            assert clock is not None
+            mode = path.split("/")[-1]
+            if mode in ("auto", "day", "night"):
+                clock.theme_manager.set_mode(mode)
+                self._send_json(200, clock.theme_manager.get_status())
+            else:
+                self._send_text(404, "Not Found")
 
         else:
             self._send_text(404, "Not Found")

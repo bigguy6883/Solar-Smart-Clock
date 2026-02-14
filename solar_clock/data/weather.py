@@ -2,6 +2,7 @@
 
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Optional
 
@@ -139,19 +140,33 @@ class WeatherProvider:
         return time.time() - last_update < interval
 
     def _fetch_weather(self) -> None:
-        """Fetch current weather and forecast from API."""
+        """Fetch current weather and forecast from API concurrently."""
         if not self.api_key:
             logger.warning("No API key configured, skipping weather fetch")
             return
 
+        current_url = (
+            f"https://api.openweathermap.org/data/2.5/weather"
+            f"?lat={self.latitude}&lon={self.longitude}"
+            f"&appid={self.api_key}&units={self.units}"
+        )
+        forecast_url = (
+            f"https://api.openweathermap.org/data/2.5/forecast"
+            f"?lat={self.latitude}&lon={self.longitude}"
+            f"&appid={self.api_key}&units={self.units}"
+        )
+
         try:
-            # Fetch current weather
-            current_url = (
-                f"https://api.openweathermap.org/data/2.5/weather"
-                f"?lat={self.latitude}&lon={self.longitude}"
-                f"&appid={self.api_key}&units={self.units}"
-            )
-            current_resp = requests.get(current_url, timeout=10)
+            # Fetch both endpoints concurrently
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                current_future = executor.submit(requests.get, current_url, timeout=10)
+                forecast_future = executor.submit(
+                    requests.get, forecast_url, timeout=10
+                )
+
+                current_resp = current_future.result()
+                forecast_resp = forecast_future.result()
+
             current_resp.raise_for_status()
             current_data = current_resp.json()
 
@@ -173,13 +188,6 @@ class WeatherProvider:
                 wind_direction=self._degrees_to_compass(wind.get("deg", 0)),
             )
 
-            # Fetch forecast
-            forecast_url = (
-                f"https://api.openweathermap.org/data/2.5/forecast"
-                f"?lat={self.latitude}&lon={self.longitude}"
-                f"&appid={self.api_key}&units={self.units}"
-            )
-            forecast_resp = requests.get(forecast_url, timeout=10)
             forecast_resp.raise_for_status()
             forecast_data = forecast_resp.json()
 

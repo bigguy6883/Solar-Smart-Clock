@@ -4,14 +4,8 @@ import datetime
 
 from PIL import Image, ImageDraw
 
-from .base import (
-    BaseView,
-    UPDATE_FREQUENT,
-    YELLOW,
-    ORANGE,
-    DARK_BLUE,
-    FontSize,
-)
+from .base import BaseView, UPDATE_FREQUENT, FontSize
+from .colors import YELLOW, ORANGE, DARK_BLUE
 
 
 class SunPathView(BaseView):
