@@ -178,6 +178,22 @@ class TestWeatherProvider:
         assert "2026-02-20" in dates, "First day dropped due to malformed entry"
         assert "2026-02-21" in dates, "Second day dropped due to malformed entry"
 
+    def test_parse_forecast_skips_all_malformed_day(self, provider):
+        """When ALL entries for a date are malformed, that date is skipped but others are kept."""
+        data = {
+            "list": [
+                # All entries for 2026-02-20 missing 'main'
+                {"dt_txt": "2026-02-20 09:00:00", "pop": 0.1},
+                {"dt_txt": "2026-02-20 12:00:00", "pop": 0.2},
+                # 2026-02-21 is fine
+                {"dt_txt": "2026-02-21 12:00:00", "main": {"temp": 65.0}, "pop": 0.3},
+            ]
+        }
+        result = provider._parse_forecast(data)
+        dates = [f.date for f in result]
+        assert "2026-02-20" not in dates, "Fully-malformed date should be skipped"
+        assert "2026-02-21" in dates, "Valid date should still appear"
+
     def test_weather_fetch_atomic_on_forecast_failure(self, provider):
         """If forecast fails, neither _current_weather nor _weather_updated should change."""
         old_weather = provider._current_weather  # None initially

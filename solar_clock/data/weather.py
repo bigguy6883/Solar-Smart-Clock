@@ -272,6 +272,8 @@ class WeatherProvider:
         forecasts = []
         # Explicitly sort by date to ensure chronological order
         for date, values in sorted(daily.items())[:5]:
+            if not values["temps"]:  # all entries for this date were malformed — skip
+                continue
             forecasts.append(
                 DailyForecast(
                     date=date,
