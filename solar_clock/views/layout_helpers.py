@@ -123,25 +123,25 @@ class LayoutHelpers:
 
     @staticmethod
     def fit_text_in_width(
-        text: str, max_width: int, truncate_suffix: str = "..."
+        text: str, max_chars: int, truncate_suffix: str = "..."
     ) -> str:
         """
-        Truncate text to fit within a maximum width.
+        Truncate text to fit within a maximum character count.
 
         Note: This is a simple character-based truncation.
         For pixel-perfect truncation, use PIL's textbbox with actual font.
 
         Args:
             text: Text to truncate
-            max_width: Maximum character count
+            max_chars: Maximum number of characters (not pixels).
             truncate_suffix: Suffix to add when truncating
 
         Returns:
             Truncated text
         """
-        if len(text) <= max_width:
+        if len(text) <= max_chars:
             return text
-        return text[: max_width - len(truncate_suffix)] + truncate_suffix
+        return text[: max_chars - len(truncate_suffix)] + truncate_suffix
 
     @staticmethod
     def calculate_grid_positions(
