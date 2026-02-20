@@ -151,8 +151,7 @@ class WeatherView(BaseView):
                 day_label = day_names[i]
             else:
                 # Get day of week
-                date = datetime.datetime.strptime(day.date, "%Y-%m-%d")
-                day_label = date.strftime("%a")
+                day_label = datetime.date.fromisoformat(day.date).strftime("%a")
 
             draw.text(
                 (x_start + 5, row_y), day_label, fill=theme.text_primary, font=font_day
