@@ -336,6 +336,35 @@ def test_render_current_has_render_lock():
     ), "_render_lock must be a threading.Lock"
 
 
+def test_render_current_is_thread_safe():
+    """Concurrent render_current() calls must not corrupt output or raise."""
+    import threading
+    from solar_clock.views.base import ViewManager
+    from unittest.mock import MagicMock
+
+    mock_view = MagicMock()
+    mock_view.render.return_value = MagicMock()
+    manager = ViewManager([mock_view], 0)
+
+    errors = []
+
+    def render_loop():
+        for _ in range(50):
+            try:
+                manager.render_current()
+            except Exception as e:
+                errors.append(e)
+
+    threads = [threading.Thread(target=render_loop) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not errors, f"Thread-safety errors: {errors}"
+    assert hasattr(manager, "_render_lock"), "ViewManager must have _render_lock"
+
+
 def _collect_drawn_text(view, render_index=0, total_views=9):
     """Render a view and return all text strings passed to draw.text()."""
     drawn = []
