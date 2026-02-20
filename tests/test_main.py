@@ -155,6 +155,24 @@ class TestSolarClock:
 
         assert solar_clock.running is False
 
+    def test_signal_handler_wakes_main_loop(self):
+        """Signal handler must set view_changed to interrupt the sleep."""
+        import threading
+        from solar_clock.main import SolarClock
+        from unittest.mock import MagicMock
+
+        clock = SolarClock.__new__(SolarClock)
+        clock.running = True
+        clock.view_manager = MagicMock()
+        clock.view_manager.view_changed = threading.Event()
+
+        clock._signal_handler(2, None)
+
+        assert not clock.running
+        assert (
+            clock.view_manager.view_changed.is_set()
+        ), "view_changed must be set so wait() returns immediately"
+
     def test_cleanup(self, solar_clock):
         """Test cleanup stops all components."""
         # Setup mocks

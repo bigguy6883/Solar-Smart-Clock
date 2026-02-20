@@ -156,6 +156,7 @@ class SolarClock:
         """Handle shutdown signals."""
         logger.info(f"Received signal {signum}, shutting down...")
         self.running = False
+        self.view_manager.view_changed.set()  # Wake sleeping main loop immediately
 
     def _cleanup(self) -> None:
         """Clean up resources on shutdown."""
