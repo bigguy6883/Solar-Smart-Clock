@@ -177,10 +177,24 @@ class ThemeManager:
             if sun_times is None:
                 return self._fallback_is_daytime()
 
-            tzinfo = sun_times.sunrise.tzinfo
-            now = datetime.datetime.now(tzinfo) if tzinfo else datetime.datetime.now()
+            # Check if sunrise has a valid tzinfo
+            if sun_times.sunrise is None or sun_times.sunset is None:
+                return self._fallback_is_daytime()
+
+            # Handle timezone - may be None or a tzinfo instance
+            tzinfo = getattr(sun_times.sunrise, "tzinfo", None)
+            if tzinfo is not None:
+                try:
+                    now = datetime.datetime.now(tzinfo)
+                except (TypeError, AttributeError):
+                    # tzinfo is not a valid timezone object (e.g., MagicMock in tests)
+                    now = datetime.datetime.now()
+            else:
+                now = datetime.datetime.now()
+
             return sun_times.sunrise <= now <= sun_times.sunset
-        except Exception:
+        except (TypeError, AttributeError):
+            # Fallback for any unexpected errors (e.g., mock objects in tests)
             return self._fallback_is_daytime()
 
     def get_current_theme(self) -> Theme:

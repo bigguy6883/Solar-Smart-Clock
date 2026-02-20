@@ -211,6 +211,41 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
             else:
                 self._send_text(404, "Not Found")
 
+        elif path == "/theme":
+            if self.clock_instance is None:
+                self._send_text(503, "Clock not initialized")
+                return
+
+            status = self.clock_instance.theme_manager.get_status()
+            self._send_json(200, status)
+
+        elif path == "/theme/auto":
+            if self.clock_instance is None:
+                self._send_text(503, "Clock not initialized")
+                return
+
+            self.clock_instance.theme_manager.set_mode("auto")
+            status = self.clock_instance.theme_manager.get_status()
+            self._send_json(200, status)
+
+        elif path == "/theme/day":
+            if self.clock_instance is None:
+                self._send_text(503, "Clock not initialized")
+                return
+
+            self.clock_instance.theme_manager.set_mode("day")
+            status = self.clock_instance.theme_manager.get_status()
+            self._send_json(200, status)
+
+        elif path == "/theme/night":
+            if self.clock_instance is None:
+                self._send_text(503, "Clock not initialized")
+                return
+
+            self.clock_instance.theme_manager.set_mode("night")
+            status = self.clock_instance.theme_manager.get_status()
+            self._send_json(200, status)
+
         else:
             self._send_text(404, "Not Found")
 
