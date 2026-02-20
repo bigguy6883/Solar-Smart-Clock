@@ -164,6 +164,20 @@ class TestWeatherProvider:
         weather = provider.get_current_weather()
         assert weather is None
 
+    def test_parse_forecast_skips_malformed_entries(self, provider):
+        """A forecast entry missing 'main' must not abort the entire parse."""
+        data = {
+            "list": [
+                {"dt_txt": "2026-02-20 12:00:00", "main": {"temp": 72.0}, "pop": 0.1},
+                {"dt_txt": "2026-02-20 15:00:00", "pop": 0.2},  # missing 'main'
+                {"dt_txt": "2026-02-21 12:00:00", "main": {"temp": 65.0}, "pop": 0.3},
+            ]
+        }
+        result = provider._parse_forecast(data)
+        dates = [f.date for f in result]
+        assert "2026-02-20" in dates, "First day dropped due to malformed entry"
+        assert "2026-02-21" in dates, "Second day dropped due to malformed entry"
+
     def test_weather_fetch_atomic_on_forecast_failure(self, provider):
         """If forecast fails, neither _current_weather nor _weather_updated should change."""
         old_weather = provider._current_weather  # None initially

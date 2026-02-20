@@ -264,7 +264,9 @@ class WeatherProvider:
             date = item["dt_txt"].split(" ")[0]
             if date not in daily:
                 daily[date] = {"temps": [], "rain": []}
-            daily[date]["temps"].append(item["main"]["temp"])
+            temp = item.get("main", {}).get("temp")
+            if temp is not None:
+                daily[date]["temps"].append(temp)
             daily[date]["rain"].append(int(item.get("pop", 0) * 100))
 
         forecasts = []
