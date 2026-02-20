@@ -191,7 +191,9 @@ class TouchHandler:
             return
 
         dx = self.current_x - self.touch_start_x
-        dy = self.current_y - self.touch_start_y if self.touch_start_y else 0
+        dy = (
+            self.current_y - self.touch_start_y if self.touch_start_y is not None else 0
+        )
         elapsed = now - self.touch_start_time
         abs_dx = abs(dx)
 

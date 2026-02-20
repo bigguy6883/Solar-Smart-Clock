@@ -374,3 +374,35 @@ class TestTouchHandler:
 
         # Should trigger prev (right swipe)
         touch_handler.on_prev.assert_called_once()
+
+    def test_dy_computed_correctly_when_touch_start_y_is_zero(self, touch_handler):
+        """dy must not be forced to zero when touch_start_y == 0 (top of screen)."""
+        import logging
+        import time as time_module
+
+        touch_handler.touch_start_x = 100
+        touch_handler.touch_start_y = 0  # top of screen — y=0 is falsy
+        touch_handler.touch_start_time = (
+            time_module.time() - 1.0
+        )  # old enough to avoid debounce
+        touch_handler.current_x = 100
+        touch_handler.current_y = 50  # moved 50px down
+
+        log_records = []
+
+        class Capture(logging.Handler):
+            def emit(self, record):
+                log_records.append(record.getMessage())
+
+        capture = Capture()
+        logging.getLogger("solar_clock.touch_handler").addHandler(capture)
+        logging.getLogger("solar_clock.touch_handler").setLevel(logging.DEBUG)
+
+        touch_handler._on_touch_up()
+
+        logging.getLogger("solar_clock.touch_handler").removeHandler(capture)
+
+        dy_log = next((r for r in log_records if "dy=" in r), "")
+        assert (
+            "dy=50" in dy_log
+        ), f"Expected dy=50 for touch at y=0 moving to y=50, but got: {dy_log!r}"
