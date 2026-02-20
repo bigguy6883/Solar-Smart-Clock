@@ -423,6 +423,7 @@ class ViewManager:
         self.views = views
         self.current_index = default_index
         self.view_changed = threading.Event()
+        self._render_lock = threading.Lock()
 
     def next_view(self) -> None:
         """Navigate to next view."""
@@ -452,5 +453,6 @@ class ViewManager:
 
     def render_current(self) -> Image.Image:
         """Render the current view."""
-        view = self.views[self.current_index]
-        return view.render(self.current_index, len(self.views))
+        with self._render_lock:
+            view = self.views[self.current_index]
+            return view.render(self.current_index, len(self.views))

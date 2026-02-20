@@ -320,6 +320,22 @@ class TestAnalemmaView:
         assert image is not None
 
 
+def test_render_current_has_render_lock():
+    """ViewManager must have a _render_lock for thread safety."""
+    from solar_clock.views.base import ViewManager
+    from unittest.mock import MagicMock
+    import threading
+
+    mock_view = MagicMock()
+    mock_view.render.return_value = MagicMock()
+    manager = ViewManager([mock_view], 0)
+
+    assert hasattr(manager, "_render_lock"), "ViewManager must have _render_lock"
+    assert isinstance(
+        manager._render_lock, type(threading.Lock())
+    ), "_render_lock must be a threading.Lock"
+
+
 def _collect_drawn_text(view, render_index=0, total_views=9):
     """Render a view and return all text strings passed to draw.text()."""
     drawn = []
