@@ -184,6 +184,28 @@ class TestConfigLoading:
         assert config.display.width == 480  # Default
 
 
+def test_dataclass_from_dict_does_not_call_constructor_for_defaults():
+    """_dataclass_from_dict must not instantiate cls() just to read defaults."""
+    from unittest.mock import patch
+    from solar_clock.config import _dataclass_from_dict, WeatherConfig
+
+    constructor_calls = []
+    real_init = WeatherConfig.__init__
+
+    def tracking_init(self, *args, **kwargs):
+        constructor_calls.append(1)
+        return real_init(self, *args, **kwargs)
+
+    with patch.object(WeatherConfig, "__init__", tracking_init):
+        result = _dataclass_from_dict(WeatherConfig, {"units": "metric"})
+
+    # Should be called exactly once (for the final cls(**kwargs)), not twice
+    assert (
+        len(constructor_calls) == 1
+    ), f"Expected 1 constructor call, got {len(constructor_calls)}"
+    assert result.units == "metric"
+
+
 class TestGetApiKey:
     """Tests for API key retrieval."""
 

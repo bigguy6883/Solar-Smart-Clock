@@ -176,11 +176,16 @@ class Config:
 
 
 def _dataclass_from_dict(cls, data: dict):
-    """Create a dataclass instance from a dict, using defaults for missing keys."""
-    defaults = cls()
+    """Create a dataclass instance from a dict, using field defaults for missing keys."""
     kwargs = {}
     for f in dataclasses.fields(cls):
-        kwargs[f.name] = data.get(f.name, getattr(defaults, f.name))
+        if f.name in data:
+            kwargs[f.name] = data[f.name]
+        elif f.default is not dataclasses.MISSING:
+            kwargs[f.name] = f.default
+        elif f.default_factory is not dataclasses.MISSING:
+            kwargs[f.name] = f.default_factory()
+        # If no default, let cls(**kwargs) raise naturally
     return cls(**kwargs)
 
 
