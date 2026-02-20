@@ -123,6 +123,38 @@ class TestSolarProvider:
             dawn, dusk = twilight
             assert dawn < dusk
 
+    def test_get_sun_times_cached_per_date(self, provider):
+        """get_sun_times() should call astral sun() only once per date."""
+        from unittest.mock import patch
+        import datetime
+
+        today = datetime.date(2026, 2, 20)
+        fake_times = {
+            "dawn": datetime.datetime(2026, 2, 20, 6, 0, tzinfo=datetime.timezone.utc),
+            "sunrise": datetime.datetime(
+                2026, 2, 20, 6, 30, tzinfo=datetime.timezone.utc
+            ),
+            "noon": datetime.datetime(2026, 2, 20, 12, 0, tzinfo=datetime.timezone.utc),
+            "sunset": datetime.datetime(
+                2026, 2, 20, 18, 0, tzinfo=datetime.timezone.utc
+            ),
+            "dusk": datetime.datetime(
+                2026, 2, 20, 18, 30, tzinfo=datetime.timezone.utc
+            ),
+        }
+
+        with patch("solar_clock.data.solar.sun", return_value=fake_times) as mock_sun:
+            result1 = provider.get_sun_times(today)
+            result2 = provider.get_sun_times(today)
+            result3 = provider.get_sun_times(today)
+
+        assert (
+            mock_sun.call_count == 1
+        ), f"Expected 1 astral sun() call, got {mock_sun.call_count}"
+        assert result1 == result2 == result3
+        assert result1 is not None
+        assert result1.sunrise.hour == 6
+
 
 class TestSolarPositionCalculations:
     """Tests for specific solar calculations."""

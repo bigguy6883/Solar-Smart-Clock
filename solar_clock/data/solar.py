@@ -73,6 +73,7 @@ class SolarProvider:
             longitude=longitude,
         )
         self.tz = ZoneInfo(timezone)
+        self._sun_times_cache: dict = {}  # date -> Optional[SunTimes]
 
     def get_sun_times(self, date: Optional[datetime.date] = None) -> Optional[SunTimes]:
         """
@@ -87,9 +88,12 @@ class SolarProvider:
         if date is None:
             date = datetime.date.today()
 
+        if date in self._sun_times_cache:
+            return self._sun_times_cache[date]
+
         try:
             s = sun(self.location.observer, date=date, tzinfo=self.location.timezone)
-            return SunTimes(
+            result: Optional[SunTimes] = SunTimes(
                 dawn=s["dawn"],
                 sunrise=s["sunrise"],
                 noon=s["noon"],
@@ -99,10 +103,18 @@ class SolarProvider:
         except ValueError as e:
             # Can happen at extreme latitudes (polar day/night)
             logger.warning(f"Could not calculate sun times for {date}: {e}")
-            return None
+            result = None
         except KeyError as e:
             logger.error(f"Missing sun time data: {e}")
-            return None
+            result = None
+
+        # Evict entries older than today to prevent unbounded growth
+        today = datetime.date.today()
+        self._sun_times_cache = {
+            k: v for k, v in self._sun_times_cache.items() if k >= today
+        }
+        self._sun_times_cache[date] = result
+        return result
 
     def get_solar_position(
         self, dt: Optional[datetime.datetime] = None
