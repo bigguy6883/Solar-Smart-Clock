@@ -1,6 +1,8 @@
 """Tests for views."""
 
+import datetime
 import pytest
+from unittest.mock import MagicMock
 from PIL import Image
 
 from solar_clock.views.base import ViewManager, DataProviders
@@ -316,3 +318,119 @@ class TestAnalemmaView:
 
         image = view.render(7, 9)
         assert image is not None
+
+
+def _collect_drawn_text(view, render_index=0, total_views=9):
+    """Render a view and return all text strings passed to draw.text()."""
+    drawn = []
+    original_render_content = view.render_content
+
+    def capturing_render_content(draw, image):
+        original_text = draw.text
+
+        def capture_text(xy, text, **kwargs):
+            drawn.append(text)
+            return original_text(xy, text, **kwargs)
+
+        draw.text = capture_text
+        original_render_content(draw, image)
+        draw.text = original_text
+
+    view.render_content = capturing_render_content
+    view.render(render_index, total_views)
+    return drawn
+
+
+class TestNegativeCountdownGuard:
+    """Tests that past solar events do not produce negative countdown text."""
+
+    def _make_past_event_providers(self, sample_config):
+        """Build providers where get_next_solar_event returns a time 5 seconds in the past."""
+        from zoneinfo import ZoneInfo
+
+        tz = ZoneInfo("America/New_York")
+        past_time = datetime.datetime.now(tz) - datetime.timedelta(seconds=5)
+
+        solar = MagicMock()
+        solar.get_sun_times.return_value = MagicMock(
+            dawn=datetime.datetime(2024, 1, 15, 6, 30, tzinfo=tz),
+            sunrise=datetime.datetime(2024, 1, 15, 7, 0, tzinfo=tz),
+            noon=datetime.datetime(2024, 1, 15, 12, 30, tzinfo=tz),
+            sunset=datetime.datetime(2024, 1, 15, 17, 30, tzinfo=tz),
+            dusk=datetime.datetime(2024, 1, 15, 18, 0, tzinfo=tz),
+        )
+        solar.get_day_length.return_value = 10.5
+        solar.get_day_length_change.return_value = 1.5
+        solar.get_solar_position.return_value = MagicMock(elevation=35.5, azimuth=180.0)
+        solar.get_golden_hour.return_value = (
+            MagicMock(
+                start=datetime.datetime(2024, 1, 15, 6, 30, tzinfo=tz),
+                end=datetime.datetime(2024, 1, 15, 7, 30, tzinfo=tz),
+            ),
+            MagicMock(
+                start=datetime.datetime(2024, 1, 15, 17, 0, tzinfo=tz),
+                end=datetime.datetime(2024, 1, 15, 18, 0, tzinfo=tz),
+            ),
+        )
+        # Past event: 5 seconds ago
+        solar.get_next_solar_event.return_value = ("Sunrise", past_time)
+
+        weather = MagicMock()
+        weather.get_current_weather.return_value = MagicMock(
+            temperature=72.5,
+            feels_like=70.0,
+            humidity=65,
+            description="Partly Cloudy",
+            wind_speed=5.5,
+            wind_direction="S",
+        )
+
+        lunar = MagicMock()
+        lunar.available = True
+
+        return DataProviders(weather=weather, solar=solar, lunar=lunar)
+
+    def test_clock_view_no_negative_countdown(self, sample_config):
+        """ClockView must not render a negative countdown when event is in the past."""
+        providers = self._make_past_event_providers(sample_config)
+        view = ClockView(sample_config, providers)
+        drawn = _collect_drawn_text(view, render_index=0)
+
+        negative_texts = [t for t in drawn if "in -" in str(t)]
+        assert (
+            negative_texts == []
+        ), f"ClockView drew negative countdown text: {negative_texts}"
+
+    def test_solar_view_no_negative_countdown(self, sample_config):
+        """SolarView must not render a negative countdown when event is in the past."""
+        providers = self._make_past_event_providers(sample_config)
+        view = SolarView(sample_config, providers)
+        drawn = _collect_drawn_text(view, render_index=5)
+
+        negative_texts = [t for t in drawn if "in -" in str(t)]
+        assert (
+            negative_texts == []
+        ), f"SolarView drew negative countdown text: {negative_texts}"
+
+    def test_sunpath_view_no_negative_countdown(self, sample_config):
+        """SunPathView must not render a negative countdown when event is in the past."""
+        from zoneinfo import ZoneInfo
+
+        tz = ZoneInfo("America/New_York")
+        providers = self._make_past_event_providers(sample_config)
+        # Also make solar noon in the past so the fallback path (get_next_solar_event) is used
+        past_noon = datetime.datetime.now(tz) - datetime.timedelta(hours=1)
+        providers.solar.get_sun_times.return_value = MagicMock(
+            dawn=datetime.datetime(2024, 1, 15, 6, 30, tzinfo=tz),
+            sunrise=datetime.datetime(2024, 1, 15, 7, 0, tzinfo=tz),
+            noon=past_noon,
+            sunset=datetime.datetime(2024, 1, 15, 17, 30, tzinfo=tz),
+            dusk=datetime.datetime(2024, 1, 15, 18, 0, tzinfo=tz),
+        )
+        view = SunPathView(sample_config, providers)
+        drawn = _collect_drawn_text(view, render_index=3)
+
+        negative_texts = [t for t in drawn if "in -" in str(t)]
+        assert (
+            negative_texts == []
+        ), f"SunPathView drew negative countdown text: {negative_texts}"

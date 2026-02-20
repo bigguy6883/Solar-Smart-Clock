@@ -252,15 +252,19 @@ class ClockView(BaseView):
                 else:
                     now_tz = now
                 delta = event_time - now_tz
-                hours = int(delta.total_seconds() // 3600)
-                minutes = int((delta.total_seconds() % 3600) // 60)
+                if delta.total_seconds() < 0:
+                    # Event just passed; data provider will update shortly
+                    pass
+                else:
+                    hours = int(delta.total_seconds() // 3600)
+                    minutes = int((delta.total_seconds() % 3600) // 60)
 
-                countdown = f"{event_name} in {hours}h {minutes}m"
-                countdown_bbox = draw.textbbox((0, 0), countdown, font=font)
-                countdown_width = countdown_bbox[2] - countdown_bbox[0]
-                draw.text(
-                    ((self.width - countdown_width) // 2, y + 38),
-                    countdown,
-                    fill=theme.text_primary,
-                    font=font,
-                )
+                    countdown = f"{event_name} in {hours}h {minutes}m"
+                    countdown_bbox = draw.textbbox((0, 0), countdown, font=font)
+                    countdown_width = countdown_bbox[2] - countdown_bbox[0]
+                    draw.text(
+                        ((self.width - countdown_width) // 2, y + 38),
+                        countdown,
+                        fill=theme.text_primary,
+                        font=font,
+                    )

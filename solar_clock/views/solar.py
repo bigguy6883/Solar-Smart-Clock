@@ -156,12 +156,16 @@ class SolarView(BaseView):
                 name, time = next_event
                 now = datetime.datetime.now(time.tzinfo)
                 delta = time - now
-                hours = int(delta.total_seconds() // 3600)
-                minutes = int((delta.total_seconds() % 3600) // 60)
-                draw.text((330, y + 22), name, fill=ORANGE, font=font_value)
-                draw.text(
-                    (330, y + 42),
-                    f"in {hours}h {minutes}m",
-                    fill=theme.text_secondary,
-                    font=font,
-                )
+                if delta.total_seconds() < 0:
+                    # Event just passed; data provider will update shortly
+                    pass
+                else:
+                    hours = int(delta.total_seconds() // 3600)
+                    minutes = int((delta.total_seconds() % 3600) // 60)
+                    draw.text((330, y + 22), name, fill=ORANGE, font=font_value)
+                    draw.text(
+                        (330, y + 42),
+                        f"in {hours}h {minutes}m",
+                        fill=theme.text_secondary,
+                        font=font,
+                    )

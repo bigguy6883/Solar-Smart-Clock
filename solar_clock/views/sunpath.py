@@ -183,22 +183,26 @@ class SunPathView(BaseView):
             if event_name and event_time:
                 now_tz = datetime.datetime.now(event_time.tzinfo)
                 delta = event_time - now_tz
-                hours = int(delta.total_seconds() // 3600)
-                minutes = int((delta.total_seconds() % 3600) // 60)
+                if delta.total_seconds() < 0:
+                    # Event just passed; data provider will update shortly
+                    pass
+                else:
+                    hours = int(delta.total_seconds() // 3600)
+                    minutes = int((delta.total_seconds() % 3600) // 60)
 
-                draw.text((20, y + 5), event_name, fill=ORANGE, font=font)
-                draw.text(
-                    (115, y + 5),
-                    f"in {hours}h {minutes}m",
-                    fill=theme.text_primary,
-                    font=font,
-                )
-                draw.text(
-                    (20, y + 30),
-                    f"at {event_time.strftime('%-I:%M %p')}",
-                    fill=theme.text_secondary,
-                    font=font,
-                )
+                    draw.text((20, y + 5), event_name, fill=ORANGE, font=font)
+                    draw.text(
+                        (115, y + 5),
+                        f"in {hours}h {minutes}m",
+                        fill=theme.text_primary,
+                        font=font,
+                    )
+                    draw.text(
+                        (20, y + 30),
+                        f"at {event_time.strftime('%-I:%M %p')}",
+                        fill=theme.text_secondary,
+                        font=font,
+                    )
 
         # Right box: Current elevation
         draw.rounded_rectangle(
