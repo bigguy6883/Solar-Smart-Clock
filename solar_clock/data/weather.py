@@ -170,12 +170,12 @@ class WeatherProvider:
             current_resp.raise_for_status()
             current_data = current_resp.json()
 
-            # Parse current weather (defensive parsing)
+            # Parse current weather into local variable (defensive parsing)
             main = current_data.get("main", {})
             weather_list = current_data.get("weather", [{}])
             wind = current_data.get("wind", {})
 
-            self._current_weather = CurrentWeather(
+            new_weather = CurrentWeather(
                 temperature=main.get("temp", 0),
                 feels_like=main.get("feels_like", 0),
                 humidity=main.get("humidity", 0),
@@ -191,9 +191,12 @@ class WeatherProvider:
             forecast_resp.raise_for_status()
             forecast_data = forecast_resp.json()
 
-            # Parse forecast (group by day)
-            self._forecast = self._parse_forecast(forecast_data)
+            # Parse forecast into local variable
+            new_forecast = self._parse_forecast(forecast_data)
 
+            # Commit atomically — only if BOTH succeeded
+            self._current_weather = new_weather
+            self._forecast = new_forecast
             self._weather_updated = time.time()
             logger.debug("Weather data updated successfully")
 

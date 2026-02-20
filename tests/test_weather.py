@@ -163,3 +163,33 @@ class TestWeatherProvider:
         )
         weather = provider.get_current_weather()
         assert weather is None
+
+    def test_weather_fetch_atomic_on_forecast_failure(self, provider):
+        """If forecast fails, neither _current_weather nor _weather_updated should change."""
+        old_weather = provider._current_weather  # None initially
+        old_updated = provider._weather_updated  # 0.0 initially
+
+        good_resp = MagicMock()
+        good_resp.raise_for_status.return_value = None
+        good_resp.json.return_value = {
+            "main": {"temp": 72, "feels_like": 70, "humidity": 50},
+            "weather": [{"description": "clear sky"}],
+            "wind": {"speed": 5, "deg": 180},
+        }
+        bad_resp = MagicMock()
+        bad_resp.raise_for_status.side_effect = requests.HTTPError("429")
+
+        def fake_get(url, timeout=10):
+            if "forecast" in url:
+                return bad_resp
+            return good_resp
+
+        with patch("solar_clock.data.weather.requests.get", side_effect=fake_get):
+            provider._fetch_weather()
+
+        assert (
+            provider._current_weather is old_weather
+        ), "_current_weather was updated despite forecast failure"
+        assert (
+            provider._weather_updated == old_updated
+        ), "_weather_updated timestamp advanced despite partial failure"
