@@ -320,6 +320,25 @@ class TestAnalemmaView:
         assert image is not None
 
 
+def test_weather_description_truncation_uses_binary_search():
+    """Verify text truncation uses binary search, not O(n) while loop."""
+    import inspect
+    import re
+    from solar_clock.views.weather import WeatherView
+
+    source = inspect.getsource(WeatherView.render_content)
+    # O(n) pattern: textbbox appears inside a while-loop condition.
+    # Matches "while (...textbbox..." across lines.
+    on_pattern = re.compile(r"while\s*\(.*textbbox", re.DOTALL)
+    assert not on_pattern.search(
+        source
+    ), "O(n) truncation loop (while + textbbox in condition) is still present"
+    # Binary search landmark: lo/hi variables must be present
+    assert (
+        "lo" in source and "hi" in source
+    ), "Binary search variables (lo, hi) not found in render_content"
+
+
 def test_render_current_has_render_lock():
     """ViewManager must have a _render_lock for thread safety."""
     from solar_clock.views.base import ViewManager

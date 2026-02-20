@@ -41,14 +41,18 @@ class WeatherView(BaseView):
                 max_width = 200  # Limit to left panel width
                 desc_bbox = draw.textbbox((0, 0), desc, font=font_desc)
                 if desc_bbox[2] - desc_bbox[0] > max_width:
-                    # Truncate and add ellipsis
-                    while (
-                        len(desc) > 3
-                        and draw.textbbox((0, 0), desc + "...", font=font_desc)[2]
-                        > max_width
-                    ):
-                        desc = desc[:-1]
-                    desc = desc.rstrip() + "..."
+                    # Binary search for the longest prefix that fits with ellipsis
+                    lo, hi = 3, len(desc)
+                    while lo < hi:
+                        mid = (lo + hi + 1) // 2
+                        if (
+                            draw.textbbox((0, 0), desc[:mid] + "...", font=font_desc)[2]
+                            <= max_width
+                        ):
+                            lo = mid
+                        else:
+                            hi = mid - 1
+                    desc = desc[:lo].rstrip() + "..."
                 draw.text((20, 170), desc, fill=YELLOW, font=font_desc)
 
         draw.text(
