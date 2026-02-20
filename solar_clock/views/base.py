@@ -1,5 +1,6 @@
 """Base view class and view manager for Solar Smart Clock."""
 
+import datetime
 import logging
 import threading
 from abc import ABC, abstractmethod
@@ -373,8 +374,6 @@ class BaseView(ABC):
         - Day: Light blue
         - After dusk: Purple
         """
-        import datetime
-
         now = datetime.datetime.now()
 
         if self.providers.solar is not None:
