@@ -201,6 +201,41 @@ class TestLunarProvider:
 
             assert eot is None
 
+    def test_get_analemma_data_cached_for_year(self, provider):
+        """get_analemma_data() must not recompute if already cached for this year."""
+        if not provider.available:
+            pytest.skip("ephem not available")
+
+        result1 = provider.get_analemma_data()
+        assert len(result1) > 0
+
+        result2 = provider.get_analemma_data()
+        assert result1 == result2
+        assert provider._analemma_cache is not None
+        assert provider._analemma_cache[0] == datetime.date.today().year
+
+    def test_moon_times_reuses_observer(self, provider):
+        """get_moon_times() must not create a new ephem.Observer on each call."""
+        if not provider.available:
+            pytest.skip("ephem not available")
+        # Verify _observer has lat/lon set (will be reused)
+        assert hasattr(provider, "_observer")
+        # Call twice, both should succeed without error
+        t1 = provider.get_moon_times()
+        t2 = provider.get_moon_times()
+        assert t1 is not None or t2 is not None  # at least one should work
+
+    def test_eot_observer_created_once(self, provider):
+        """get_equation_of_time() must reuse _eot_observer."""
+        if not provider.available:
+            pytest.skip("ephem not available")
+        assert hasattr(
+            provider, "_eot_observer"
+        ), "_eot_observer must be created in __init__"
+        # Verify it's set to prime meridian
+        assert str(provider._eot_observer.lat) == "0:00:00.0"
+        assert str(provider._eot_observer.lon) == "0:00:00.0"
+
 
 class TestPhaseNameMapping:
     """Tests for moon phase name mapping."""

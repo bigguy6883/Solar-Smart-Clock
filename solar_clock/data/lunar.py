@@ -76,10 +76,18 @@ class LunarProvider:
         self.latitude = latitude
         self.longitude = longitude
 
+        self._analemma_cache: Optional[tuple] = None  # (year, list[AnalemmaPoint])
+
         if EPHEM_AVAILABLE:
             self._observer = ephem.Observer()
             self._observer.lat = str(latitude)
             self._observer.lon = str(longitude)
+
+            self._eot_observer = ephem.Observer()
+            self._eot_observer.lat = "0"
+            self._eot_observer.lon = "0"
+            self._eot_observer.elevation = 0
+            self._eot_observer.pressure = 0
 
     @property
     def available(self) -> bool:
@@ -155,10 +163,8 @@ class LunarProvider:
             date = datetime.date.today()
 
         try:
-            observer = ephem.Observer()
-            observer.lat = str(self.latitude)
-            observer.lon = str(self.longitude)
-            observer.date = date.strftime("%Y/%m/%d")
+            self._observer.date = date.strftime("%Y/%m/%d")
+            observer = self._observer
 
             moon = ephem.Moon()
 
@@ -246,20 +252,13 @@ class LunarProvider:
             date = datetime.date.today()
 
         try:
-            # Set up observer at prime meridian for standard calculation
-            observer = ephem.Observer()
-            observer.lat = "0"
-            observer.lon = "0"
-            observer.elevation = 0
-            observer.pressure = 0  # No atmospheric refraction
-
-            # Set date to noon UTC
+            # Set date to noon UTC on the shared prime-meridian observer
             dt = datetime.datetime(date.year, date.month, date.day, 12, 0)
-            observer.date = dt
+            self._eot_observer.date = dt
 
             # Find when sun transits (crosses meridian)
             sun = ephem.Sun()
-            transit = observer.next_transit(sun)
+            transit = self._eot_observer.next_transit(sun)
 
             # Equation of time = 12:00 - transit time (in minutes)
             # Positive = sun is early (ahead of clock), negative = sun is late
@@ -287,8 +286,11 @@ class LunarProvider:
         if not EPHEM_AVAILABLE:
             return []
 
-        points = []
         year = datetime.date.today().year
+        if self._analemma_cache is not None and self._analemma_cache[0] == year:
+            return self._analemma_cache[1]
+
+        points = []
 
         try:
             observer = ephem.Observer()
@@ -322,6 +324,7 @@ class LunarProvider:
 
                 date += datetime.timedelta(days=7)
 
+            self._analemma_cache = (year, points)
             return points
 
         except (ValueError, AttributeError) as e:
