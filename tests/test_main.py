@@ -449,3 +449,20 @@ class TestMainFunction:
         # Should still run successfully without API key
         assert result == 0
         mock_solar_clock.assert_called_once()
+
+
+def test_view_changed_clear_before_wait_order():
+    """Verify the main loop clears view_changed before waiting (not after)."""
+    import inspect
+    from solar_clock.main import SolarClock
+
+    source = inspect.getsource(SolarClock.run)
+    # Find string positions in source
+    clear_pos = source.find("view_changed.clear()")
+    wait_pos = source.find("view_changed.wait(")
+    assert clear_pos != -1, "view_changed.clear() not found in run()"
+    assert wait_pos != -1, "view_changed.wait() not found in run()"
+    assert clear_pos < wait_pos, (
+        f"view_changed.clear() (pos {clear_pos}) must come before "
+        f"view_changed.wait() (pos {wait_pos}) in run()"
+    )

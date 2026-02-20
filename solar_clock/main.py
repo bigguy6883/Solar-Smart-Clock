@@ -142,10 +142,10 @@ class SolarClock:
 
                 # Sleep until next update
                 current_view = self.view_manager.get_current_view()
+                self.view_manager.view_changed.clear()
                 self.view_manager.view_changed.wait(
                     timeout=current_view.update_interval
                 )
-                self.view_manager.view_changed.clear()
 
         except Exception as e:
             logger.error(f"Error in main loop: {e}", exc_info=True)
