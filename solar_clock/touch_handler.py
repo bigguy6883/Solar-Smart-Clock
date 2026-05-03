@@ -73,8 +73,10 @@ class TouchHandler:
         self._device: Optional["InputDevice"] = None
 
         # Calibration for rotated display (90 degrees)
-        self.raw_min = 0
-        self.raw_max = 4095
+        # Effective raw range is ~400-3500 due to panel inactive border;
+        # values outside this band clamp to the screen edge.
+        self.raw_min = 400
+        self.raw_max = 3500
 
     def start(self) -> bool:
         """
@@ -157,13 +159,13 @@ class TouchHandler:
         """Transform raw X coordinate for 90-degree rotation."""
         # For 90-degree rotation: raw Y becomes screen X (inverted)
         normalized = 1.0 - ((raw_value - self.raw_min) / (self.raw_max - self.raw_min))
-        return int(normalized * self.display_width)
+        return max(0, min(self.display_width - 1, int(normalized * self.display_width)))
 
     def _transform_y(self, raw_value: int) -> int:
         """Transform raw Y coordinate for 90-degree rotation."""
         # For 90-degree rotation: raw X becomes screen Y
         normalized = (raw_value - self.raw_min) / (self.raw_max - self.raw_min)
-        return int(normalized * self.display_height)
+        return max(0, min(self.display_height - 1, int(normalized * self.display_height)))
 
     def _on_touch_down(self) -> None:
         """Handle touch start event."""
@@ -205,11 +207,11 @@ class TouchHandler:
         # Swipe: significant horizontal movement (distance-first, no dead zone)
         if abs_dx >= self.config.swipe_threshold:
             if dx > 0:
-                logger.debug(f"Swipe right detected (dx={dx}) -> prev view")
-                self.on_prev()
-            else:
-                logger.debug(f"Swipe left detected (dx={dx}) -> next view")
+                logger.debug(f"Swipe right detected (dx={dx}) -> next view")
                 self.on_next()
+            else:
+                logger.debug(f"Swipe left detected (dx={dx}) -> prev view")
+                self.on_prev()
             self.last_gesture_time = now  # Update last gesture time
 
         # Tap: small movement AND quick duration (everything else that's quick)
