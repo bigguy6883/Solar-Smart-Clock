@@ -155,14 +155,14 @@ class TouchHandler:
 
     def _transform_x(self, raw_value: int) -> int:
         """Transform raw X coordinate for 90-degree rotation."""
-        # For 90-degree rotation: raw Y becomes screen X
-        normalized = (raw_value - self.raw_min) / (self.raw_max - self.raw_min)
+        # For 90-degree rotation: raw Y becomes screen X (inverted)
+        normalized = 1.0 - ((raw_value - self.raw_min) / (self.raw_max - self.raw_min))
         return int(normalized * self.display_width)
 
     def _transform_y(self, raw_value: int) -> int:
         """Transform raw Y coordinate for 90-degree rotation."""
-        # For 90-degree rotation: raw X becomes screen Y (inverted)
-        normalized = 1.0 - ((raw_value - self.raw_min) / (self.raw_max - self.raw_min))
+        # For 90-degree rotation: raw X becomes screen Y
+        normalized = (raw_value - self.raw_min) / (self.raw_max - self.raw_min)
         return int(normalized * self.display_height)
 
     def _on_touch_down(self) -> None:
