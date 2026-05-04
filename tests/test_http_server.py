@@ -372,7 +372,9 @@ class TestServerCreation:
         """Create a mock HTTP server config."""
         config = MagicMock()
         config.enabled = True
-        config.port = 8080
+        # Port 0 = OS-assigned ephemeral port; avoids conflicts with anything
+        # already bound on the dev machine (e.g. another service on 8080).
+        config.port = 0
         config.bind_address = "127.0.0.1"
         config.rate_limit_per_second = 10
         return config
