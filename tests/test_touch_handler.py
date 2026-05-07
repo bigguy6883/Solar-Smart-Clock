@@ -106,32 +106,32 @@ class TestTouchHandler:
         assert touch_handler._running is False
 
     def test_transform_x(self, touch_handler):
-        """Test X coordinate transformation."""
-        # Test raw value at 0
+        """Test X coordinate transformation (inverted, raw band 400-3500)."""
+        # Raw 0 is below calibration band; X is inverted, so clamps to display_width - 1
         x = touch_handler._transform_x(0)
+        assert x == 479
+
+        # Raw 4095 is above band; inverted, clamps to 0
+        x = touch_handler._transform_x(4095)
         assert x == 0
 
-        # Test raw value at max
-        x = touch_handler._transform_x(4095)
-        assert x == 480
-
-        # Test raw value at midpoint
+        # Raw 2048 is partway through the 400-3500 band on the inverted axis
         x = touch_handler._transform_x(2048)
-        assert 239 <= x <= 241  # ~240
+        assert 223 <= x <= 225  # ~224
 
     def test_transform_y(self, touch_handler):
-        """Test Y coordinate transformation (inverted)."""
-        # Test raw value at 0 (should map to max Y due to inversion)
+        """Test Y coordinate transformation (linear, raw band 400-3500)."""
+        # Raw 0 is below band; Y is linear, clamps to 0
         y = touch_handler._transform_y(0)
-        assert y == 320
-
-        # Test raw value at max (should map to 0)
-        y = touch_handler._transform_y(4095)
         assert y == 0
 
-        # Test raw value at midpoint
+        # Raw 4095 is above band; clamps to display_height - 1
+        y = touch_handler._transform_y(4095)
+        assert y == 319
+
+        # Raw 2048 is partway through the 400-3500 band
         y = touch_handler._transform_y(2048)
-        assert 159 <= y <= 161  # ~160
+        assert 169 <= y <= 171  # ~170
 
     def test_on_touch_down(self, touch_handler):
         """Test touch down event."""
@@ -145,7 +145,7 @@ class TestTouchHandler:
         assert touch_handler.touch_start_time is not None
 
     def test_on_touch_up_swipe_left(self, touch_handler):
-        """Test swipe left detection (next view)."""
+        """Test swipe left detection (prev view)."""
         touch_handler.touch_start_x = 200
         touch_handler.touch_start_y = 150
         touch_handler.touch_start_time = 0.0
@@ -154,11 +154,11 @@ class TestTouchHandler:
         with patch("time.time", return_value=0.2):
             touch_handler._on_touch_up()
 
-        touch_handler.on_next.assert_called_once()
-        touch_handler.on_prev.assert_not_called()
+        touch_handler.on_prev.assert_called_once()
+        touch_handler.on_next.assert_not_called()
 
     def test_on_touch_up_swipe_right(self, touch_handler):
-        """Test swipe right detection (prev view)."""
+        """Test swipe right detection (next view)."""
         touch_handler.touch_start_x = 100
         touch_handler.touch_start_y = 150
         touch_handler.touch_start_time = 0.0
@@ -167,8 +167,8 @@ class TestTouchHandler:
         with patch("time.time", return_value=0.2):
             touch_handler._on_touch_up()
 
-        touch_handler.on_prev.assert_called_once()
-        touch_handler.on_next.assert_not_called()
+        touch_handler.on_next.assert_called_once()
+        touch_handler.on_prev.assert_not_called()
 
     def test_on_touch_up_small_movement_no_action(self, touch_handler):
         """Test that small movements below threshold don't trigger swipe."""
@@ -271,7 +271,7 @@ class TestTouchHandler:
                 touch_handler._process_event(event)
 
                 # ABS_X maps to current_y due to 90-degree rotation
-                assert 159 <= touch_handler.current_y <= 161
+                assert 169 <= touch_handler.current_y <= 171
 
     def test_process_event_abs_y(self, touch_handler):
         """Test processing absolute Y coordinate event."""
@@ -293,7 +293,7 @@ class TestTouchHandler:
                 touch_handler._process_event(event)
 
                 # ABS_Y maps to current_x due to 90-degree rotation
-                assert 239 <= touch_handler.current_x <= 241
+                assert 223 <= touch_handler.current_x <= 225
 
     def test_process_event_touch_down(self, touch_handler):
         """Test processing touch down event."""
@@ -344,8 +344,8 @@ class TestTouchHandler:
                 with patch("time.time", return_value=0.2):
                     touch_handler._process_event(event)
 
-                # Should have triggered prev callback
-                touch_handler.on_prev.assert_called_once()
+                # Should have triggered next callback (dx > 0 → on_next)
+                touch_handler.on_next.assert_called_once()
 
     def test_tap_detection_with_timeout(self, touch_handler):
         """Test that tap is not detected if timeout exceeded."""
@@ -372,8 +372,8 @@ class TestTouchHandler:
         with patch("time.time", return_value=0.2):
             touch_handler._on_touch_up()
 
-        # Should trigger prev (right swipe)
-        touch_handler.on_prev.assert_called_once()
+        # Should trigger next (right swipe, dx > 0)
+        touch_handler.on_next.assert_called_once()
 
     def test_dy_computed_correctly_when_touch_start_y_is_zero(self, touch_handler):
         """dy must not be forced to zero when touch_start_y == 0 (top of screen)."""
