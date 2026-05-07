@@ -34,3 +34,23 @@ repos:
         args: ['--ignore-missing-imports', '--no-error-summary']
         additional_dependencies: ['types-requests>=2.31.0', 'types-Pillow>=10.0.0']
         exclude: '^clock\.py$'
+
+  # Pre-push gate: re-run all commit-stage hooks across the whole repo, then pytest.
+  # Catches stale issues in unchanged files (the kind that previously surprised us
+  # via failing CI emails after a push).
+  - repo: local
+    hooks:
+      - id: pre-commit-all-files
+        name: pre-commit run --all-files
+        entry: ./venv/bin/pre-commit run --all-files --hook-stage pre-commit
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
+      - id: pytest
+        name: pytest
+        entry: ./venv/bin/pytest tests/ -q
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
