@@ -249,6 +249,15 @@ sudo systemctl stop solar-clock
 pip3 install -r requirements-dev.txt
 ```
 
+### Install Git Hooks
+After cloning, install the pre-commit and pre-push hooks so lint and tests
+run locally before code reaches CI:
+```bash
+pre-commit install --hook-type pre-commit --hook-type pre-push
+```
+- `pre-commit` runs black, flake8, mypy, and hygiene checks on staged files at every commit.
+- `pre-push` re-runs all hooks across the whole repo and then the full pytest suite, blocking the push if anything fails.
+
 ### Run Tests
 ```bash
 pytest
