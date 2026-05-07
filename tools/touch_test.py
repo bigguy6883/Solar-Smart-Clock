@@ -30,7 +30,9 @@ from PIL import Image, ImageDraw, ImageFont
 try:
     from evdev import InputDevice, ecodes
 except ImportError:
-    sys.exit("evdev not installed. Run with the project venv: ./venv/bin/python tools/touch_test.py")
+    sys.exit(
+        "evdev not installed. Run with the project venv: ./venv/bin/python tools/touch_test.py"
+    )
 
 # Reuse production transforms so the test reflects real handler behavior.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -122,7 +124,11 @@ def reader(state: State) -> None:
                         state.dy = state.cur_y - (state.down_y or 0)
                         abs_dx = abs(state.dx)
                         if abs_dx >= SWIPE_THRESHOLD:
-                            label = "SWIPE RIGHT -> prev" if state.dx > 0 else "SWIPE LEFT -> next"
+                            label = (
+                                "SWIPE RIGHT -> prev"
+                                if state.dx > 0
+                                else "SWIPE LEFT -> next"
+                            )
                             state.gesture = f"{label}   dx={state.dx}"
                             state.gesture_color = GESTURE_SWIPE
                         elif state.elapsed < TAP_TIMEOUT:
@@ -190,8 +196,10 @@ def main() -> None:
 
             # Nav-button zones (must match production: bottom 40px, 60px wide each side)
             d.line([(0, nav_top), (WIDTH, nav_top)], fill=NAV_OUTLINE)
-            d.rectangle([0, nav_top, 60, HEIGHT - 1], outline=NAV_OUTLINE)
-            d.rectangle([WIDTH - 60, nav_top, WIDTH - 1, HEIGHT - 1], outline=NAV_OUTLINE)
+            d.rectangle((0, nav_top, 60, HEIGHT - 1), outline=NAV_OUTLINE)
+            d.rectangle(
+                (WIDTH - 60, nav_top, WIDTH - 1, HEIGHT - 1), outline=NAV_OUTLINE
+            )
             d.text((6, nav_top + 14), "PREV", fill=DIM, font=font_sm)
             d.text((WIDTH - 54, nav_top + 14), "NEXT", fill=DIM, font=font_sm)
 
@@ -222,10 +230,14 @@ def main() -> None:
             if touching:
                 d.line([(cx - 14, cy), (cx + 14, cy)], fill=CURRENT, width=2)
                 d.line([(cx, cy - 14), (cx, cy + 14)], fill=CURRENT, width=2)
-                d.ellipse([cx - 20, cy - 20, cx + 20, cy + 20], outline=CURRENT, width=1)
+                d.ellipse(
+                    [cx - 20, cy - 20, cx + 20, cy + 20], outline=CURRENT, width=1
+                )
 
             # Header
-            d.text((4, 2), "TOUCH TEST   (Ctrl+C on SSH to exit)", fill=TEXT, font=font_md)
+            d.text(
+                (4, 2), "TOUCH TEST   (Ctrl+C on SSH to exit)", fill=TEXT, font=font_md
+            )
             status = "TOUCHING" if touching else "        "
             d.text(
                 (4, 18),

@@ -165,7 +165,9 @@ class TouchHandler:
         """Transform raw Y coordinate for 90-degree rotation."""
         # For 90-degree rotation: raw X becomes screen Y
         normalized = (raw_value - self.raw_min) / (self.raw_max - self.raw_min)
-        return max(0, min(self.display_height - 1, int(normalized * self.display_height)))
+        return max(
+            0, min(self.display_height - 1, int(normalized * self.display_height))
+        )
 
     def _on_touch_down(self) -> None:
         """Handle touch start event."""
