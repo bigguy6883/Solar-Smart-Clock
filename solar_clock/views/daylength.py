@@ -56,9 +56,13 @@ class DayLengthView(BaseView):
                 font=font_tiny,
             )
 
-        # X-axis month labels
-        months = ["Jl", "Au", "S", "O", "N", "D", "Ja", "F", "Mr", "Ap", "My", "Jn"]
-        for i, month in enumerate(months):
+        # X-axis month labels. The curve is rotated so today sits at the
+        # center of the chart, so labels start ~6 months before today.
+        today = datetime.date.today()
+        month_abbr = ["Ja", "F", "Mr", "Ap", "My", "Jn", "Jl", "Au", "S", "O", "N", "D"]
+        start_month = (today - datetime.timedelta(days=182)).month - 1
+        for i in range(12):
+            month = month_abbr[(start_month + i) % 12]
             x = chart_x + int((i / 12) * chart_width)
             draw.text(
                 (x, chart_y + chart_height + 2),
@@ -69,7 +73,6 @@ class DayLengthView(BaseView):
 
         # Draw day length curve (simplified sinusoidal approximation)
         points = []
-        today = datetime.date.today()
         year = today.year
 
         # Calculate for each day of year

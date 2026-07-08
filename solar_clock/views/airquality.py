@@ -24,6 +24,10 @@ class AirQualityView(BaseView):
 
     def _get_aqi_text_color(self, aqi: int) -> tuple[int, int, int]:
         """Get readable text color for AQI value (darker moderate for better contrast)."""
+        # Day theme: light panels need the darkened palette
+        if self.get_theme().name == "day":
+            return self._get_aqi_header_color(aqi)
+
         if aqi <= 50:
             return AQI_GOOD
         elif aqi <= 100:
