@@ -225,6 +225,51 @@ class TestLunarProvider:
         t2 = provider.get_moon_times()
         assert t1 is not None or t2 is not None  # at least one should work
 
+    def test_moon_times_are_local_timezone_aware(self):
+        """Moon times must be timezone-aware in the configured local timezone.
+
+        Regression test: ephem returns naive UTC datetimes; displaying them
+        directly showed times 4-5 hours off for US Eastern locations.
+        """
+        if not pytest.importorskip("ephem", reason="ephem not installed"):
+            pytest.skip("ephem not available")
+
+        provider = LunarProvider(
+            latitude=34.68, longitude=-84.48, timezone="America/New_York"
+        )
+        times = provider.get_moon_times(datetime.date(2026, 7, 8))
+
+        assert times is not None
+        assert times.moonrise is not None
+        assert times.moonrise.tzinfo is not None, "moonrise must be tz-aware"
+        # On 2026-07-08 EDT is UTC-4
+        assert times.moonrise.utcoffset() == datetime.timedelta(hours=-4)
+        # Known value: moonrise is 05:12 UTC == 01:12 AM EDT
+        assert times.moonrise.hour == 1
+        assert times.moonrise.minute == 12
+
+    def test_moon_times_search_anchored_at_local_midnight(self):
+        """The rise/set search must start at local midnight, not UTC midnight."""
+        if not pytest.importorskip("ephem", reason="ephem not installed"):
+            pytest.skip("ephem not available")
+
+        from zoneinfo import ZoneInfo
+
+        tz = ZoneInfo("America/New_York")
+        provider = LunarProvider(
+            latitude=34.68, longitude=-84.48, timezone="America/New_York"
+        )
+        date = datetime.date(2026, 7, 8)
+        times = provider.get_moon_times(date)
+
+        local_midnight = datetime.datetime.combine(date, datetime.time(0, 0), tzinfo=tz)
+        assert times is not None
+        if times.moonrise is not None:
+            assert times.moonrise >= local_midnight
+            assert times.moonrise < local_midnight + datetime.timedelta(hours=48)
+        if times.moonset is not None:
+            assert times.moonset >= local_midnight
+
     def test_eot_observer_created_once(self, provider):
         """get_equation_of_time() must reuse _eot_observer."""
         if not provider.available:

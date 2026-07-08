@@ -4,6 +4,7 @@ import datetime
 import logging
 from dataclasses import dataclass
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
@@ -65,16 +66,25 @@ class LunarProvider:
     and analemma calculations.
     """
 
-    def __init__(self, latitude: float, longitude: float):
+    def __init__(
+        self, latitude: float, longitude: float, timezone: Optional[str] = None
+    ):
         """
         Initialize lunar provider.
 
         Args:
             latitude: Location latitude
             longitude: Location longitude
+            timezone: Timezone string (e.g., "America/New_York").
+                Defaults to the system local timezone.
         """
         self.latitude = latitude
         self.longitude = longitude
+        self.tz = (
+            ZoneInfo(timezone)
+            if timezone
+            else datetime.datetime.now().astimezone().tzinfo
+        )
 
         self._analemma_cache: Optional[tuple] = None  # (year, list[AnalemmaPoint])
 
@@ -160,17 +170,23 @@ class LunarProvider:
             return None
 
         if date is None:
-            date = datetime.date.today()
+            date = datetime.datetime.now(self.tz).date()
 
         try:
-            self._observer.date = date.strftime("%Y/%m/%d")
+            # Anchor the search at local midnight (ephem works in UTC)
+            local_midnight = datetime.datetime.combine(
+                date, datetime.time(0, 0), tzinfo=self.tz
+            )
+            self._observer.date = local_midnight.astimezone(
+                datetime.timezone.utc
+            ).replace(tzinfo=None)
             observer = self._observer
 
             moon = ephem.Moon()
 
             try:
                 rise = observer.next_rising(moon)
-                moonrise = ephem.Date(rise).datetime()
+                moonrise = self._utc_to_local(ephem.Date(rise).datetime())
             except ephem.NeverUpError:
                 moonrise = None
             except ephem.AlwaysUpError:
@@ -178,7 +194,7 @@ class LunarProvider:
 
             try:
                 set_time = observer.next_setting(moon)
-                moonset = ephem.Date(set_time).datetime()
+                moonset = self._utc_to_local(ephem.Date(set_time).datetime())
             except ephem.NeverUpError:
                 moonset = None
             except ephem.AlwaysUpError:
@@ -330,6 +346,10 @@ class LunarProvider:
         except (ValueError, AttributeError) as e:
             logger.warning(f"Failed to calculate analemma: {e}")
             return []
+
+    def _utc_to_local(self, utc_naive: datetime.datetime) -> datetime.datetime:
+        """Convert a naive UTC datetime (as returned by ephem) to local time."""
+        return utc_naive.replace(tzinfo=datetime.timezone.utc).astimezone(self.tz)
 
     @staticmethod
     def _get_phase_name(phase: float) -> str:

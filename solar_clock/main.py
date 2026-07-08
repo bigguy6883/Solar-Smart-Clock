@@ -73,6 +73,7 @@ class SolarClock:
             lunar=LunarProvider(
                 latitude=config.location.latitude,
                 longitude=config.location.longitude,
+                timezone=config.location.timezone,
             ),
         )
 
