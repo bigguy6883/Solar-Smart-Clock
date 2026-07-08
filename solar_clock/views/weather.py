@@ -5,7 +5,7 @@ import datetime
 from PIL import Image, ImageDraw
 
 from .base import BaseView, UPDATE_FREQUENT, FontSize, Layout
-from .colors import YELLOW, ORANGE, BLUE, LIGHT_BLUE
+from .colors import LIGHT_BLUE
 
 
 class WeatherView(BaseView):
@@ -53,7 +53,7 @@ class WeatherView(BaseView):
                         else:
                             hi = mid - 1
                     desc = desc[:lo].rstrip() + "..."
-                draw.text((20, 170), desc, fill=YELLOW, font=font_desc)
+                draw.text((20, 170), desc, fill=theme.accent_sun, font=font_desc)
 
         draw.text(
             (20, self.content_height - 25),
@@ -159,23 +159,19 @@ class WeatherView(BaseView):
             draw.text(
                 (x_start + 70, row_y),
                 f"{day.high_temp:.0f}°",
-                fill=ORANGE,
+                fill=theme.accent_warm,
                 font=font_temp,
             )
             draw.text(
                 (x_start + 120, row_y),
                 f"{day.low_temp:.0f}°",
-                fill=BLUE,
+                fill=theme.accent_cool,
                 font=font_temp,
             )
 
             # Rain chance with color coding
             rain = day.rain_chance
-            rain_color = (
-                theme.text_secondary
-                if rain < 30
-                else (LIGHT_BLUE if rain < 60 else BLUE)
-            )
+            rain_color = theme.text_secondary if rain < 30 else theme.accent_cool
             draw.text(
                 (x_start + 175, row_y),
                 f"{rain}%",

@@ -5,7 +5,6 @@ import datetime
 from PIL import Image, ImageDraw
 
 from .base import BaseView, UPDATE_REALTIME, Layout
-from .colors import YELLOW, ORANGE
 
 
 class ClockView(BaseView):
@@ -85,7 +84,7 @@ class ClockView(BaseView):
         # Sunrise
         sunrise_str = sun_times.sunrise.strftime("%-I:%M %p")
         draw.text((20, y), "Sunrise", fill=theme.text_tertiary, font=font)
-        draw.text((20, y + 18), sunrise_str, fill=YELLOW, font=font_value)
+        draw.text((20, y + 18), sunrise_str, fill=theme.accent_sun, font=font_value)
 
         # Day length
         day_length = self.providers.solar.get_day_length()
@@ -118,7 +117,7 @@ class ClockView(BaseView):
         draw.text(
             (self.width - sunset_width - 20, y + 18),
             sunset_str,
-            fill=ORANGE,
+            fill=theme.accent_warm,
             font=font_value,
         )
 
@@ -148,7 +147,7 @@ class ClockView(BaseView):
         humidity = f"{weather.humidity}%"
 
         draw.text((20, y), desc, fill=theme.text_primary, font=font_value)
-        draw.text((20, y + 28), f"Temp: {temp}", fill=YELLOW, font=font)
+        draw.text((20, y + 28), f"Temp: {temp}", fill=theme.accent_sun, font=font)
         draw.text(
             (150, y + 28), f"Humidity: {humidity}", fill=theme.text_secondary, font=font
         )
@@ -189,7 +188,7 @@ class ClockView(BaseView):
                 draw.text(
                     (self.width - 115, y + 18),
                     f"El: {elev_abs:.0f}° {elev_arrow}",
-                    fill=YELLOW if pos.elevation > 0 else ORANGE,
+                    fill=theme.accent_sun if pos.elevation > 0 else theme.accent_warm,
                     font=font,
                 )
                 draw.text(
@@ -227,7 +226,7 @@ class ClockView(BaseView):
         if fill_width > 0:
             draw.rectangle(
                 ((bar_x, bar_y), (bar_x + fill_width, bar_y + bar_height)),
-                fill=YELLOW,
+                fill=theme.accent_sun,
             )
 
         # Label

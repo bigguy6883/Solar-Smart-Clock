@@ -5,7 +5,7 @@ import datetime
 from PIL import Image, ImageDraw
 
 from .base import BaseView, UPDATE_FREQUENT, FontSize
-from .colors import YELLOW, ORANGE, DARK_BLUE
+from .colors import ORANGE, DARK_BLUE
 
 
 class SunPathView(BaseView):
@@ -14,6 +14,10 @@ class SunPathView(BaseView):
     name = "sunpath"
     title = "Sun Path"
     update_interval = UPDATE_FREQUENT
+
+    # Chart elevation range (degrees above/below horizon)
+    CHART_ELEV_MAX = 40
+    CHART_ELEV_MIN = -90
 
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the sun path view content."""
@@ -46,16 +50,20 @@ class SunPathView(BaseView):
         chart_height = 120
         chart_y = y + 10
 
-        # Y-axis labels at correct positions for 40° to -90° range
+        # Y-axis labels at correct positions for the chart elevation range
         font_tiny = self.get_font(FontSize.AXIS_LABEL)
-        elev_range = 130  # 40 - (-90)
-        draw.text((5, chart_y), "40°", fill=theme.text_tertiary, font=font_tiny)
-        # 0° is at 40/130 = ~31% down from top
-        zero_y = chart_y + int((40 / elev_range) * chart_height) - 5
+        elev_range = self.CHART_ELEV_MAX - self.CHART_ELEV_MIN
+        draw.text(
+            (5, chart_y),
+            f"{self.CHART_ELEV_MAX}°",
+            fill=theme.text_tertiary,
+            font=font_tiny,
+        )
+        zero_y = chart_y + int((self.CHART_ELEV_MAX / elev_range) * chart_height) - 5
         draw.text((10, zero_y), "0°", fill=theme.text_tertiary, font=font_tiny)
         draw.text(
             (5, chart_y + chart_height - 10),
-            "-90°",
+            f"{self.CHART_ELEV_MIN}°",
             fill=theme.text_tertiary,
             font=font_tiny,
         )
@@ -75,9 +83,7 @@ class SunPathView(BaseView):
             )
 
         # Horizon line at 0° elevation
-        # Range is 40° to -90° (130° total), so 0° is at 40/130 from top
-        elev_range = 40 - (-90)  # 130 degrees
-        horizon_y = chart_y + int((40 / elev_range) * chart_height)
+        horizon_y = chart_y + int((self.CHART_ELEV_MAX / elev_range) * chart_height)
         draw.line(
             [(chart_x, horizon_y), (chart_x + chart_width, horizon_y)],
             fill=theme.text_tertiary,
@@ -95,6 +101,8 @@ class SunPathView(BaseView):
         if self.providers.solar is None:
             return
 
+        theme = self.get_theme()
+        elev_range = self.CHART_ELEV_MAX - self.CHART_ELEV_MIN
         points = []
         now = datetime.datetime.now()
         today = now.date()
@@ -110,22 +118,23 @@ class SunPathView(BaseView):
             if pos:
                 # Map time to x
                 px = x + int((minutes / (24 * 60)) * width)
-                # Map elevation to y (40 at top, -90 at bottom)
-                elev_range = 40 - (-90)
-                py = y + int(((40 - pos.elevation) / elev_range) * height)
+                # Map elevation to y (max at top, min at bottom)
+                py = y + int(
+                    ((self.CHART_ELEV_MAX - pos.elevation) / elev_range) * height
+                )
                 points.append((px, py))
 
         # Draw curve
         if len(points) > 1:
-            # Draw below horizon in blue, above in yellow
-            horizon_y = y + int((40 / 130) * height)
+            # Draw below horizon in blue, above in sun color
+            horizon_y = y + int((self.CHART_ELEV_MAX / elev_range) * height)
 
             for i in range(len(points) - 1):
                 p1, p2 = points[i], points[i + 1]
                 if p1[1] > horizon_y and p2[1] > horizon_y:
                     color = DARK_BLUE
                 else:
-                    color = YELLOW
+                    color = theme.accent_sun
                 draw.line([p1, p2], fill=color, width=4)
 
         # Current sun position
@@ -133,12 +142,15 @@ class SunPathView(BaseView):
         if current_pos:
             minutes_now = now.hour * 60 + now.minute
             cx = x + int((minutes_now / (24 * 60)) * width)
-            elev_range = 40 - (-90)
-            cy = y + int(((40 - current_pos.elevation) / elev_range) * height)
+            cy = y + int(
+                ((self.CHART_ELEV_MAX - current_pos.elevation) / elev_range) * height
+            )
 
             # Sun marker
             draw.ellipse(
-                [(cx - 8, cy - 8), (cx + 8, cy + 8)], fill=YELLOW, outline=ORANGE
+                [(cx - 8, cy - 8), (cx + 8, cy + 8)],
+                fill=theme.accent_sun,
+                outline=theme.accent_warm,
             )
 
     def _render_info_boxes(self, draw: ImageDraw.ImageDraw, y: int) -> None:
@@ -190,7 +202,9 @@ class SunPathView(BaseView):
                     hours = int(delta.total_seconds() // 3600)
                     minutes = int((delta.total_seconds() % 3600) // 60)
 
-                    draw.text((20, y + 5), event_name, fill=ORANGE, font=font)
+                    draw.text(
+                        (20, y + 5), event_name, fill=theme.accent_warm, font=font
+                    )
                     draw.text(
                         (115, y + 5),
                         f"in {hours}h {minutes}m",
@@ -214,5 +228,7 @@ class SunPathView(BaseView):
             if pos:
                 elev_str = f"El {pos.elevation:.0f}°"
                 az_str = f"Az {pos.azimuth:.0f}°"
-                draw.text((260, y + 8), elev_str, fill=YELLOW, font=font_value)
+                draw.text(
+                    (260, y + 8), elev_str, fill=theme.accent_sun, font=font_value
+                )
                 draw.text((260, y + 32), az_str, fill=theme.text_secondary, font=font)

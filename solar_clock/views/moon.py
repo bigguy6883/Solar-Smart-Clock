@@ -74,24 +74,25 @@ class MoonView(BaseView):
             # Full moon - no shadow
             pass
         else:
-            # Partial shadow using arc
+            # Partial shadow using arc.
+            # Northern hemisphere: waxing is lit on the right, waning on the left.
             if phase < 0.5:
-                # Shadow on right side
+                # Waxing - shadow on left side
                 arc_width = int((0.5 - phase) * 2 * radius * 2)
-                draw.ellipse(
-                    [
-                        (center_x + radius - arc_width, center_y - radius),
-                        (center_x + radius, center_y + radius),
-                    ],
-                    fill=(30, 30, 30),
-                )
-            else:
-                # Shadow on left side
-                arc_width = int((phase - 0.5) * 2 * radius * 2)
                 draw.ellipse(
                     [
                         (center_x - radius, center_y - radius),
                         (center_x - radius + arc_width, center_y + radius),
+                    ],
+                    fill=(30, 30, 30),
+                )
+            else:
+                # Waning - shadow on right side
+                arc_width = int((phase - 0.5) * 2 * radius * 2)
+                draw.ellipse(
+                    [
+                        (center_x + radius - arc_width, center_y - radius),
+                        (center_x + radius, center_y + radius),
                     ],
                     fill=(30, 30, 30),
                 )
@@ -119,7 +120,7 @@ class MoonView(BaseView):
         draw.text((x, y), illum_str, fill=theme.text_primary, font=font_large)
 
         # Phase name
-        draw.text((x, y + 45), moon.phase_name, fill=MOON_YELLOW, font=font_name)
+        draw.text((x, y + 45), moon.phase_name, fill=theme.accent_moon, font=font_name)
 
     def _render_moon_times(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render moonrise and moonset times."""
@@ -170,7 +171,7 @@ class MoonView(BaseView):
                 full_x = bar_x + bar_width // 2
                 draw.line(
                     [(full_x, bar_y - 2), (full_x, bar_y + bar_height + 2)],
-                    fill=MOON_YELLOW,
+                    fill=theme.accent_moon,
                     width=2,
                 )
 
@@ -225,7 +226,7 @@ class MoonView(BaseView):
         draw.text(
             (255, y + 24),
             moon.next_full.strftime("%b %d"),
-            fill=MOON_YELLOW,
+            fill=theme.accent_moon,
             font=font_value,
         )
         draw.text(

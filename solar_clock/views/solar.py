@@ -5,7 +5,7 @@ import datetime
 from PIL import Image, ImageDraw
 
 from .base import BaseView, UPDATE_FREQUENT, FontSize, Layout, Spacing
-from .colors import YELLOW, ORANGE, PURPLE
+from .colors import ORANGE, PURPLE
 
 
 class SolarView(BaseView):
@@ -60,9 +60,9 @@ class SolarView(BaseView):
             draw.text((x, row_y), name, fill=theme.text_tertiary, font=font)
             time_str = time.strftime("%-I:%M %p")
             color = (
-                YELLOW
+                theme.accent_sun
                 if "Sun" in name
-                else ORANGE if name == "Dusk" else theme.text_secondary
+                else theme.accent_warm if name == "Dusk" else theme.text_secondary
             )
             draw.text((x, row_y + 15), time_str, fill=color, font=font_value)
 
@@ -72,7 +72,9 @@ class SolarView(BaseView):
         font = self.get_font(14)
         font_value = self.get_font(16)
 
-        draw.text((20, y), "Golden Hour", fill=ORANGE, font=self.get_bold_font(16))
+        draw.text(
+            (20, y), "Golden Hour", fill=theme.accent_warm, font=self.get_bold_font(16)
+        )
 
         if self.providers.solar is None:
             return
@@ -82,12 +84,14 @@ class SolarView(BaseView):
         if morning:
             morning_str = f"{morning.start.strftime('%-I:%M')} - {morning.end.strftime('%-I:%M %p')}"
             draw.text((20, y + 22), "Morning:", fill=theme.text_tertiary, font=font)
-            draw.text((90, y + 22), morning_str, fill=YELLOW, font=font_value)
+            draw.text((90, y + 22), morning_str, fill=theme.accent_sun, font=font_value)
 
         if evening:
             evening_str = f"{evening.start.strftime('%-I:%M')} - {evening.end.strftime('%-I:%M %p')}"
             draw.text((250, y + 22), "Evening:", fill=theme.text_tertiary, font=font)
-            draw.text((320, y + 22), evening_str, fill=ORANGE, font=font_value)
+            draw.text(
+                (320, y + 22), evening_str, fill=theme.accent_warm, font=font_value
+            )
 
     def _render_current_info(self, draw: ImageDraw.ImageDraw, y: int) -> None:
         """Render current sun position and day length info."""
@@ -109,7 +113,9 @@ class SolarView(BaseView):
             if pos:
                 elev_str = f"El: {pos.elevation:.1f}°"
                 az_str = f"Az: {pos.azimuth:.0f}°"
-                draw.text((20, y + 22), elev_str, fill=YELLOW, font=font_value)
+                draw.text(
+                    (20, y + 22), elev_str, fill=theme.accent_sun, font=font_value
+                )
                 draw.text((20, y + 40), az_str, fill=theme.text_secondary, font=font)
 
         # Day length - rounded box
@@ -134,7 +140,7 @@ class SolarView(BaseView):
                 )
             if change:
                 sign = "+" if change > 0 else ""
-                color = YELLOW if change > 0 else PURPLE
+                color = theme.accent_sun if change > 0 else PURPLE
                 draw.text(
                     (175, y + 42),
                     f"{sign}{change:.1f}m vs yday",
@@ -162,7 +168,9 @@ class SolarView(BaseView):
                 else:
                     hours = int(delta.total_seconds() // 3600)
                     minutes = int((delta.total_seconds() % 3600) // 60)
-                    draw.text((330, y + 22), name, fill=ORANGE, font=font_value)
+                    draw.text(
+                        (330, y + 22), name, fill=theme.accent_warm, font=font_value
+                    )
                     draw.text(
                         (330, y + 42),
                         f"in {hours}h {minutes}m",

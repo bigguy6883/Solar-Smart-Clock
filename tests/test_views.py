@@ -178,11 +178,11 @@ class TestAirQualityView:
         """Create an air quality view instance."""
         return AirQualityView(sample_config, mock_providers)
 
-    def test_aqi_colors(self, view):
-        """Test AQI color mapping."""
-        assert view._get_aqi_color(25) == (0, 228, 0)  # Good - green
-        assert view._get_aqi_color(75) == (255, 255, 0)  # Moderate - yellow
-        assert view._get_aqi_color(350) == (126, 0, 35)  # Hazardous - maroon
+    def test_aqi_header_colors(self, view):
+        """Test AQI header color mapping (darkened for white title text)."""
+        assert view._get_aqi_header_color(25) == (0, 130, 45)  # Good - green
+        assert view._get_aqi_header_color(75) == (170, 130, 0)  # Moderate - amber
+        assert view._get_aqi_header_color(350) == (126, 0, 35)  # Hazardous - maroon
 
 
 class TestAnalogClockView:
@@ -270,6 +270,33 @@ class TestMoonView:
 
         image = view.render(6, 9)
         assert image is not None
+
+    @staticmethod
+    def _moon_half_brightness(view, phase):
+        """Render the moon graphic and return (left, right) mean brightness."""
+        from PIL import Image as PILImage, ImageDraw, ImageStat
+
+        image = PILImage.new("RGB", (480, 320), (0, 0, 0))
+        draw = ImageDraw.Draw(image)
+        view._render_moon_graphic(draw, image, phase, 45)
+        # Disc is centered at (90, 100) with radius 50
+        left = ImageStat.Stat(image.crop((40, 50, 90, 150)).convert("L")).mean[0]
+        right = ImageStat.Stat(image.crop((90, 50, 140, 150)).convert("L")).mean[0]
+        return left, right
+
+    def test_waxing_moon_lit_on_right(self, view):
+        """Northern hemisphere: waxing moon (first quarter) is lit on the right."""
+        left, right = self._moon_half_brightness(view, 0.25)
+        assert (
+            right > left
+        ), f"Waxing moon lit on wrong side (L={left:.0f}, R={right:.0f})"
+
+    def test_waning_moon_lit_on_left(self, view):
+        """Northern hemisphere: waning moon (last quarter) is lit on the left."""
+        left, right = self._moon_half_brightness(view, 0.75)
+        assert (
+            left > right
+        ), f"Waning moon lit on wrong side (L={left:.0f}, R={right:.0f})"
 
 
 class TestSolarView:

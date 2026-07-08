@@ -4,7 +4,7 @@ import datetime
 from PIL import Image, ImageDraw
 
 from .base import BaseView, UPDATE_HOURLY, FontSize
-from .colors import WHITE, YELLOW, ORANGE, GREEN, BLUE
+from .colors import WHITE, ORANGE
 
 
 class AnalemmaView(BaseView):
@@ -14,11 +14,14 @@ class AnalemmaView(BaseView):
     title = "Analemma"
     update_interval = UPDATE_HOURLY
 
-    # Season colors
-    SPRING_COLOR = GREEN
-    SUMMER_COLOR = YELLOW
-    FALL_COLOR = ORANGE
-    WINTER_COLOR = BLUE
+    def _season_colors(self, theme) -> dict[str, tuple[int, int, int]]:
+        """Season colors from the current theme (readable on both backgrounds)."""
+        return {
+            "spring": theme.accent_green,
+            "summer": theme.accent_sun,
+            "fall": theme.accent_warm,
+            "winter": theme.accent_cool,
+        }
 
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the analemma view content."""
@@ -50,10 +53,13 @@ class AnalemmaView(BaseView):
         scale_y = 170  # Vertical scale (elevation: ~32° to ~79°)
 
         font_tiny = self.get_font(FontSize.AXIS_LABEL)
+        seasons = self._season_colors(theme)
 
         # Axis labels
-        draw.text((center_x - 15, y), "Summer", fill=YELLOW, font=font_tiny)
-        draw.text((center_x - 15, y + 195), "winter", fill=BLUE, font=font_tiny)
+        draw.text((center_x - 15, y), "Summer", fill=seasons["summer"], font=font_tiny)
+        draw.text(
+            (center_x - 15, y + 195), "winter", fill=seasons["winter"], font=font_tiny
+        )
         draw.text((5, center_y - 5), "Sun", fill=theme.text_tertiary, font=font_tiny)
         draw.text((5, center_y + 8), "early", fill=theme.text_tertiary, font=font_tiny)
         draw.text((200, center_y - 5), "Sun", fill=theme.text_tertiary, font=font_tiny)
@@ -90,13 +96,13 @@ class AnalemmaView(BaseView):
             # Determine season color
             month = point.date.month
             if 3 <= month <= 5:
-                color = self.SPRING_COLOR
+                color = seasons["spring"]
             elif 6 <= month <= 8:
-                color = self.SUMMER_COLOR
+                color = seasons["summer"]
             elif 9 <= month <= 11:
-                color = self.FALL_COLOR
+                color = seasons["fall"]
             else:
-                color = self.WINTER_COLOR
+                color = seasons["winter"]
 
             # Draw point
             draw.ellipse([(x - 2, y_pos - 2), (x + 2, y_pos + 2)], fill=color)
@@ -110,7 +116,9 @@ class AnalemmaView(BaseView):
         if today_point:
             x, y_pos = today_point
             draw.ellipse(
-                [(x - 6, y_pos - 6), (x + 6, y_pos + 6)], fill=WHITE, outline=YELLOW
+                [(x - 6, y_pos - 6), (x + 6, y_pos + 6)],
+                fill=theme.text_primary,
+                outline=theme.accent_sun,
             )
 
     def _render_info_panel(self, draw: ImageDraw.ImageDraw, y: int) -> None:
@@ -145,7 +153,7 @@ class AnalemmaView(BaseView):
                 draw.text(
                     (x + 10, y + 42),
                     f"{abs(eot):.1f} min",
-                    fill=YELLOW,
+                    fill=theme.accent_sun,
                     font=font_large,
                 )
                 draw.text((x + 10, y + 70), sign, fill=theme.text_secondary, font=font)
@@ -167,7 +175,9 @@ class AnalemmaView(BaseView):
             pos = self.providers.solar.get_solar_position()
             if pos:
                 height = "high" if pos.elevation > 45 else "low"
-                draw.text((x + 10, y + 130), height, fill=YELLOW, font=font_large)
+                draw.text(
+                    (x + 10, y + 130), height, fill=theme.accent_sun, font=font_large
+                )
                 draw.text(
                     (x + 10, y + 155),
                     f"{pos.elevation:.1f}° S",
@@ -176,12 +186,13 @@ class AnalemmaView(BaseView):
                 )
 
         # Season legend
+        seasons = self._season_colors(theme)
         draw.text((x, y + 185), "Legend:", fill=theme.text_tertiary, font=font_small)
         legend_items = [
-            ("Sp", self.SPRING_COLOR),
-            ("Su", self.SUMMER_COLOR),
-            ("Fa", self.FALL_COLOR),
-            ("Wi", self.WINTER_COLOR),
+            ("Sp", seasons["spring"]),
+            ("Su", seasons["summer"]),
+            ("Fa", seasons["fall"]),
+            ("Wi", seasons["winter"]),
         ]
         legend_x = x + 50
         for label, color in legend_items:

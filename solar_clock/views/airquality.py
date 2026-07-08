@@ -6,8 +6,6 @@ from PIL import Image, ImageDraw
 
 from .base import BaseView, UPDATE_FREQUENT, FontSize, Layout, Spacing
 from .colors import (
-    WHITE,
-    BLACK,
     AQI_GOOD,
     AQI_MODERATE,
     AQI_UNHEALTHY_SENSITIVE,
@@ -22,22 +20,7 @@ class AirQualityView(BaseView):
 
     name = "airquality"
     title = "Air Quality"
-    update_interval = UPDATE_FREQUENT  # 5 minutes
-
-    def _get_aqi_color(self, aqi: int) -> tuple[int, int, int]:
-        """Get color for AQI value (used for backgrounds)."""
-        if aqi <= 50:
-            return AQI_GOOD
-        elif aqi <= 100:
-            return AQI_MODERATE
-        elif aqi <= 150:
-            return AQI_UNHEALTHY_SENSITIVE
-        elif aqi <= 200:
-            return AQI_UNHEALTHY
-        elif aqi <= 300:
-            return AQI_VERY_UNHEALTHY
-        else:
-            return AQI_HAZARDOUS
+    update_interval = UPDATE_FREQUENT
 
     def _get_aqi_text_color(self, aqi: int) -> tuple[int, int, int]:
         """Get readable text color for AQI value (darker moderate for better contrast)."""
@@ -50,6 +33,22 @@ class AirQualityView(BaseView):
             return AQI_UNHEALTHY_SENSITIVE
         elif aqi <= 200:
             return AQI_UNHEALTHY
+        elif aqi <= 300:
+            return AQI_VERY_UNHEALTHY
+        else:
+            return AQI_HAZARDOUS
+
+    @staticmethod
+    def _get_aqi_header_color(aqi: int) -> tuple[int, int, int]:
+        """Darkened AQI color for the header bar, readable with white title text."""
+        if aqi <= 50:
+            return (0, 130, 45)
+        elif aqi <= 100:
+            return (170, 130, 0)
+        elif aqi <= 150:
+            return (190, 85, 0)
+        elif aqi <= 200:
+            return (185, 30, 30)
         elif aqi <= 300:
             return AQI_VERY_UNHEALTHY
         else:
@@ -68,21 +67,11 @@ class AirQualityView(BaseView):
             self._render_no_data(draw)
             return
 
-        aqi_color = self._get_aqi_color(aqi_data.aqi)
         aqi_text_color = self._get_aqi_text_color(aqi_data.aqi)
 
-        # Header with AQI color
-        draw.rectangle(((0, 0), (self.width, 35)), fill=aqi_color)
-        font_title = self.get_bold_font(24)
-        title_bbox = draw.textbbox((0, 0), "Air Quality", font=font_title)
-        title_width = title_bbox[2] - title_bbox[0]
-        # Use black text on light colors, white on dark
-        title_color = BLACK if aqi_data.aqi <= 100 else WHITE
-        draw.text(
-            ((self.width - title_width) // 2, 5),
-            "Air Quality",
-            fill=title_color,
-            font=font_title,
+        # Header with darkened AQI color (white title, consistent with other views)
+        self.render_header(
+            draw, "Air Quality", self._get_aqi_header_color(aqi_data.aqi)
         )
 
         # AQI value and category (left side)

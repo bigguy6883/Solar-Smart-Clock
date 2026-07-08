@@ -20,14 +20,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-# Layout constants
-HEADER_HEIGHT = 35
-CONTENT_START_Y = 45
-ROW_HEIGHT = 50
-SECTION_PADDING = 10
-FOOTER_HEIGHT = 25
-
-
 class Spacing:
     """Standard spacing for consistent layouts."""
 
@@ -248,61 +240,6 @@ class BaseView(ABC):
         text_width = bbox[2] - bbox[0]
         x = (self.width - text_width) // 2
         draw.text((x, y), text, fill=color, font=font)
-
-    def render_info_box(
-        self,
-        draw: ImageDraw.ImageDraw,
-        x: int,
-        y: int,
-        width: int,
-        height: int,
-        label: str,
-        value: str,
-        label_color: Optional[tuple[int, int, int]] = None,
-        value_color: Optional[tuple[int, int, int]] = None,
-    ) -> None:
-        """
-        Render an info box with label and value.
-
-        Args:
-            draw: ImageDraw instance
-            x: X position of box
-            y: Y position of box
-            width: Box width
-            height: Box height
-            label: Label text (smaller, above)
-            value: Value text (larger, below)
-            label_color: Color for label text (defaults to theme.text_secondary)
-            value_color: Color for value text (defaults to theme.text_primary)
-        """
-        theme = self.get_theme()
-
-        # Use theme defaults if colors not specified
-        if label_color is None:
-            label_color = theme.text_secondary
-        if value_color is None:
-            value_color = theme.text_primary
-
-        # Draw box background
-        draw.rounded_rectangle(
-            ((x, y), (x + width, y + height)),
-            radius=Layout.ROUNDED_RADIUS,
-            fill=theme.background_panel,
-        )
-
-        # Draw label (centered, top portion)
-        font_label = self.get_font(FontSize.SMALL)
-        label_bbox = draw.textbbox((0, 0), label, font=font_label)
-        label_width = label_bbox[2] - label_bbox[0]
-        label_x = x + (width - label_width) // 2
-        draw.text((label_x, y + 8), label, fill=label_color, font=font_label)
-
-        # Draw value (centered, bottom portion)
-        font_value = self.get_bold_font(FontSize.BODY)
-        value_bbox = draw.textbbox((0, 0), value, font=font_value)
-        value_width = value_bbox[2] - value_bbox[0]
-        value_x = x + (width - value_width) // 2
-        draw.text((value_x, y + 30), value, fill=value_color, font=font_value)
 
     @abstractmethod
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:

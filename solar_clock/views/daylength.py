@@ -6,7 +6,7 @@ import math
 from PIL import Image, ImageDraw
 
 from .base import BaseView, UPDATE_HOURLY, FontSize
-from .colors import WHITE, YELLOW, ORANGE, BLUE, GREEN
+from .colors import ORANGE
 
 
 class DayLengthView(BaseView):
@@ -15,6 +15,10 @@ class DayLengthView(BaseView):
     name = "daylength"
     title = "Day Length"
     update_interval = UPDATE_HOURLY
+
+    # Chart y-axis range (hours of daylight)
+    CHART_MIN_HOURS = 9
+    CHART_MAX_HOURS = 15
 
     def render_content(self, draw: ImageDraw.ImageDraw, image: Image.Image) -> None:
         """Render the day length view content."""
@@ -37,20 +41,20 @@ class DayLengthView(BaseView):
 
         font_tiny = self.get_font(FontSize.AXIS_LABEL)
 
-        # Y-axis labels
-        draw.text((5, chart_y), "13h", fill=theme.text_tertiary, font=font_tiny)
-        draw.text(
-            (5, chart_y + chart_height // 2),
-            "12h",
-            fill=theme.text_tertiary,
-            font=font_tiny,
-        )
-        draw.text(
-            (5, chart_y + chart_height - 10),
-            "11h",
-            fill=theme.text_tertiary,
-            font=font_tiny,
-        )
+        # Y-axis labels at their true positions on the chart scale
+        chart_span = self.CHART_MAX_HOURS - self.CHART_MIN_HOURS
+        for hours in (14, 12, 10):
+            label_y = (
+                chart_y
+                + chart_height
+                - int(((hours - self.CHART_MIN_HOURS) / chart_span) * chart_height)
+            )
+            draw.text(
+                (5, label_y - 5),
+                f"{hours}h",
+                fill=theme.text_tertiary,
+                font=font_tiny,
+            )
 
         # X-axis month labels
         months = ["Jl", "Au", "S", "O", "N", "D", "Ja", "F", "Mr", "Ap", "My", "Jn"]
@@ -96,8 +100,12 @@ class DayLengthView(BaseView):
             adjusted_doy = (day_of_year - offset) % 365
 
             x = chart_x + int((adjusted_doy / 365) * chart_width)
-            # Map 9h-15h to chart height
-            y_pos = chart_y + chart_height - int(((length - 9) / 6) * chart_height)
+            # Map chart hour range to chart height
+            y_pos = (
+                chart_y
+                + chart_height
+                - int(((length - self.CHART_MIN_HOURS) / chart_span) * chart_height)
+            )
             y_pos = max(chart_y, min(chart_y + chart_height, y_pos))
             points.append((x, y_pos))
 
@@ -118,12 +126,15 @@ class DayLengthView(BaseView):
                 today_y = (
                     chart_y
                     + chart_height
-                    - int(((today_length - 9) / 6) * chart_height)
+                    - int(
+                        ((today_length - self.CHART_MIN_HOURS) / chart_span)
+                        * chart_height
+                    )
                 )
                 draw.ellipse(
                     [(today_x - 5, today_y - 5), (today_x + 5, today_y + 5)],
-                    fill=WHITE,
-                    outline=YELLOW,
+                    fill=theme.text_primary,
+                    outline=theme.accent_sun,
                 )
 
     def _render_info_boxes(self, draw: ImageDraw.ImageDraw, y: int) -> None:
@@ -159,7 +170,7 @@ class DayLengthView(BaseView):
                 draw.text(
                     (15, y + 40),
                     f"{sign}{change:.1f}m/day",
-                    fill=YELLOW if change > 0 else BLUE,
+                    fill=theme.accent_sun if change > 0 else theme.accent_cool,
                     font=font_small,
                 )
 
@@ -179,14 +190,37 @@ class DayLengthView(BaseView):
             dates = self.providers.lunar.get_solstice_equinox(
                 datetime.date.today().year
             )
-            draw.text((x2 + 5, y + 15), "9h 49m", fill=BLUE, font=font)
+
+            def fmt_length(hours_float: float) -> str:
+                hours = int(hours_float)
+                minutes = int((hours_float - hours) * 60)
+                return f"{hours}h {minutes:02d}m"
+
+            shortest = longest = None
+            if self.providers.solar:
+                shortest = self.providers.solar.get_day_length(dates.winter_solstice)
+                longest = self.providers.solar.get_day_length(dates.summer_solstice)
+
+            if shortest is not None:
+                draw.text(
+                    (x2 + 5, y + 15),
+                    fmt_length(shortest),
+                    fill=theme.accent_cool,
+                    font=font,
+                )
             draw.text(
                 (x2 + 5, y + 30),
                 dates.winter_solstice.strftime("%b %d"),
                 fill=theme.text_secondary,
                 font=font_small,
             )
-            draw.text((x2 + 75, y + 15), "14h 28m", fill=ORANGE, font=font)
+            if longest is not None:
+                draw.text(
+                    (x2 + 75, y + 15),
+                    fmt_length(longest),
+                    fill=theme.accent_warm,
+                    font=font,
+                )
             draw.text(
                 (x2 + 75, y + 30),
                 dates.summer_solstice.strftime("%b %d"),
@@ -218,7 +252,9 @@ class DayLengthView(BaseView):
             for name, date in events:
                 if date > today:
                     days = (date - today).days
-                    draw.text((x3 + 5, y + 18), name, fill=GREEN, font=font)
+                    draw.text(
+                        (x3 + 5, y + 18), name, fill=theme.accent_green, font=font
+                    )
                     draw.text(
                         (x3 + 5, y + 35),
                         date.strftime("%b %d"),

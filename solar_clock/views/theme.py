@@ -43,6 +43,14 @@ class Theme:
     divider: tuple[int, int, int]
     outline: tuple[int, int, int]
 
+    # Accent colors for values/highlights - must stay readable on this
+    # theme's background and panels (day theme needs darker variants)
+    accent_sun: tuple[int, int, int]  # Sunrise, temperature, sun elevation
+    accent_warm: tuple[int, int, int]  # Sunset, dusk, golden hour
+    accent_moon: tuple[int, int, int]  # Moon phase name, full moon dates
+    accent_cool: tuple[int, int, int]  # Low temps, rain, winter
+    accent_green: tuple[int, int, int]  # Spring, next-season labels
+
     # Name for identification
     name: str = "unnamed"
 
@@ -70,6 +78,12 @@ NIGHT_THEME = Theme(
     # Dividers
     divider=(40, 40, 50),
     outline=(128, 128, 128),
+    # Accents - bright, designed for the black background
+    accent_sun=(255, 220, 50),
+    accent_warm=(255, 150, 30),
+    accent_moon=(255, 248, 220),
+    accent_cool=(100, 149, 237),
+    accent_green=(0, 200, 0),
 )
 
 # Day theme (new light theme)
@@ -95,6 +109,12 @@ DAY_THEME = Theme(
     # Dividers
     divider=(200, 198, 190),
     outline=(180, 178, 170),
+    # Accents - darker variants for readability on the cream background
+    accent_sun=(160, 100, 0),
+    accent_warm=(180, 70, 0),
+    accent_moon=(125, 95, 10),
+    accent_cool=(30, 90, 180),
+    accent_green=(20, 115, 40),
 )
 
 
