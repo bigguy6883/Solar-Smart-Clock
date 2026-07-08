@@ -55,6 +55,11 @@ class WeatherProvider:
     Data is cached and refreshed at configurable intervals.
     """
 
+    # Seconds to wait after a failed fetch before trying again. Without this,
+    # views that render every second would retry (and block) on every tick
+    # while the network or API is down.
+    RETRY_BACKOFF = 60
+
     # AQI breakpoints for US EPA scale
     AQI_BREAKPOINTS = [
         (0, 50, "Good"),
@@ -98,6 +103,8 @@ class WeatherProvider:
         self._air_quality: Optional[AirQuality] = None
         self._weather_updated: float = 0
         self._aqi_updated: float = 0
+        self._weather_attempted: float = 0
+        self._aqi_attempted: float = 0
 
     def get_current_weather(self) -> Optional[CurrentWeather]:
         """
@@ -108,7 +115,8 @@ class WeatherProvider:
         if self._is_cache_valid(self._weather_updated, self.weather_interval):
             return self._current_weather
 
-        self._fetch_weather()
+        if not self._in_backoff(self._weather_attempted):
+            self._fetch_weather()
         return self._current_weather
 
     def get_forecast(self, days: int = 3) -> Optional[list[DailyForecast]]:
@@ -124,7 +132,8 @@ class WeatherProvider:
         if self._is_cache_valid(self._weather_updated, self.weather_interval):
             return self._forecast[:days] if self._forecast else None
 
-        self._fetch_weather()
+        if not self._in_backoff(self._weather_attempted):
+            self._fetch_weather()
         return self._forecast[:days] if self._forecast else None
 
     def get_air_quality(self) -> Optional[AirQuality]:
@@ -132,18 +141,25 @@ class WeatherProvider:
         if self._is_cache_valid(self._aqi_updated, self.aqi_interval):
             return self._air_quality
 
-        self._fetch_air_quality()
+        if not self._in_backoff(self._aqi_attempted):
+            self._fetch_air_quality()
         return self._air_quality
 
     def _is_cache_valid(self, last_update: float, interval: int) -> bool:
         """Check if cached data is still valid."""
         return time.time() - last_update < interval
 
+    def _in_backoff(self, last_attempt: float) -> bool:
+        """Check if a recent fetch attempt means we should not retry yet."""
+        return time.time() - last_attempt < self.RETRY_BACKOFF
+
     def _fetch_weather(self) -> None:
         """Fetch current weather and forecast from API concurrently."""
         if not self.api_key:
             logger.warning("No API key configured, skipping weather fetch")
             return
+
+        self._weather_attempted = time.time()
 
         current_url = (
             f"https://api.openweathermap.org/data/2.5/weather"
@@ -214,6 +230,8 @@ class WeatherProvider:
         if not self.api_key:
             logger.warning("No API key configured, skipping AQI fetch")
             return
+
+        self._aqi_attempted = time.time()
 
         try:
             url = (

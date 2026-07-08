@@ -194,6 +194,50 @@ class TestWeatherProvider:
         assert "2026-02-20" not in dates, "Fully-malformed date should be skipped"
         assert "2026-02-21" in dates, "Valid date should still appear"
 
+    def test_failed_fetch_backs_off(self, provider):
+        """After a failed fetch, calls within the backoff window must not hit the API again."""
+        with patch("solar_clock.data.weather.requests.get") as mock_get:
+            mock_get.side_effect = requests.Timeout()
+
+            provider.get_current_weather()
+            calls_after_first = mock_get.call_count
+            assert calls_after_first > 0, "First call should attempt a fetch"
+
+            # Immediate retry (e.g., next 1-second render tick) must be suppressed
+            provider.get_current_weather()
+            assert (
+                mock_get.call_count == calls_after_first
+            ), "Fetch retried within backoff window"
+
+    def test_fetch_retries_after_backoff_expires(self, provider):
+        """Once the backoff window has passed, a new fetch attempt is made."""
+        with patch("solar_clock.data.weather.requests.get") as mock_get:
+            mock_get.side_effect = requests.Timeout()
+
+            provider.get_current_weather()
+            calls_after_first = mock_get.call_count
+
+            # Simulate backoff window elapsed
+            provider._weather_attempted -= WeatherProvider.RETRY_BACKOFF + 1
+            provider.get_current_weather()
+            assert (
+                mock_get.call_count > calls_after_first
+            ), "Fetch not retried after backoff expired"
+
+    def test_failed_aqi_fetch_backs_off(self, provider):
+        """AQI fetches also back off after a failure."""
+        with patch("solar_clock.data.weather.requests.get") as mock_get:
+            mock_get.side_effect = requests.Timeout()
+
+            provider.get_air_quality()
+            calls_after_first = mock_get.call_count
+            assert calls_after_first > 0
+
+            provider.get_air_quality()
+            assert (
+                mock_get.call_count == calls_after_first
+            ), "AQI fetch retried within backoff window"
+
     def test_weather_fetch_atomic_on_forecast_failure(self, provider):
         """If forecast fails, neither _current_weather nor _weather_updated should change."""
         old_weather = provider._current_weather  # None initially
