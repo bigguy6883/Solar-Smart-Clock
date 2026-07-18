@@ -70,127 +70,9 @@ for i in 1 2 3 4 5 6 7 8 9; do
 done
 ```
 
-## Architecture
-
-### Package Structure
-
-```
-solar_clock/
-├── __init__.py
-├── __main__.py          # Entry point for python -m solar_clock
-├── main.py              # SolarClock class, main loop
-├── config.py            # Configuration dataclasses and loading
-├── display.py           # Framebuffer handling (RGB565)
-├── http_server.py       # HTTP API server with rate limiting
-├── touch_handler.py     # Touch input (evdev)
-├── data/
-│   ├── __init__.py
-│   ├── weather.py       # WeatherProvider (OpenWeatherMap)
-│   ├── solar.py         # SolarProvider (astral)
-│   └── lunar.py         # LunarProvider (ephem)
-└── views/
-    ├── __init__.py      # VIEW_CLASSES list
-    ├── base.py          # BaseView, ViewManager, DataProviders, layout constants
-    ├── colors.py        # Semantic color definitions (Colors class + flat exports)
-    ├── font_manager.py  # FontManager singleton with caching
-    ├── layout_helpers.py # Grid/column/centering layout utilities
-    ├── renderers.py     # HeaderRenderer, PanelRenderer, NavBarRenderer
-    ├── theme.py         # Theme, ThemeManager, DAY_THEME/NIGHT_THEME
-    ├── clock.py         # ClockView
-    ├── weather.py       # WeatherView
-    ├── airquality.py    # AirQualityView
-    ├── sunpath.py       # SunPathView
-    ├── daylength.py     # DayLengthView
-    ├── solar.py         # SolarView
-    ├── moon.py          # MoonView
-    ├── analemma.py      # AnalemmaView
-    └── analogclock.py   # AnalogClockView
-```
-
-### Core Classes
-
-| Module | Class | Purpose |
-|--------|-------|---------|
-| `main.py` | `SolarClock` | Main application - initializes components, runs main loop |
-| `config.py` | `Config` | Configuration container with validation |
-| `display.py` | `Display` | Framebuffer operations (open, write, RGB565 conversion) |
-| `http_server.py` | `ScreenshotHandler` | HTTP request handler for API endpoints |
-| `http_server.py` | `RateLimiter` | Token bucket rate limiting |
-| `touch_handler.py` | `TouchHandler` | Threaded evdev input for swipes and taps |
-| `views/base.py` | `BaseView` | Abstract base for all views |
-| `views/base.py` | `ViewManager` | View navigation and rendering |
-| `views/base.py` | `DataProviders` | Container for weather/solar/lunar providers |
-| `views/theme.py` | `Theme` | Frozen dataclass defining a color theme |
-| `views/theme.py` | `ThemeManager` | Singleton managing auto/day/night theme switching |
-| `views/font_manager.py` | `FontManager` | Singleton font cache with preloading |
-| `views/renderers.py` | `NavBarRenderer` | Bottom nav bar with page indicator dots |
-
-### View System
-
-Views inherit from `BaseView` and implement `render_content()`. The base class handles navigation bar rendering.
-
-| Index | View | Class | File |
-|-------|------|-------|------|
-| 0 | clock | `ClockView` | `views/clock.py` |
-| 1 | weather | `WeatherView` | `views/weather.py` |
-| 2 | airquality | `AirQualityView` | `views/airquality.py` |
-| 3 | sunpath | `SunPathView` | `views/sunpath.py` |
-| 4 | daylength | `DayLengthView` | `views/daylength.py` |
-| 5 | solar | `SolarView` | `views/solar.py` |
-| 6 | moon | `MoonView` | `views/moon.py` |
-| 7 | analemma | `AnalemmaView` | `views/analemma.py` |
-| 8 | analogclock | `AnalogClockView` | `views/analogclock.py` |
-
-### Data Flow
-
-1. `main.py:SolarClock.__init__()` - Initializes providers, views, display, HTTP server, touch handler
-2. `main.py:SolarClock.run()` - Main loop, renders current view every `update_interval` seconds
-3. `views/base.py:ViewManager.render_current()` - Calls current view's `render()` method
-4. `views/base.py:BaseView.render()` - Creates image, calls `render_content()`, adds nav bar
-5. `display.py:Display.write_frame()` - Converts to RGB565, writes to `/dev/fb1`
-
-### Data Providers
-
-| Provider | Library | Data |
-|----------|---------|------|
-| `WeatherProvider` | requests | Current weather, 3-day forecast, AQI (OpenWeatherMap) |
-| `SolarProvider` | astral | Sunrise, sunset, dawn, dusk, golden hour, sun position |
-| `LunarProvider` | ephem | Moon phase, illumination, solstice/equinox dates |
-
 ## Configuration
 
-Configuration is loaded from `config.json` (searched in cwd, `~/.config/solar-clock/`, `/etc/solar-clock/`).
-
-### Key Config Sections
-
-```python
-@dataclass
-class Config:
-    location: LocationConfig      # name, region, timezone, lat/lon
-    display: DisplayConfig        # width, height, framebuffer, nav_bar_height
-    http_server: HttpServerConfig # enabled, port, bind_address, rate_limit
-    weather: WeatherConfig        # update_interval_seconds, units
-    air_quality: AirQualityConfig # update_interval_seconds
-    touch: TouchConfig            # enabled, device, swipe/tap thresholds
-    appearance: AppearanceConfig  # default_view, theme_mode (auto/day/night)
-```
-
-### Example config.json
-
-```json
-{
-  "location": {
-    "name": "City",
-    "region": "State, Country",
-    "timezone": "America/New_York",
-    "latitude": 40.7128,
-    "longitude": -74.0060
-  },
-  "http_server": {
-    "bind_address": "0.0.0.0"
-  }
-}
-```
+Configuration is loaded from `config.json` (searched in cwd, `~/.config/solar-clock/`, `/etc/solar-clock/`). Sections and defaults are defined in `config.py` dataclasses.
 
 ### Environment Variables
 
@@ -211,15 +93,6 @@ Layout constants (`Spacing`, `Layout`, `FontSize`) are in `views/base.py`.
 4. Add to `VIEW_CLASSES` list in `views/__init__.py`
 
 View count validation is dynamic (`len(VIEW_CLASSES)`), no config changes needed.
-
-## Testing Views
-
-```bash
-# Navigate to specific view and capture
-curl http://clock.local:8080/next  # repeat as needed
-curl http://clock.local:8080/view  # check current view
-curl -o test.png http://clock.local:8080/screenshot
-```
 
 ## Privacy
 
