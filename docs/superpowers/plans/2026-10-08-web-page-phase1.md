@@ -1473,7 +1473,7 @@ These pure functions copy the TFT's text formats and colour rules, so views stay
 - Produces:
   - `format.js`: `zoned`, `time12`, `time12Bare`, `clockParts`, `longDate`, `shortDate`, `weekdayShort`, `hoursMinutes`, `dayLengthPadded`, `dayLengthText`, `countdownHM`, `dayFraction`, `compass8`, `fixed` and `escapeHtml`.
   - `theme.js`: `namedColors(data)`, `cssVariables(palette)`, `timeOfDayHeader(now, sun, colors, tz)`, `aqiHeaderColor`, `aqiTextColor` and `pollutantBarColor`.
-  - `nav.js`: `SWIPE_MIN_PX`, `wrapIndex`, `indexFromHash` and `swipeDelta`. A swipe left (finger moves right to left) means next view, the phone convention.
+  - `nav.js`: `SWIPE_MIN_PX`, `wrapIndex`, `indexFromHash` and `swipeDelta`. A swipe right (finger moves left to right) means next view, the same direction as the TFT (`touch_handler.py`: `dx > 0` is next). Peter chose this on 2026-10-08.
   - `fixtures.mjs`: `TZ`, `NOW` (Thu 8 Oct 2026, 3:12 PM New York), `sampleNow()`, `HOSTILE` and `assertShows`.
 
 - [ ] **Step 1: Write the fixtures and failing tests**
@@ -1741,10 +1741,10 @@ test("the URL hash picks the view, defaulting to Clock", () => {
 });
 
 test("a clear horizontal swipe moves one view; anything else is ignored", () => {
-  assert.equal(swipeDelta(-80, 10), 1);
-  assert.equal(swipeDelta(80, 10), -1);
-  assert.equal(swipeDelta(-30, 0), 0);
-  assert.equal(swipeDelta(-80, 120), 0);
+  assert.equal(swipeDelta(80, 10), 1); // right = next, as on the TFT
+  assert.equal(swipeDelta(-80, 10), -1);
+  assert.equal(swipeDelta(30, 0), 0);
+  assert.equal(swipeDelta(80, 120), 0);
 });
 ```
 
@@ -2001,10 +2001,13 @@ export function indexFromHash(hash, names) {
   return index === -1 ? 0 : index;
 }
 
-/** +1 (next view) for a swipe left, -1 (previous) for a swipe right, else 0. */
+/**
+ * +1 (next view) for a swipe right, -1 (previous) for a swipe left, else 0.
+ * Same direction as the TFT (touch_handler.py: dx > 0 is next).
+ */
 export function swipeDelta(dx, dy) {
   if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) <= Math.abs(dy)) return 0;
-  return dx < 0 ? 1 : -1;
+  return dx > 0 ? 1 : -1;
 }
 ```
 
@@ -2279,7 +2282,7 @@ test("an unknown link opens Clock", async () => {
   assert.match(page.elements.view.innerHTML, /Sunrise/);
 });
 
-test("a swipe left moves to the next view; a vertical drag does not", async () => {
+test("a swipe right moves to the next view, as on the TFT; a vertical drag does not", async () => {
   page = installDom({ responses: [sampleNow()] });
   await loadApp();
   const swipe = (from, to) => {
@@ -2288,7 +2291,7 @@ test("a swipe left moves to the next view; a vertical drag does not", async () =
   };
   swipe({ clientX: 200, clientY: 100 }, { clientX: 190, clientY: 400 });
   assert.equal(page.location.hash, "");
-  swipe({ clientX: 300, clientY: 200 }, { clientX: 120, clientY: 210 });
+  swipe({ clientX: 120, clientY: 200 }, { clientX: 300, clientY: 210 });
   assert.equal(page.location.hash, `#${nameAt(1)}`);
 });
 
