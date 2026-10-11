@@ -35,6 +35,11 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
+      - name: Set up Node.js (web page contract test)
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
       - name: Run tests with coverage
         run: |
           pytest tests/ -v --cov=solar_clock --cov-report=xml --cov-report=term-missing
@@ -45,6 +50,19 @@ jobs:
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Run web page tests
+        run: node --test tests/web/*.test.mjs
 
   lint:
     runs-on: ubuntu-latest
