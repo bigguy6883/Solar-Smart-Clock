@@ -564,12 +564,15 @@ class TestWebPageRoutes:
         assert _request("/style.css", wrong)[0] == 429
         assert _request("/", wrong)[0] == 429
 
-    def test_page_files_skip_the_rate_limit_when_logged_in(self):
+    def test_rate_limit_does_not_reveal_a_right_password(self):
+        # With a login configured, page files count against the limit whatever
+        # credentials they carry. Otherwise 200-versus-429 would answer every
+        # password guess even after the limit is used up.
         ScreenshotHandler.auth_credentials = ("peter", "right")
         ScreenshotHandler.rate_limiter = RateLimiter(rate_per_second=1)
         right = self._login("peter", "right")
-        for _ in range(5):
-            assert _request("/style.css", right)[0] == 200
+        assert _request("/style.css", right)[0] == 200
+        assert _request("/style.css", right)[0] == 429
 
     def test_existing_endpoints_still_work_alongside_the_page(self):
         status, _, body = _request("/health")
