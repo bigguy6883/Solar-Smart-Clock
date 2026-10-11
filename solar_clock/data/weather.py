@@ -1,6 +1,7 @@
 """Weather data provider using OpenWeatherMap API."""
 
 import logging
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -106,6 +107,12 @@ class WeatherProvider:
         self._weather_attempted: float = 0
         self._aqi_attempted: float = 0
 
+        # The TFT main loop and the web page's HTTP thread share this provider.
+        # One fetch per endpoint at a time: a caller that finds a fetch already
+        # running gets the cached data instead of starting a duplicate.
+        self._weather_fetch_lock = threading.Lock()
+        self._aqi_fetch_lock = threading.Lock()
+
     def get_current_weather(self) -> Optional[CurrentWeather]:
         """
         Get current weather conditions.
@@ -154,6 +161,15 @@ class WeatherProvider:
         return time.time() - last_attempt < self.RETRY_BACKOFF
 
     def _fetch_weather(self) -> None:
+        """Fetch weather unless another thread is already fetching it."""
+        if not self._weather_fetch_lock.acquire(blocking=False):
+            return
+        try:
+            self._fetch_weather_unlocked()
+        finally:
+            self._weather_fetch_lock.release()
+
+    def _fetch_weather_unlocked(self) -> None:
         """Fetch current weather and forecast from API concurrently."""
         if not self.api_key:
             logger.warning("No API key configured, skipping weather fetch")
@@ -226,6 +242,15 @@ class WeatherProvider:
             logger.warning(f"Failed to parse weather data: {e}")
 
     def _fetch_air_quality(self) -> None:
+        """Fetch air quality unless another thread is already fetching it."""
+        if not self._aqi_fetch_lock.acquire(blocking=False):
+            return
+        try:
+            self._fetch_air_quality_unlocked()
+        finally:
+            self._aqi_fetch_lock.release()
+
+    def _fetch_air_quality_unlocked(self) -> None:
         """Fetch air quality data from API."""
         if not self.api_key:
             logger.warning("No API key configured, skipping AQI fetch")

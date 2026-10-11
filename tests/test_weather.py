@@ -1,5 +1,8 @@
 """Tests for weather data provider."""
 
+import threading
+import time
+
 import pytest
 from unittest.mock import patch, MagicMock
 import requests
@@ -267,3 +270,84 @@ class TestWeatherProvider:
         assert (
             provider._weather_updated == old_updated
         ), "_weather_updated timestamp advanced despite partial failure"
+
+
+class TestFetchLock:
+    """The TFT loop and the web page's HTTP thread share one WeatherProvider."""
+
+    @pytest.fixture
+    def provider(self):
+        return WeatherProvider(api_key="test_api_key", latitude=40.7, longitude=-74.0)
+
+    @staticmethod
+    def _blocking_get(started, release, payload_for):
+        """A requests.get stand-in that holds the first fetch open until released."""
+
+        def fake_get(url, timeout=10):
+            started.set()
+            assert release.wait(timeout=5), "test never released the fetch"
+            resp = MagicMock()
+            resp.raise_for_status.return_value = None
+            resp.json.return_value = payload_for(url)
+            return resp
+
+        return fake_get
+
+    def test_concurrent_weather_fetch_hits_api_once(
+        self, provider, mock_weather_response, mock_forecast_response
+    ):
+        started, release = threading.Event(), threading.Event()
+        fake_get = self._blocking_get(
+            started,
+            release,
+            lambda url: (
+                mock_forecast_response if "forecast" in url else mock_weather_response
+            ),
+        )
+        with patch(
+            "solar_clock.data.weather.requests.get", side_effect=fake_get
+        ) as get:
+            first = threading.Thread(target=provider._fetch_weather)
+            first.start()
+            assert started.wait(timeout=5)
+
+            began = time.monotonic()
+            provider._fetch_weather()  # second caller while the first is mid-fetch
+            assert time.monotonic() - began < 0.5, "second caller waited for the first"
+
+            release.set()
+            first.join(timeout=5)
+
+        assert get.call_count == 2  # current + forecast, from the first fetch only
+        assert provider.get_current_weather().temperature == 72.5
+
+    def test_concurrent_aqi_fetch_hits_api_once(self, provider, mock_aqi_response):
+        started, release = threading.Event(), threading.Event()
+        fake_get = self._blocking_get(started, release, lambda url: mock_aqi_response)
+        with patch(
+            "solar_clock.data.weather.requests.get", side_effect=fake_get
+        ) as get:
+            first = threading.Thread(target=provider._fetch_air_quality)
+            first.start()
+            assert started.wait(timeout=5)
+
+            began = time.monotonic()
+            provider._fetch_air_quality()
+            assert time.monotonic() - began < 0.5, "second caller waited for the first"
+
+            release.set()
+            first.join(timeout=5)
+
+        assert get.call_count == 1
+        assert provider.get_air_quality() is not None
+
+    def test_lock_released_after_failed_fetch(self, provider):
+        with patch(
+            "solar_clock.data.weather.requests.get", side_effect=requests.Timeout()
+        ):
+            provider._fetch_weather()
+            provider._fetch_air_quality()
+
+        for lock in (provider._weather_fetch_lock, provider._aqi_fetch_lock):
+            assert lock.acquire(blocking=False), "lock left held after a failure"
+            lock.release()
