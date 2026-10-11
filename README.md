@@ -40,6 +40,7 @@ Navigate between nine views using touchscreen swipes or the < > buttons:
 ### Additional Features
 - Touch navigation (swipe left/right, tap buttons)
 - HTTP API for remote screenshots and navigation
+- Web page with the same views for phones and laptops on your home network
 - Auto-start via systemd service
 - Configurable location, timezone, and settings
 
@@ -149,6 +150,8 @@ The clock runs an HTTP server for remote control and screenshots.
 | `GET /prev` | Navigate to previous view |
 | `GET /view` | Get current view name and index |
 | `GET /health` | Health check (returns "OK") |
+| `GET /` | The web page |
+| `GET /api/now` | JSON behind the web page (read-only) |
 
 **Note**: By default, the HTTP server only accepts connections from localhost. Use `--bind-all` flag or set `http_server.bind_address` to `"0.0.0.0"` for network access.
 
@@ -164,6 +167,16 @@ curl -o screen.png http://clock.local:8080/screenshot
 curl http://localhost:8080/next
 curl http://localhost:8080/view
 ```
+
+## Web Page
+
+The clock serves a phone-friendly page with its views at `http://clock.local:8080/`
+(home network only; the HTTP server must bind to `0.0.0.0`). Swipe, tap the arrows
+or use the arrow keys to change views. This never changes what the clock's own
+screen shows. Colours follow the clock's day/night theme. Use your browser's
+"Add to Home Screen" (phone) or "Create shortcut" (desktop) for an app icon.
+
+Views: Clock, Weather, Air Quality, Solar Details and Moon Phase.
 
 ## Hardware Requirements
 
@@ -211,6 +224,9 @@ solar-clock/
 │   ├── display.py           # Framebuffer handling
 │   ├── http_server.py       # HTTP API server
 │   ├── touch_handler.py     # Touch input
+│   ├── web_api.py           # /api/now data for the web page
+│   ├── web_static.py        # Serves the web page's files
+│   ├── web/                 # The web page (HTML, CSS, JavaScript modules, icons)
 │   ├── data/
 │   │   ├── weather.py       # OpenWeatherMap provider
 │   │   ├── solar.py         # Sun calculations (astral)
@@ -262,6 +278,17 @@ pre-commit install --hook-type pre-commit --hook-type pre-push
 ```bash
 pytest
 pytest --cov=solar_clock  # With coverage
+```
+
+### Web Page
+The page lives in `solar_clock/web/`: plain JavaScript modules, no build step.
+```bash
+# Serve it without a display (port 8091); --sample-weather fills the weather views
+./venv/bin/python -m tools.web_preview --config config.example.json --sample-weather
+# JavaScript tests (Node 18+)
+node --test tests/web/*.test.mjs
+# Redraw the app icon
+./venv/bin/python tools/make_icons.py
 ```
 
 ### Code Style
