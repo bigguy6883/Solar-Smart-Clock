@@ -1,6 +1,7 @@
 """Tests for HTTP server and API endpoints."""
 
 import base64
+import json
 import os
 import time
 from io import BytesIO
@@ -15,6 +16,7 @@ from solar_clock.http_server import (
     create_server,
     start_server_thread,
 )
+from solar_clock.web_static import StaticSite
 
 
 class TestRateLimiter:
@@ -426,3 +428,144 @@ class TestServerCreation:
         # Clean up
         server.shutdown()
         thread.join(timeout=1)
+
+
+def _request(path):
+    """Run one GET through ScreenshotHandler; return (status, headers, body)."""
+    handler = object.__new__(ScreenshotHandler)
+    handler.path = path
+    handler.headers = {}
+    handler.wfile = BytesIO()
+    handler.client_address = ("127.0.0.1", 12345)
+    handler.send_response = Mock()
+    handler.send_header = Mock()
+    handler.end_headers = Mock()
+    handler.do_GET()
+    status = handler.send_response.call_args[0][0]
+    headers = {c[0][0]: c[0][1] for c in handler.send_header.call_args_list}
+    return status, headers, handler.wfile.getvalue()
+
+
+class TestWebPageRoutes:
+    """The web page: its static files and /api/now."""
+
+    @pytest.fixture
+    def site_root(self, tmp_path):
+        root = tmp_path / "web"
+        (root / "js").mkdir(parents=True)
+        (root / "index.html").write_text("<!doctype html><title>Solar Clock</title>")
+        (root / "style.css").write_text("body {}")
+        (root / "js" / "app.js").write_text("export {};")
+        (root / "manifest.webmanifest").write_text("{}")
+        (root / "notes.txt").write_text("not on the allowlist")
+        (tmp_path / "config.json").write_text('{"secret": "coordinates"}')
+        return root
+
+    @pytest.fixture(autouse=True)
+    def web_handler(self, site_root):
+        ScreenshotHandler.clock_instance = MagicMock()
+        ScreenshotHandler.rate_limiter = None
+        ScreenshotHandler.auth_credentials = None
+        ScreenshotHandler.static_site = StaticSite(site_root)
+        ScreenshotHandler.web_service = MagicMock()
+        ScreenshotHandler.web_service.build_now.return_value = {"sun": None}
+        yield
+        ScreenshotHandler.static_site = None
+        ScreenshotHandler.web_service = None
+
+    def test_root_serves_index_html(self):
+        status, headers, body = _request("/")
+        assert status == 200
+        assert headers["Content-Type"] == "text/html; charset=utf-8"
+        assert headers["Cache-Control"] == "no-cache"
+        assert b"Solar Clock" in body
+
+    def test_root_ignores_a_query_string(self):
+        status, _, body = _request("/?from=homescreen")
+        assert status == 200
+        assert b"Solar Clock" in body
+
+    @pytest.mark.parametrize(
+        "path, content_type",
+        [
+            ("/style.css", "text/css; charset=utf-8"),
+            ("/js/app.js", "text/javascript; charset=utf-8"),
+            ("/manifest.webmanifest", "application/manifest+json"),
+        ],
+    )
+    def test_static_files_have_the_right_type(self, path, content_type):
+        status, headers, _ = _request(path)
+        assert status == 200
+        assert headers["Content-Type"] == content_type
+
+    def test_files_outside_the_allowlist_are_not_served(self):
+        status, _, _ = _request("/notes.txt")
+        assert status == 404
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/../config.json",
+            "/js/../../config.json",
+            "/%2e%2e/config.json",
+            "/js/%2e%2e/%2e%2e/config.json",
+            "/..%2fconfig.json",
+        ],
+    )
+    def test_traversal_attempts_get_404(self, path):
+        status, _, body = _request(path)
+        assert status == 404
+        assert b"coordinates" not in body
+
+    def test_api_now_returns_json(self):
+        status, headers, body = _request("/api/now")
+        assert status == 200
+        assert headers["Content-Type"] == "application/json"
+        assert json.loads(body) == {"sun": None}
+
+    def test_api_now_is_503_without_the_service(self):
+        ScreenshotHandler.web_service = None
+        status, _, _ = _request("/api/now")
+        assert status == 503
+
+    def test_api_now_is_500_when_building_fails(self):
+        ScreenshotHandler.web_service.build_now.side_effect = RuntimeError("boom")
+        status, _, body = _request("/api/now")
+        assert status == 500
+        assert b"boom" not in body
+
+    def test_root_is_503_when_the_page_files_failed_to_load(self):
+        ScreenshotHandler.static_site = None
+        status, _, _ = _request("/")
+        assert status == 503
+
+    def test_unknown_api_path_is_404(self):
+        status, _, _ = _request("/api/nope")
+        assert status == 404
+
+    def test_page_files_skip_the_rate_limit_but_the_api_does_not(self):
+        ScreenshotHandler.rate_limiter = RateLimiter(rate_per_second=1)
+        for _ in range(5):
+            assert _request("/style.css")[0] == 200
+        assert _request("/api/now")[0] == 200
+        assert _request("/api/now")[0] == 429
+
+    def test_existing_endpoints_still_work_alongside_the_page(self):
+        status, _, body = _request("/health")
+        assert status == 200
+        assert body == b"OK"
+
+    def test_missing_index_html_stops_the_site_loading(self, tmp_path):
+        with pytest.raises(FileNotFoundError):
+            StaticSite(tmp_path / "empty")
+
+    def test_create_server_hands_over_the_web_page(self):
+        config = MagicMock(enabled=True, port=0, bind_address="127.0.0.1")
+        config.rate_limit_per_second = 10
+        service, site = MagicMock(), MagicMock()
+        server = create_server(config, MagicMock(), service, site)
+        try:
+            assert ScreenshotHandler.web_service is service
+            assert ScreenshotHandler.static_site is site
+        finally:
+            server.server_close()

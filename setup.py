@@ -16,6 +16,16 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/bigguy6883/Solar-Smart-Clock",
     packages=find_packages(exclude=["tests", "tests.*"]),
+    package_data={
+        "solar_clock": [
+            "web/*.html",
+            "web/*.css",
+            "web/*.webmanifest",
+            "web/icons/*",
+            "web/js/*.js",
+            "web/js/views/*.js",
+        ]
+    },
     python_requires=">=3.9",
     install_requires=[
         "Pillow>=10.0.0",

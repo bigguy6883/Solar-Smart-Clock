@@ -8,10 +8,13 @@ import threading
 import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from io import BytesIO
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from .config import HttpServerConfig
+    from .web_api import WebDataService
+    from .web_static import StaticSite
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +45,18 @@ class RateLimiter:
 class ScreenshotHandler(BaseHTTPRequestHandler):
     """HTTP request handler for screenshots and navigation.
 
-    Note: clock_instance, rate_limiter, and auth_credentials are stored as
-    class variables (required by BaseHTTPRequestHandler's design). This means
-    only one server configuration can exist at a time.
+    Note: clock_instance, rate_limiter, auth_credentials, web_service and
+    static_site are stored as class variables (required by
+    BaseHTTPRequestHandler's design). This means only one server configuration
+    can exist at a time.
     """
 
     # Class-level references (set by create_server)
     clock_instance = None
     rate_limiter: Optional[RateLimiter] = None
     auth_credentials: Optional[tuple[str, str]] = None  # (user, pass)
+    web_service: Optional["WebDataService"] = None  # None: page unavailable
+    static_site: Optional["StaticSite"] = None  # None: page unavailable
 
     def log_message(self, format: str, *args) -> None:
         """Override to use proper logging."""
@@ -112,6 +118,34 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(image_data)
 
+    def _send_static_file(self, file_path: Path, content_type: str) -> None:
+        """Send one of the web page's files."""
+        try:
+            body = file_path.read_bytes()
+        except OSError as e:
+            logger.error(f"Could not read {file_path}: {e}")
+            self._send_text(500, "Error reading file")
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _send_api_now(self) -> None:
+        """Send the web page's data. Read-only: never changes clock state."""
+        if self.web_service is None:
+            self._send_text(503, "Web page not available")
+            return
+        try:
+            data = self.web_service.build_now()
+        except Exception:
+            logger.exception("/api/now failed")
+            self._send_json(500, {"error": "internal error"})
+            return
+        self._send_json(200, data)
+
     def _require_clock(self) -> bool:
         """Check that clock_instance is available. Sends 503 if not.
 
@@ -137,8 +171,13 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         """Handle GET requests."""
-        # Rate limiting
-        if self.rate_limiter and not self.rate_limiter.allow():
+        path = self.path.lower()
+        route = path.split("?", 1)[0]  # new web page routes ignore query strings
+        static = self.static_site.resolve(path) if self.static_site else None
+
+        # Rate limiting. The page's own files are exempt: one page load
+        # fetches about a dozen of them at once.
+        if static is None and self.rate_limiter and not self.rate_limiter.allow():
             self._send_rate_limited()
             return
 
@@ -147,7 +186,9 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
             self._send_unauthorized()
             return
 
-        path = self.path.lower()
+        if static is not None:
+            self._send_static_file(*static)
+            return
 
         if path == "/health":
             self._send_text(200, "OK")
@@ -211,6 +252,13 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
             else:
                 self._send_text(404, "Not Found")
 
+        elif route == "/":
+            # Only reached when the page's files failed to load at startup.
+            self._send_text(503, "Web page not available")
+
+        elif route == "/api/now":
+            self._send_api_now()
+
         else:
             self._send_text(404, "Not Found")
 
@@ -218,6 +266,8 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
 def create_server(
     config: "HttpServerConfig",
     clock_instance,
+    web_service: Optional["WebDataService"] = None,
+    static_site: Optional["StaticSite"] = None,
 ) -> Optional[HTTPServer]:
     """
     Create and configure the HTTP server.
@@ -225,6 +275,8 @@ def create_server(
     Args:
         config: HTTP server configuration
         clock_instance: Reference to main clock instance
+        web_service: Data for the web page; None serves 503 on /api/now
+        static_site: The web page's files; None serves 503 on /
 
     Returns:
         Configured HTTPServer, or None if disabled
@@ -236,6 +288,8 @@ def create_server(
     # Set up handler class attributes
     ScreenshotHandler.clock_instance = clock_instance
     ScreenshotHandler.rate_limiter = RateLimiter(config.rate_limit_per_second)
+    ScreenshotHandler.web_service = web_service
+    ScreenshotHandler.static_site = static_site
 
     # Check for auth credentials in environment
     auth_user = os.environ.get("HTTP_AUTH_USER")
