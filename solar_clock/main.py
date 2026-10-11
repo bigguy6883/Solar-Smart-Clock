@@ -18,6 +18,8 @@ from .data import WeatherProvider, SolarProvider, LunarProvider
 from .views import VIEW_CLASSES, ViewManager
 from .views.base import DataProviders
 from .views.theme import ThemeManager
+from .web_api import WebDataService
+from .web_static import StaticSite
 
 # Configure logging
 logging.basicConfig(
@@ -90,8 +92,25 @@ class SolarClock:
         # Initialize display
         self.display = Display(config.display)
 
+        # Web page data and files. A failure here must never stop the clock.
+        web_service: Optional[WebDataService] = None
+        static_site: Optional[StaticSite] = None
+        try:
+            web_service = WebDataService(
+                config,
+                weather=self.providers.weather,
+                theme_mode=lambda: self.theme_manager.mode,
+            )
+            static_site = StaticSite()
+        except Exception:
+            logger.exception("Web page disabled")
+            web_service = None
+            static_site = None
+
         # Initialize HTTP server
-        self.http_server = create_server(config.http_server, self)
+        self.http_server = create_server(
+            config.http_server, self, web_service, static_site
+        )
         self.http_thread: Optional[threading.Thread] = None
 
         # Initialize touch handler

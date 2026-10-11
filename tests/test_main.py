@@ -1,6 +1,7 @@
 """Tests for main application lifecycle and SolarClock class."""
 
 import signal
+from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -8,6 +9,7 @@ import pytest
 from PIL import Image
 
 from solar_clock.main import SolarClock, main
+from solar_clock.web_api import WebDataService
 
 
 class TestSolarClock:
@@ -466,3 +468,60 @@ def test_view_changed_clear_before_wait_order():
         f"view_changed.clear() (pos {clear_pos}) must come before "
         f"view_changed.wait() (pos {wait_pos}) in run()"
     )
+
+
+class TestWebPageWiring:
+    """SolarClock hands the web page to the HTTP server without risking the clock."""
+
+    @staticmethod
+    def _build(config, *extra_patches):
+        """Construct SolarClock with hardware mocked; return (clock, create_server mock)."""
+        with ExitStack() as stack:
+            stack.enter_context(
+                patch("solar_clock.main.get_api_key", return_value=None)
+            )
+            stack.enter_context(patch("solar_clock.main.VIEW_CLASSES", []))
+            stack.enter_context(patch("solar_clock.main.ViewManager"))
+            stack.enter_context(patch("solar_clock.main.Display"))
+            stack.enter_context(patch("solar_clock.main.TouchHandler"))
+            create_server = stack.enter_context(patch("solar_clock.main.create_server"))
+            for extra in extra_patches:
+                stack.enter_context(extra)
+            clock = SolarClock(config)
+        return clock, create_server
+
+    def test_server_receives_web_service_and_site(self, sample_config):
+        clock, create_server = self._build(
+            sample_config, patch("solar_clock.main.StaticSite")
+        )
+        args = create_server.call_args[0]
+        assert args[0] is sample_config.http_server
+        assert args[1] is clock
+        assert isinstance(args[2], WebDataService)
+        assert args[3] is not None
+
+    def test_web_failure_does_not_stop_the_clock(self, sample_config, caplog):
+        clock, create_server = self._build(
+            sample_config,
+            patch("solar_clock.main.WebDataService", side_effect=RuntimeError("boom")),
+        )
+        assert clock.view_manager is not None
+        assert create_server.call_args[0][2:] == (None, None)
+        assert "Web page disabled" in caplog.text
+
+    def test_missing_page_files_disable_the_page(self, sample_config):
+        _, create_server = self._build(
+            sample_config,
+            patch("solar_clock.main.StaticSite", side_effect=FileNotFoundError("gone")),
+        )
+        assert create_server.call_args[0][2:] == (None, None)
+
+    def test_web_page_follows_the_clock_theme_mode(self, sample_config):
+        clock, create_server = self._build(
+            sample_config, patch("solar_clock.main.StaticSite")
+        )
+        web_service = create_server.call_args[0][2]
+        clock.theme_manager.set_mode("night")
+        assert web_service.build_now()["theme"]["active"] == "night"
+        clock.theme_manager.set_mode("day")
+        assert web_service.build_now()["theme"]["active"] == "day"
