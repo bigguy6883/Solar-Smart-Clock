@@ -5,7 +5,7 @@ import { VIEWS } from "../../solar_clock/web/js/views/index.js";
 import { HOSTILE, NOW, sampleNow } from "./fixtures.mjs";
 
 test("views come in TFT order and each has a name, title and render()", () => {
-  assert.deepEqual(VIEWS.map((v) => v.name), ["clock"]);
+  assert.deepEqual(VIEWS.map((v) => v.name), ["clock", "weather", "airquality"]);
   for (const view of VIEWS) {
     assert.equal(typeof view.title, "string");
     assert.equal(typeof view.render(sampleNow(), NOW), "string");
