@@ -176,13 +176,16 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
         static = self.static_site.resolve(path) if self.static_site else None
 
         # Rate limiting. The page's own files are exempt: one page load
-        # fetches about a dozen of them at once.
-        if static is None and self.rate_limiter and not self.rate_limiter.allow():
+        # fetches about a dozen of them at once. A request that fails the
+        # login check is never exempt, so password guesses stay limited.
+        authorized = self._check_auth()
+        exempt = static is not None and authorized
+        if not exempt and self.rate_limiter and not self.rate_limiter.allow():
             self._send_rate_limited()
             return
 
         # Authentication
-        if not self._check_auth():
+        if not authorized:
             self._send_unauthorized()
             return
 

@@ -430,11 +430,11 @@ class TestServerCreation:
         thread.join(timeout=1)
 
 
-def _request(path):
+def _request(path, request_headers=None):
     """Run one GET through ScreenshotHandler; return (status, headers, body)."""
     handler = object.__new__(ScreenshotHandler)
     handler.path = path
-    handler.headers = {}
+    handler.headers = request_headers or {}
     handler.wfile = BytesIO()
     handler.client_address = ("127.0.0.1", 12345)
     handler.send_response = Mock()
@@ -472,6 +472,7 @@ class TestWebPageRoutes:
         yield
         ScreenshotHandler.static_site = None
         ScreenshotHandler.web_service = None
+        ScreenshotHandler.auth_credentials = None
 
     def test_root_serves_index_html(self):
         status, headers, body = _request("/")
@@ -549,6 +550,26 @@ class TestWebPageRoutes:
             assert _request("/style.css")[0] == 200
         assert _request("/api/now")[0] == 200
         assert _request("/api/now")[0] == 429
+
+    @staticmethod
+    def _login(user, password):
+        token = base64.b64encode(f"{user}:{password}".encode()).decode()
+        return {"Authorization": f"Basic {token}"}
+
+    def test_wrong_password_on_a_page_file_is_still_rate_limited(self):
+        ScreenshotHandler.auth_credentials = ("peter", "right")
+        ScreenshotHandler.rate_limiter = RateLimiter(rate_per_second=1)
+        wrong = self._login("peter", "wrong")
+        assert _request("/style.css", wrong)[0] == 401
+        assert _request("/style.css", wrong)[0] == 429
+        assert _request("/", wrong)[0] == 429
+
+    def test_page_files_skip_the_rate_limit_when_logged_in(self):
+        ScreenshotHandler.auth_credentials = ("peter", "right")
+        ScreenshotHandler.rate_limiter = RateLimiter(rate_per_second=1)
+        right = self._login("peter", "right")
+        for _ in range(5):
+            assert _request("/style.css", right)[0] == 200
 
     def test_existing_endpoints_still_work_alongside_the_page(self):
         status, _, body = _request("/health")
