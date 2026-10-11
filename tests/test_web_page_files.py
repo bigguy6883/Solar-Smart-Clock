@@ -1,8 +1,11 @@
 """Checks on the web page's own files in solar_clock/web/."""
 
+import json
 import re
 from html.parser import HTMLParser
 from pathlib import PurePosixPath
+
+from PIL import Image
 
 from solar_clock.web_static import WEB_DIR, StaticSite
 
@@ -53,3 +56,42 @@ def test_every_javascript_import_is_served():
                     parts.append(part)
             url = "/" + "/".join(parts)
             assert site.resolve(url) is not None, f"{script.name} imports missing {url}"
+
+
+ICON_SIZES = {
+    "favicon-32.png": 32,
+    "apple-touch-icon.png": 180,
+    "icon-192.png": 192,
+    "icon-512.png": 512,
+    "icon-maskable-512.png": 512,
+}
+
+
+def test_index_links_the_icons_and_manifest():
+    refs = _index_references()
+    for ref in (
+        "/icons/icon.svg",
+        "/icons/favicon-32.png",
+        "/icons/apple-touch-icon.png",
+        "/manifest.webmanifest",
+    ):
+        assert ref in refs, f"index.html does not link {ref}"
+
+
+def test_manifest_icons_are_served_at_their_declared_size():
+    site = StaticSite()
+    manifest = json.loads((WEB_DIR / "manifest.webmanifest").read_text())
+    assert manifest["name"] == "Solar Clock"
+    assert manifest["start_url"] == "/"
+    assert any(icon.get("purpose") == "maskable" for icon in manifest["icons"])
+    for icon in manifest["icons"]:
+        resolved = site.resolve(icon["src"])
+        assert resolved is not None, f"manifest lists missing {icon['src']}"
+        width, height = Image.open(resolved[0]).size
+        assert f"{width}x{height}" == icon["sizes"], icon["src"]
+
+
+def test_icon_files_have_the_spec_sizes():
+    for name, size in ICON_SIZES.items():
+        assert Image.open(WEB_DIR / "icons" / name).size == (size, size), name
+    assert (WEB_DIR / "icons" / "icon.svg").read_text().startswith("<svg")
