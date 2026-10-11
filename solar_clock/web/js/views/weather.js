@@ -19,7 +19,7 @@ export function render(data) {
   const unit = data.units === "metric" ? "°C" : "°F";
   return `${header}
 <div class="view-body">
-  <div class="row">
+  <div class="row wide">
     <section class="panel">
       <span class="temp-big">${fixed(current.temperature)}${unit}</span>
       <span class="secondary small">Feels ${fixed(current.feels_like)}°</span>

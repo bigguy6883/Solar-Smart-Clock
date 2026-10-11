@@ -57,6 +57,8 @@ body {
 .view-body p { margin: 0; }
 
 .row { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+/* The forecast table needs about 190px, so this row stacks on a phone in portrait. */
+.row.wide { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
 .panel { min-width: 0; padding: 10px 12px; border-radius: 8px; background: var(--background-panel); }
 .panel.dark { background: var(--background-panel-dark); }
 .panel.boxed { border: 1px solid var(--outline); border-radius: 0; }
