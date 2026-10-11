@@ -30,3 +30,16 @@ test("text from the API is escaped in every view", () => {
     assert.ok(!view.render(data, NOW).includes("<img"), `${view.name} let markup through`);
   }
 });
+
+test("numbers and colours from the API can't carry markup either", () => {
+  const data = sampleNow();
+  for (const key of Object.keys(data.theme.colors)) data.theme.colors[key] = HOSTILE;
+  data.weather.current.humidity = HOSTILE;
+  for (const day of data.weather.forecast) day.rain_chance = HOSTILE;
+  data.air_quality.aqi = HOSTILE;
+  data.moon.phase.days_to_new = HOSTILE;
+  data.moon.phase.days_to_full = HOSTILE;
+  for (const view of VIEWS) {
+    assert.ok(!view.render(data, NOW).includes("<img"), `${view.name} let markup through`);
+  }
+});

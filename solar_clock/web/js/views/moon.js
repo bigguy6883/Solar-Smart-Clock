@@ -31,8 +31,8 @@ export function render(data) {
     </section>
   </div>
   <div class="row">
-    <section class="panel"><span class="label">New Moon</span><span class="value">${shortDate(p.next_new)} <span class="secondary small">${p.days_to_new}d</span></span></section>
-    <section class="panel"><span class="label">Full Moon</span><span class="value moon">${shortDate(p.next_full)} <span class="secondary small">${p.days_to_full}d</span></span></section>
+    <section class="panel"><span class="label">New Moon</span><span class="value">${shortDate(p.next_new)} <span class="secondary small">${escapeHtml(p.days_to_new)}d</span></span></section>
+    <section class="panel"><span class="label">Full Moon</span><span class="value moon">${shortDate(p.next_full)} <span class="secondary small">${escapeHtml(p.days_to_full)}d</span></span></section>
   </div>
 </div>`;
 }

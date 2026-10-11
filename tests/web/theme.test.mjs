@@ -47,3 +47,9 @@ test("palette keys become CSS variables", () => {
   assert.equal(vars.get("--accent-sun"), "#ffdc32");
   assert.equal(vars.size, 20);
 });
+
+test("only #rrggbb colours are accepted from the API", () => {
+  const theme = { colors: { GOOD: "#00FF7f", QUOTE: 'red" onclick="alert(1)', SHORT: "#fff", NUMBER: 5 } };
+  assert.deepEqual(namedColors({ theme }), { GOOD: "#00FF7f" });
+  assert.deepEqual(namedColors({ theme: null }), {});
+});

@@ -2,9 +2,15 @@
 
 import { zoned } from "./format.js";
 
-/** Fixed named colours from views/colors.py, e.g. colors.LIGHT_BLUE. */
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+/**
+ * Fixed named colours from views/colors.py, e.g. colors.LIGHT_BLUE. Views put
+ * these straight into style attributes, so anything but #rrggbb is dropped.
+ */
 export function namedColors(data) {
-  return data.theme?.colors ?? {};
+  const colors = data.theme?.colors ?? {};
+  return Object.fromEntries(Object.entries(colors).filter(([, value]) => HEX_COLOR.test(value)));
 }
 
 /** CSS custom properties for a palette: background_panel -> --background-panel. */

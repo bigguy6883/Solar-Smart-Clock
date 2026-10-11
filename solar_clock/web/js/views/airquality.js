@@ -29,7 +29,7 @@ export function render(data) {
   <div class="row">
     <section class="panel dark">
       <span class="label">US EPA AQI</span>
-      <span class="aqi-value" style="color:${text}">${aq.aqi}</span>
+      <span class="aqi-value" style="color:${text}">${escapeHtml(aq.aqi)}</span>
       <span class="aqi-category" style="color:${text}">${escapeHtml(aq.category)}</span>
     </section>
     <section class="panel dark">

@@ -23,7 +23,7 @@ export function render(data) {
     <section class="panel">
       <span class="temp-big">${fixed(current.temperature)}${unit}</span>
       <span class="secondary small">Feels ${fixed(current.feels_like)}°</span>
-      <span class="secondary small">Humidity ${current.humidity}%</span>
+      <span class="secondary small">Humidity ${escapeHtml(current.humidity)}%</span>
       <span class="secondary small">Wind ${fixed(current.wind_speed)} ${escapeHtml(current.wind_direction)}</span>
       <span class="sun description">${escapeHtml(current.description)}</span>
     </section>
@@ -39,7 +39,7 @@ function forecastTable(days) {
     .map((day, i) => {
       const label = i < NEAR_DAYS.length ? NEAR_DAYS[i] : weekdayShort(day.date);
       const rain = day.rain_chance < 30 ? "secondary" : "cool";
-      return `<tr><td>${label}</td><td class="num warm">${fixed(day.high_temp)}°</td><td class="num cool">${fixed(day.low_temp)}°</td><td class="${rain}">${day.rain_chance}%</td></tr>`;
+      return `<tr><td>${label}</td><td class="num warm">${fixed(day.high_temp)}°</td><td class="num cool">${fixed(day.low_temp)}°</td><td class="${rain}">${escapeHtml(day.rain_chance)}%</td></tr>`;
     })
     .join("");
   return `<table class="forecast">

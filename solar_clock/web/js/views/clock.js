@@ -45,7 +45,7 @@ function weatherRow(data) {
     <section class="panel">
       <span class="value">${escapeHtml(current.description)}</span>
       <span class="sun">Temp: ${fixed(current.temperature)}${unit}</span>
-      <span class="secondary">Humidity: ${current.humidity}%</span>
+      <span class="secondary">Humidity: ${escapeHtml(current.humidity)}%</span>
     </section>
     ${sunPosition(data.sun?.position)}
   </div>`;
