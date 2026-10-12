@@ -223,6 +223,27 @@ class TestSunPathView:
         assert view.name == "sunpath"
         assert view.title == "Sun Path"
 
+    def test_left_box_names_the_next_event_before_solar_noon(
+        self, sample_config, mock_providers
+    ):
+        """In the morning the box counts down to sunrise, not to solar noon."""
+        from zoneinfo import ZoneInfo
+
+        now = datetime.datetime.now(ZoneInfo("America/New_York"))
+        solar = mock_providers.solar
+        solar.get_sun_times.return_value.noon = now + datetime.timedelta(hours=6)
+        sunrise = now + datetime.timedelta(minutes=50, seconds=30)
+        solar.get_next_solar_event.return_value = ("Sunrise", sunrise)
+
+        drawn = _collect_drawn_text(
+            SunPathView(sample_config, mock_providers), render_index=3
+        )
+
+        assert "Sunrise" in drawn
+        assert "in 0h 50m" in drawn
+        assert f"at {sunrise.strftime('%-I:%M %p')}" in drawn
+        assert "Solar Noon" not in drawn
+
 
 class TestDayLengthView:
     """Tests for DayLengthView."""

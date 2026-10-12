@@ -159,37 +159,18 @@ class SunPathView(BaseView):
         font = self.get_font(14)
         font_value = self.get_bold_font(20)
 
-        # Left box: Solar noon until it passes, then next event
+        # Left box: the next solar event
         draw.rounded_rectangle(
             ((10, y), (230, y + 55)), radius=6, fill=theme.background_panel
         )
 
         if self.providers.solar:
-            # Get today's sun times to check solar noon
-            now = datetime.datetime.now()
-            sun_times = self.providers.solar.get_sun_times(now.date())
-
-            # Determine which event to display
             event_name = None
             event_time = None
 
-            # If solar noon hasn't passed yet today, show it
-            if sun_times and sun_times.noon:
-                solar_noon = sun_times.noon
-                # Handle timezone comparison safely
-                if solar_noon.tzinfo is not None:
-                    now_cmp = now.astimezone(solar_noon.tzinfo)
-                else:
-                    now_cmp = now
-                if solar_noon > now_cmp:
-                    event_name = "Solar Noon"
-                    event_time = solar_noon
-
-            # Otherwise, show next event
-            if event_name is None:
-                next_event = self.providers.solar.get_next_solar_event()
-                if next_event:
-                    event_name, event_time = next_event
+            next_event = self.providers.solar.get_next_solar_event()
+            if next_event:
+                event_name, event_time = next_event
 
             # Display the chosen event
             if event_name and event_time:
