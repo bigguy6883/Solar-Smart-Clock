@@ -79,6 +79,39 @@ export function longDate(now, timeZone) {
   return `${z.weekday}, ${MONTHS[z.month - 1]} ${pad2(z.day)}, ${z.year}`;
 }
 
+/** "%a %b %d", e.g. "Thu Oct 08" (Sun Path view). */
+export function shortWeekdayDate(now, timeZone) {
+  const z = zoned(now, timeZone);
+  return `${z.weekday.slice(0, 3)} ${MONTHS[z.month - 1].slice(0, 3)} ${pad2(z.day)}`;
+}
+
+/** "%A, %B %d", e.g. "Thursday, October 08" (Analog Clock view). */
+export function weekdayDate(now, timeZone) {
+  const z = zoned(now, timeZone);
+  return `${z.weekday}, ${MONTHS[z.month - 1]} ${pad2(z.day)}`;
+}
+
+/** The "YYYY-MM-DD" date of an instant in `timeZone`. */
+export function isoDate(value, timeZone) {
+  const z = zoned(value, timeZone);
+  return `${z.year}-${pad2(z.month)}-${pad2(z.day)}`;
+}
+
+function utcDay(isoDay) {
+  const [year, month, day] = isoDay.split("-").map(Number);
+  return Date.UTC(year, month - 1, day);
+}
+
+/** Whole days from one "YYYY-MM-DD" date to another; negative when `to` is earlier. */
+export function daysBetween(from, to) {
+  return Math.round((utcDay(to) - utcDay(from)) / 86_400_000);
+}
+
+/** The "YYYY-MM-DD" date `days` after (or, when negative, before) another. */
+export function addDays(isoDay, days) {
+  return new Date(utcDay(isoDay) + days * 86_400_000).toISOString().slice(0, 10);
+}
+
 /** "%b %d" for a "YYYY-MM-DD" date, e.g. "Oct 10". */
 export function shortDate(isoDate) {
   const [, month, day] = isoDate.split("-").map(Number);

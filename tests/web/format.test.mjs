@@ -2,8 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  clockParts, compass8, countdownHM, dayFraction, dayLengthPadded, dayLengthText,
-  escapeHtml, fixed, longDate, shortDate, time12, time12Bare, weekdayShort, zoned,
+  addDays, clockParts, compass8, countdownHM, dayFraction, dayLengthPadded, dayLengthText,
+  daysBetween, escapeHtml, fixed, isoDate, longDate, shortDate, shortWeekdayDate, time12,
+  time12Bare, weekdayDate, weekdayShort, zoned,
 } from "../../solar_clock/web/js/format.js";
 import { NOW, TZ } from "./fixtures.mjs";
 
@@ -66,4 +67,28 @@ test("fixed() rounds like Python format()", () => {
 
 test("escapeHtml neutralises markup", () => {
   assert.equal(escapeHtml(`<a href="x">'&'</a>`), "&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;");
+});
+
+test("the chart views' dates match the TFT's strftime patterns", () => {
+  assert.equal(shortWeekdayDate(NOW, TZ), "Thu Oct 08"); // %a %b %d
+  assert.equal(weekdayDate(NOW, TZ), "Thursday, October 08"); // %A, %B %d
+  assert.equal(shortWeekdayDate(NOW, "Asia/Tokyo"), "Fri Oct 09");
+});
+
+test("isoDate is the clock's calendar day, not the viewer's", () => {
+  const lateEvening = new Date("2026-10-08T23:30:00-04:00");
+  assert.equal(isoDate(lateEvening, TZ), "2026-10-08");
+  assert.equal(isoDate(lateEvening, "Asia/Tokyo"), "2026-10-09");
+  assert.equal(isoDate("2026-01-01T00:00:00-05:00", TZ), "2026-01-01");
+});
+
+test("day arithmetic crosses months, years, leap days and clock changes", () => {
+  assert.equal(daysBetween("2026-01-01", "2026-10-08"), 280);
+  assert.equal(daysBetween("2026-10-08", "2026-12-21"), 74);
+  assert.equal(daysBetween("2026-12-21", "2026-10-08"), -74);
+  assert.equal(daysBetween("2028-01-01", "2028-12-31"), 365); // leap year
+  assert.equal(daysBetween("2026-03-07", "2026-03-09"), 2); // across the spring clock change
+  assert.equal(addDays("2026-10-08", -182), "2026-04-09");
+  assert.equal(addDays("2026-01-01", -182), "2025-07-03");
+  assert.equal(addDays("2028-02-28", 2), "2028-03-01");
 });

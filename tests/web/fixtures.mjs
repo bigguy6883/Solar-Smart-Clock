@@ -89,6 +89,61 @@ export function sampleNow() {
   return structuredClone(SAMPLE);
 }
 
+const DAY_MS = 86_400_000;
+const TURN = 2 * Math.PI;
+const round = (value, digits) => Number(value.toFixed(digits));
+const dayOf2026 = (day) => new Date(Date.UTC(2026, 0, 1) + day * DAY_MS).toISOString().slice(0, 10);
+
+/** The equation of time in minutes for a day of the year (textbook approximation). */
+function equationOfTime(day) {
+  const b = (TURN * (day - 81)) / 364;
+  return 9.87 * Math.sin(2 * b) - 7.53 * Math.cos(b) - 1.5 * Math.sin(b);
+}
+
+// A /api/charts response for the same day. The curves are smooth stand-ins
+// with the real shapes and sizes (48, 122 and 53 samples), not real astronomy;
+// tests/test_web_contract.py feeds the views the real thing.
+const CHARTS = {
+  date: "2026-10-08",
+  sun_path: {
+    step_minutes: 30,
+    // Highest (43°) at 12:45 PM, lowest (-55°) at 12:45 AM.
+    elevations: Array.from({ length: 48 }, (_, i) =>
+      round(-6 + 49 * Math.cos((TURN * (i * 30 - 765)) / 1440), 2)),
+  },
+  day_length: {
+    year: 2026,
+    points: Array.from({ length: 122 }, (_, i) =>
+      [i * 3, round(12.17 + 2.92 * Math.sin((TURN * (i * 3 - 80)) / 365), 3)]),
+    shortest: { date: "2026-12-21", hours: 9.245021295277779 },
+    longest: { date: "2026-06-21", hours: 15.086548289166666 },
+    events: [
+      { name: "Vernal", date: "2026-03-20" },
+      { name: "Summer", date: "2026-06-21" },
+      { name: "Autumn", date: "2026-09-23" },
+      { name: "Winter", date: "2026-12-21" },
+    ],
+  },
+  analemma: {
+    points: Array.from({ length: 53 }, (_, week) => ({
+      date: dayOf2026(week * 7),
+      elevation: round(49.3 + 23.4 * Math.sin((TURN * (week * 7 - 80)) / 365), 2),
+      equation_of_time: round(equationOfTime(week * 7), 2),
+    })),
+    equation_of_time: 12.733333333333348,
+  },
+};
+
+/** A fresh copy of the sample charts, safe to modify in a test. */
+export function sampleCharts() {
+  return structuredClone(CHARTS);
+}
+
+/** What app.js hands a view: the /api/now sample with the charts attached. */
+export function samplePage() {
+  return { ...sampleNow(), charts: sampleCharts() };
+}
+
 /** Every string that must never reach the page unescaped. */
 export const HOSTILE = '<img src=x onerror="alert(1)">';
 
