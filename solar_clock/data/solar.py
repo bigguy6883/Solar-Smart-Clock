@@ -250,9 +250,14 @@ class SolarProvider:
 
         return None
 
-    def get_next_solar_event(self) -> Optional[tuple[str, datetime.datetime]]:
+    def get_next_solar_event(
+        self, include_twilight: bool = True
+    ) -> Optional[tuple[str, datetime.datetime]]:
         """
         Get the next upcoming solar event.
+
+        Args:
+            include_twilight: When False, dawn and dusk are skipped
 
         Returns:
             Tuple of (event_name, event_time) for dawn, sunrise, solar noon, sunset, or dusk
@@ -270,15 +275,23 @@ class SolarProvider:
             ("Sunset", sun_times.sunset),
             ("Dusk", sun_times.dusk),
         ]
+        if not include_twilight:
+            events = [event for event in events if event[0] not in ("Dawn", "Dusk")]
 
         for name, event_time in events:
             if event_time and event_time > now:
                 return name, event_time
 
-        # All today's events passed, get tomorrow's dawn
+        # All today's events passed, get tomorrow's first one
         tomorrow = now.date() + datetime.timedelta(days=1)
         tomorrow_times = self.get_sun_times(tomorrow)
-        if tomorrow_times and tomorrow_times.dawn:
-            return "Dawn", tomorrow_times.dawn
+        if tomorrow_times is None:
+            return None
+        if include_twilight:
+            first = ("Dawn", tomorrow_times.dawn)
+        else:
+            first = ("Sunrise", tomorrow_times.sunrise)
+        if first[1]:
+            return first
 
         return None

@@ -159,7 +159,7 @@ class SunPathView(BaseView):
         font = self.get_font(14)
         font_value = self.get_bold_font(20)
 
-        # Left box: the next solar event
+        # Left box: the next of sunrise, solar noon and sunset
         draw.rounded_rectangle(
             ((10, y), (230, y + 55)), radius=6, fill=theme.background_panel
         )
@@ -168,7 +168,9 @@ class SunPathView(BaseView):
             event_name = None
             event_time = None
 
-            next_event = self.providers.solar.get_next_solar_event()
+            next_event = self.providers.solar.get_next_solar_event(
+                include_twilight=False
+            )
             if next_event:
                 event_name, event_time = next_event
 

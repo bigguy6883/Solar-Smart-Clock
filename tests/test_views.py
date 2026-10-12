@@ -244,6 +244,16 @@ class TestSunPathView:
         assert f"at {sunrise.strftime('%-I:%M %p')}" in drawn
         assert "Solar Noon" not in drawn
 
+    def test_left_box_asks_for_the_next_event_without_dawn_and_dusk(
+        self, sample_config, mock_providers
+    ):
+        """Sun Path shows sunrise, solar noon and sunset; dawn and dusk are skipped."""
+        _collect_drawn_text(SunPathView(sample_config, mock_providers), render_index=3)
+
+        mock_providers.solar.get_next_solar_event.assert_called_once_with(
+            include_twilight=False
+        )
+
 
 class TestDayLengthView:
     """Tests for DayLengthView."""

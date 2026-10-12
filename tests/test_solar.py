@@ -199,3 +199,78 @@ class TestSolarPositionCalculations:
         # But sun times calculation may fail for polar day
         if length is not None:
             assert length > 18  # Very long day
+
+
+class TestNextEventWithoutTwilight:
+    """get_next_solar_event(include_twilight=False): sunrise, solar noon, sunset only."""
+
+    TZ = "America/New_York"
+
+    @pytest.fixture
+    def provider(self):
+        return SolarProvider(
+            name="Test City",
+            region="Test Region",
+            timezone=self.TZ,
+            latitude=40.7128,
+            longitude=-74.0060,
+        )
+
+    @staticmethod
+    def _stub_days(provider, today_offsets, tomorrow_offsets):
+        """Make the provider's sun times sit at the given hours from now."""
+        now = datetime.datetime.now(provider.tz)
+
+        def times(offsets):
+            return SunTimes(*(now + datetime.timedelta(hours=h) for h in offsets))
+
+        today, tomorrow = times(today_offsets), times(tomorrow_offsets)
+        next_day = now.date() + datetime.timedelta(days=1)
+        provider.get_sun_times = lambda date=None: (
+            tomorrow if date == next_day else today
+        )
+        return today, tomorrow
+
+    # Offsets are (dawn, sunrise, noon, sunset, dusk) in hours from now.
+    TOMORROW = (20, 20.5, 26, 32, 32.5)
+
+    def test_before_dawn_it_skips_dawn(self, provider):
+        today, _ = self._stub_days(provider, (0.2, 0.7, 6, 12, 12.5), self.TOMORROW)
+        assert provider.get_next_solar_event() == ("Dawn", today.dawn)
+        assert provider.get_next_solar_event(include_twilight=False) == (
+            "Sunrise",
+            today.sunrise,
+        )
+
+    def test_in_daylight_it_agrees_with_the_full_list(self, provider):
+        today, _ = self._stub_days(provider, (-3, -2.5, 3, 9, 9.5), self.TOMORROW)
+        assert provider.get_next_solar_event(include_twilight=False) == (
+            "Solar Noon",
+            today.noon,
+        )
+        today, _ = self._stub_days(provider, (-9, -8.5, -3, 3, 3.5), self.TOMORROW)
+        assert provider.get_next_solar_event(include_twilight=False) == (
+            "Sunset",
+            today.sunset,
+        )
+        assert provider.get_next_solar_event() == ("Sunset", today.sunset)
+
+    def test_between_sunset_and_dusk_it_skips_dusk(self, provider):
+        today, tomorrow = self._stub_days(
+            provider, (-13, -12.5, -6, -0.2, 0.3), self.TOMORROW
+        )
+        assert provider.get_next_solar_event() == ("Dusk", today.dusk)
+        assert provider.get_next_solar_event(include_twilight=False) == (
+            "Sunrise",
+            tomorrow.sunrise,
+        )
+
+    def test_at_night_it_is_tomorrows_sunrise_not_dawn(self, provider):
+        _, tomorrow = self._stub_days(
+            provider, (-16, -15.5, -9, -3, -2.5), self.TOMORROW
+        )
+        assert provider.get_next_solar_event() == ("Dawn", tomorrow.dawn)
+        assert provider.get_next_solar_event(include_twilight=False) == (
+            "Sunrise",
+            tomorrow.sunrise,
+        )
