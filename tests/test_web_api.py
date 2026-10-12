@@ -198,7 +198,8 @@ def test_build_charts_is_json_with_every_section(charts_service):
     analemma = data["analemma"]
     assert len(analemma["points"]) == 53
     assert set(analemma["points"][0]) == {"date", "elevation", "equation_of_time"}
-    assert analemma["points"][0]["date"] == "2026-01-01"
+    # The analemma's year is the provider's own (today's), not the pinned date's.
+    assert analemma["points"][0]["date"].endswith("-01-01")
     assert 12 < analemma["equation_of_time"] < 13  # early October: sun ~12.5 min early
 
 
