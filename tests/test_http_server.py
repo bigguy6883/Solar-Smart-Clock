@@ -593,3 +593,47 @@ class TestWebPageRoutes:
             assert ScreenshotHandler.static_site is site
         finally:
             server.server_close()
+
+
+class TestChartsRoute:
+    """GET /api/charts: the curves behind the web page's chart views."""
+
+    @pytest.fixture(autouse=True)
+    def web_handler(self):
+        ScreenshotHandler.clock_instance = MagicMock()
+        ScreenshotHandler.rate_limiter = None
+        ScreenshotHandler.auth_credentials = None
+        ScreenshotHandler.static_site = None
+        ScreenshotHandler.web_service = MagicMock()
+        ScreenshotHandler.web_service.build_charts.return_value = {"date": "2026-10-08"}
+        yield
+        ScreenshotHandler.web_service = None
+
+    def test_api_charts_returns_json(self):
+        status, headers, body = _request("/api/charts")
+        assert status == 200
+        assert headers["Content-Type"] == "application/json"
+        assert json.loads(body) == {"date": "2026-10-08"}
+
+    def test_api_charts_ignores_a_query_string(self):
+        assert _request("/api/charts?v=2")[0] == 200
+
+    def test_api_charts_reads_nothing_else(self):
+        _request("/api/charts")
+        ScreenshotHandler.web_service.build_now.assert_not_called()
+        assert ScreenshotHandler.clock_instance.mock_calls == []
+
+    def test_api_charts_is_503_without_the_service(self):
+        ScreenshotHandler.web_service = None
+        assert _request("/api/charts")[0] == 503
+
+    def test_api_charts_is_500_when_building_fails(self):
+        ScreenshotHandler.web_service.build_charts.side_effect = RuntimeError("boom")
+        status, _, body = _request("/api/charts")
+        assert status == 500
+        assert b"boom" not in body
+
+    def test_api_charts_is_rate_limited(self):
+        ScreenshotHandler.rate_limiter = RateLimiter(rate_per_second=1)
+        assert _request("/api/charts")[0] == 200
+        assert _request("/api/charts")[0] == 429

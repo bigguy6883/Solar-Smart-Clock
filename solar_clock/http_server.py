@@ -133,15 +133,18 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _send_api_now(self) -> None:
+    def _send_api(self, route: str) -> None:
         """Send the web page's data. Read-only: never changes clock state."""
         if self.web_service is None:
             self._send_text(503, "Web page not available")
             return
         try:
-            data = self.web_service.build_now()
+            if route == "/api/charts":
+                data = self.web_service.build_charts()
+            else:
+                data = self.web_service.build_now()
         except Exception:
-            logger.exception("/api/now failed")
+            logger.exception(f"{route} failed")
             self._send_json(500, {"error": "internal error"})
             return
         self._send_json(200, data)
@@ -259,8 +262,8 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
             # Only reached when the page's files failed to load at startup.
             self._send_text(503, "Web page not available")
 
-        elif route == "/api/now":
-            self._send_api_now()
+        elif route in ("/api/now", "/api/charts"):
+            self._send_api(route)
 
         else:
             self._send_text(404, "Not Found")
