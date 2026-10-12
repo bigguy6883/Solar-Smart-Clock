@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { VIEWS } from "../../solar_clock/web/js/views/index.js";
 import { installDom, loadApp, settle } from "./dom-stub.mjs";
-import { sampleNow } from "./fixtures.mjs";
+import { sampleCharts, sampleNow } from "./fixtures.mjs";
 
 // Written against the view list, so it holds as views are added.
 const names = VIEWS.map((v) => v.name);
@@ -11,6 +11,14 @@ const nameAt = (i) => names[((i % names.length) + names.length) % names.length];
 
 let page;
 afterEach(() => page.restore());
+
+const callsTo = (url) => page.fetchCalls.filter((call) => call.url === url).length;
+
+/** Wake the page, which polls at once, and wait for the answers. */
+async function wake() {
+  document.dispatch("visibilitychange");
+  await settle();
+}
 
 function dayData() {
   const data = sampleNow();
@@ -42,7 +50,7 @@ test("losing the clock keeps the last data and says so, then recovers", async ()
   await loadApp();
   document.dispatch("visibilitychange"); // waking the page polls at once
   await settle();
-  assert.equal(page.fetchCalls.length, 2);
+  assert.equal(callsTo("/api/now"), 2);
   assert.equal(page.elements.banner.hidden, false);
   assert.match(page.elements.banner.textContent, /^Can't reach clock · last update \d{1,2}:\d\d [AP]M$/);
   assert.match(page.elements.view.innerHTML, /Sunrise/);
@@ -105,4 +113,63 @@ test("a view that throws shows a message instead of a blank page", async () => {
   assert.equal(page.elements.view.innerHTML, `<p class="message">Couldn't draw this view</p>`);
   page.elements.next.dispatch("click");
   assert.equal(page.location.hash, `#${nameAt(1)}`);
+});
+
+test("the charts are fetched once the clock answers, and drawn", async () => {
+  page = installDom({ hash: "#sunpath", responses: [sampleNow()], charts: [sampleCharts()] });
+  await loadApp();
+  assert.deepEqual(page.fetchCalls.map((call) => call.url), ["/api/now", "/api/charts"]);
+  assert.equal(page.fetchCalls[1].options.cache, "no-store");
+  assert.match(page.elements.view.innerHTML, /stroke="#191970"/); // the night part of the curve
+});
+
+test("a chart view draws its frame while the charts are still on their way", async () => {
+  page = installDom({ hash: "#daylength", responses: [sampleNow()], charts: [null] });
+  await loadApp();
+  assert.match(page.elements.view.innerHTML, /Today/);
+  assert.doesNotMatch(page.elements.view.innerHTML, /<path/);
+});
+
+test("the charts are fetched again only when the clock's date moves on", async () => {
+  const tomorrow = sampleNow();
+  tomorrow.generated_at = "2026-10-09T00:00:30-04:00";
+  const tomorrowsCharts = sampleCharts();
+  tomorrowsCharts.date = "2026-10-09";
+  tomorrowsCharts.sun_path = { step_minutes: 720, elevations: [-50, 30] };
+  page = installDom({
+    hash: "#sunpath",
+    responses: [sampleNow(), sampleNow(), tomorrow, tomorrow],
+    charts: [sampleCharts(), tomorrowsCharts],
+  });
+  await loadApp();
+  await wake(); // same day: the charts are kept
+  assert.equal(callsTo("/api/charts"), 1);
+  await wake(); // past midnight on the clock: new charts
+  assert.equal(callsTo("/api/charts"), 2);
+  assert.match(page.elements.view.innerHTML, /<path d="M30 139\.1L190 65\.2"/);
+  await wake();
+  assert.equal(callsTo("/api/charts"), 2);
+});
+
+test("a failed charts request leaves the page working and is tried again", async () => {
+  page = installDom({
+    hash: "#sunpath",
+    responses: [sampleNow(), sampleNow(), sampleNow()],
+    charts: [503, new Error("offline"), sampleCharts()],
+  });
+  await loadApp();
+  assert.equal(page.elements.banner.hidden, true); // the clock itself answered
+  assert.match(page.elements.view.innerHTML, /El 31°/);
+  assert.doesNotMatch(page.elements.view.innerHTML, /<path/);
+  await wake();
+  assert.doesNotMatch(page.elements.view.innerHTML, /<path/);
+  await wake();
+  assert.equal(callsTo("/api/charts"), 3);
+  assert.match(page.elements.view.innerHTML, /<path/);
+});
+
+test("the charts are not asked for while the clock can't be reached", async () => {
+  page = installDom({ responses: [new Error("offline")], charts: [sampleCharts()] });
+  await loadApp();
+  assert.equal(callsTo("/api/charts"), 0);
 });

@@ -19,10 +19,11 @@ function eventTarget(extra = {}) {
 const GLOBALS = ["document", "window", "location", "history", "fetch", "setInterval"];
 
 /**
- * Install a fake page. `responses` are served to fetch() in order: an object
- * is a 200 JSON body, an Error is a network failure, null never answers.
+ * Install a fake page. `responses` are served to fetch("/api/now") in order,
+ * and `charts` to fetch("/api/charts"): an object is a 200 JSON body, an Error
+ * is a network failure, a number is that HTTP status, null never answers.
  */
-export function installDom({ hash = "", responses = [] } = {}) {
+export function installDom({ hash = "", responses = [], charts = [] } = {}) {
   const saved = Object.fromEntries(GLOBALS.map((name) => [name, globalThis[name]]));
   const elements = {};
   for (const id of ["banner", "view", "dots", "prev", "next"]) {
@@ -60,9 +61,10 @@ export function installDom({ hash = "", responses = [] } = {}) {
     },
     fetch(url, options) {
       fetchCalls.push({ url, options });
-      const next = responses.shift();
+      const next = (url === "/api/charts" ? charts : responses).shift();
       if (next === null || next === undefined) return new Promise(() => {});
       if (next instanceof Error) return Promise.reject(next);
+      if (typeof next === "number") return Promise.resolve({ ok: false, status: next });
       return Promise.resolve({ ok: true, status: 200, json: async () => next });
     },
     setInterval: () => 0,
@@ -73,6 +75,7 @@ export function installDom({ hash = "", responses = [] } = {}) {
     location,
     fetchCalls,
     responses,
+    charts,
     restore() {
       Object.assign(globalThis, saved);
     },

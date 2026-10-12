@@ -1,5 +1,6 @@
-// Page shell: polls /api/now, redraws the current view every second, and
-// handles navigation. It only reads from the clock; it never changes it.
+// Page shell: polls /api/now, fetches /api/charts once per day, redraws the
+// current view every second, and handles navigation. It only reads from the
+// clock; it never changes it.
 
 import { time12 } from "./format.js";
 import { indexFromHash, swipeDelta, wrapIndex } from "./nav.js";
@@ -19,6 +20,7 @@ const els = {
 
 const state = {
   data: null,
+  charts: null,
   lastOk: null,
   failing: false,
   theme: null,
@@ -60,7 +62,7 @@ function render() {
   if (state.data === null) return;
   const view = VIEWS[state.index];
   try {
-    els.view.innerHTML = view.render(state.data, new Date());
+    els.view.innerHTML = view.render({ ...state.data, charts: state.charts }, new Date());
   } catch (err) {
     console.error(`The ${view.name} view failed to draw`, err);
     els.view.innerHTML = `<p class="message">Couldn't draw this view</p>`;
@@ -80,6 +82,26 @@ async function poll() {
     state.failing = true;
   }
   render();
+  if (!state.failing && chartsAreStale()) await loadCharts();
+}
+
+// The clock works its charts out once per day, so they are fetched when the
+// page has none or the clock's date has moved on. The date comes from the
+// clock's answer, not this device, so a wrong phone clock can't cause refetching.
+function chartsAreStale() {
+  return state.charts === null || state.charts.date !== state.data.generated_at.slice(0, 10);
+}
+
+// A failure leaves the old charts (or none) in place; the next poll tries again.
+async function loadCharts() {
+  try {
+    const response = await fetch("/api/charts", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    state.charts = await response.json();
+    render();
+  } catch (err) {
+    console.warn("Could not load the charts", err);
+  }
 }
 
 function go(delta) {

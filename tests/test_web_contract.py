@@ -1,4 +1,4 @@
-"""The real /api/now JSON must render in every view of the page.
+"""The real /api/now and /api/charts JSON must render in every view of the page.
 
 The JavaScript tests use a hand-written sample; this test feeds the page's
 views the JSON that WebDataService actually builds, through Node.js, so a
@@ -22,10 +22,11 @@ NODE = shutil.which("node")
 RENDER_EVERY_VIEW = """
 let text = "";
 for await (const chunk of process.stdin) text += chunk;
-const data = JSON.parse(text);
+const { now, charts } = JSON.parse(text);
+const data = { ...now, charts };
 const { VIEWS } = await import(process.argv[1]);
 const out = {};
-for (const view of VIEWS) out[view.name] = view.render(data, new Date(data.generated_at));
+for (const view of VIEWS) out[view.name] = view.render(data, new Date(now.generated_at));
 process.stdout.write(JSON.stringify(out));
 """
 
@@ -65,7 +66,7 @@ def test_every_view_renders_the_real_api_response(sample_config, weather):
     service = WebDataService(
         sample_config, weather=weather(), theme_mode=lambda: "auto"
     )
-    payload = json.dumps(service.build_now())
+    payload = json.dumps({"now": service.build_now(), "charts": service.build_charts()})
     views_module = (WEB_DIR / "js" / "views" / "index.js").as_uri()
     result = subprocess.run(
         [NODE, "--input-type=module", "-e", RENDER_EVERY_VIEW, views_module],
@@ -81,3 +82,8 @@ def test_every_view_renders_the_real_api_response(sample_config, weather):
         assert html.strip(), f"{name} rendered nothing"
         for broken in ("undefined", "NaN", "Invalid Date"):
             assert broken not in html, f"{name} shows {broken!r}"
+    # The chart views drew their curves from the real charts, not just a frame.
+    assert rendered["sunpath"].count('<path d="M') == 2
+    assert '<path d="M' in rendered["daylength"]
+    assert rendered["analemma"].count('r="2"') >= 52  # one dot per weekly sample
+    assert 'r="6"' in rendered["analemma"]  # today's dot
