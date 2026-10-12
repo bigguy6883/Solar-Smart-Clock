@@ -92,7 +92,7 @@ test("an unknown link opens Clock", async () => {
   assert.match(page.elements.view.innerHTML, /Sunrise/);
 });
 
-test("a swipe right moves to the next view, as on the TFT; a vertical drag does not", async () => {
+test("a swipe from right to left moves to the next view; a vertical drag does not", async () => {
   page = installDom({ responses: [sampleNow()] });
   await loadApp();
   const swipe = (from, to) => {
@@ -101,8 +101,10 @@ test("a swipe right moves to the next view, as on the TFT; a vertical drag does 
   };
   swipe({ clientX: 200, clientY: 100 }, { clientX: 190, clientY: 400 });
   assert.equal(page.location.hash, "");
-  swipe({ clientX: 120, clientY: 200 }, { clientX: 300, clientY: 210 });
+  swipe({ clientX: 300, clientY: 200 }, { clientX: 120, clientY: 210 });
   assert.equal(page.location.hash, `#${nameAt(1)}`);
+  swipe({ clientX: 120, clientY: 200 }, { clientX: 300, clientY: 210 });
+  assert.equal(page.location.hash, `#${nameAt(0)}`);
 });
 
 test("a view that throws shows a message instead of a blank page", async () => {

@@ -14,10 +14,11 @@ export function indexFromHash(hash, names) {
 }
 
 /**
- * +1 (next view) for a swipe right, -1 (previous) for a swipe left, else 0.
- * Same direction as the TFT (touch_handler.py: dx > 0 is next).
+ * +1 (next view) for a swipe from right to left, -1 (previous) for a swipe
+ * from left to right, else 0. This is the usual phone direction; the TFT goes
+ * the other way (touch_handler.py: dx > 0 is next).
  */
 export function swipeDelta(dx, dy) {
   if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) <= Math.abs(dy)) return 0;
-  return dx > 0 ? 1 : -1;
+  return dx < 0 ? 1 : -1;
 }

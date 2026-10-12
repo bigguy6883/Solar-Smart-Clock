@@ -18,8 +18,8 @@ test("the URL hash picks the view, defaulting to Clock", () => {
 });
 
 test("a clear horizontal swipe moves one view; anything else is ignored", () => {
-  assert.equal(swipeDelta(80, 10), 1); // right = next, as on the TFT
-  assert.equal(swipeDelta(-80, 10), -1);
+  assert.equal(swipeDelta(-80, 10), 1); // right to left = next, as on any phone
+  assert.equal(swipeDelta(80, 10), -1);
   assert.equal(swipeDelta(30, 0), 0);
   assert.equal(swipeDelta(80, 120), 0);
 });
