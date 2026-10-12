@@ -11,7 +11,7 @@ import pytest
 
 from solar_clock.data.weather import AirQuality, CurrentWeather, DailyForecast
 from solar_clock.views.theme import Theme, ThemeManager
-from solar_clock.web_api import WebDataService, hex_color, iso
+from solar_clock.web_api import CHART_RETRY_SECONDS, WebDataService, hex_color, iso
 
 TOP_LEVEL = {
     "generated_at",
@@ -156,3 +156,133 @@ def test_iso_refuses_naive_datetimes():
         naive = datetime.datetime(2026, 10, 8, 12, 0)  # noqa: DTZ001 - on purpose
         iso(naive, ZoneInfo("UTC"))
     assert iso(None, ZoneInfo("UTC")) is None
+
+
+# --- GET /api/charts -------------------------------------------------------
+
+OCT_8 = datetime.date(2026, 10, 8)
+
+
+@pytest.fixture
+def charts_service(service):
+    """The service with its calendar pinned to Thursday 8 Oct 2026."""
+    service._today = lambda: OCT_8
+    return service
+
+
+def test_build_charts_is_json_with_every_section(charts_service):
+    data = json.loads(json.dumps(charts_service.build_charts()))
+    assert set(data) == {"date", "sun_path", "day_length", "analemma"}
+    assert data["date"] == "2026-10-08"
+
+    sun_path = data["sun_path"]
+    assert sun_path["step_minutes"] == 30
+    assert len(sun_path["elevations"]) == 48
+
+    day_length = data["day_length"]
+    assert day_length["year"] == 2026
+    assert [day for day, _ in day_length["points"]] == list(range(0, 365, 3))
+    assert all(9 < hours < 15.5 for _, hours in day_length["points"])
+    assert day_length["shortest"]["date"] == "2026-12-21"
+    assert day_length["longest"]["date"] == "2026-06-21"
+    assert day_length["shortest"]["hours"] < 9.5
+    assert day_length["longest"]["hours"] > 15
+    assert [event["name"] for event in day_length["events"]] == [
+        "Vernal",
+        "Summer",
+        "Autumn",
+        "Winter",
+    ]
+    assert day_length["events"][2]["date"] == "2026-09-23"
+
+    analemma = data["analemma"]
+    assert len(analemma["points"]) == 53
+    assert set(analemma["points"][0]) == {"date", "elevation", "equation_of_time"}
+    assert analemma["points"][0]["date"] == "2026-01-01"
+    assert 12 < analemma["equation_of_time"] < 13  # early October: sun ~12.5 min early
+
+
+def test_sun_path_is_sampled_on_the_clocks_own_day(charts_service):
+    elevations = charts_service.build_charts()["sun_path"]["elevations"]
+    # New York, 8 Oct: dark at local midnight, highest near 12:45 PM local.
+    assert elevations[0] < -40
+    assert elevations.index(max(elevations)) in (25, 26)
+    assert 40 < max(elevations) < 45
+
+
+def test_sun_path_copes_with_a_23_hour_day(charts_service):
+    charts_service._today = lambda: datetime.date(2026, 3, 8)  # clocks go forward
+    elevations = charts_service.build_charts()["sun_path"]["elevations"]
+    assert len(elevations) == 48
+    assert all(isinstance(value, float) for value in elevations)
+
+
+def test_charts_are_worked_out_once_per_date(charts_service):
+    first = charts_service.build_charts()
+    charts_service._solar.get_day_length = MagicMock(
+        wraps=charts_service._solar.get_day_length
+    )
+    assert charts_service.build_charts() is first
+    charts_service._solar.get_day_length.assert_not_called()
+
+    charts_service._today = lambda: datetime.date(2026, 10, 9)
+    second = charts_service.build_charts()
+    assert second["date"] == "2026-10-09"
+    assert second is not first
+    charts_service._solar.get_day_length.assert_called()
+
+
+def test_a_failing_chart_is_null_and_logged(charts_service, caplog):
+    charts_service._solar.get_solar_position = MagicMock(
+        side_effect=RuntimeError("astral broke")
+    )
+    with caplog.at_level(logging.ERROR, logger="solar_clock.web_api"):
+        data = charts_service.build_charts()
+    assert data["sun_path"] is None
+    assert data["day_length"] is not None
+    assert data["analemma"] is not None
+    assert "'sun_path' failed" in caplog.text
+
+
+def test_a_failed_chart_is_retried_later_but_not_on_every_request(
+    charts_service, monkeypatch
+):
+    clock = [1000.0]
+    monkeypatch.setattr("solar_clock.web_api.time.monotonic", lambda: clock[0])
+    working = charts_service._solar.get_solar_position
+    charts_service._solar.get_solar_position = MagicMock(
+        side_effect=RuntimeError("astral broke")
+    )
+    failed = charts_service.build_charts()
+    assert failed["sun_path"] is None
+
+    # Asking again at once costs nothing: no chart is worked out a second time.
+    charts_service._solar.get_solar_position = working
+    charts_service._solar.get_day_length = MagicMock(
+        wraps=charts_service._solar.get_day_length
+    )
+    clock[0] += CHART_RETRY_SECONDS - 1
+    assert charts_service.build_charts() is failed
+    charts_service._solar.get_day_length.assert_not_called()
+
+    clock[0] += 1
+    assert charts_service.build_charts()["sun_path"] is not None
+
+
+def test_analemma_is_null_when_ephem_is_unavailable(charts_service, monkeypatch):
+    monkeypatch.setattr("solar_clock.data.lunar.EPHEM_AVAILABLE", False)
+    data = json.loads(json.dumps(charts_service.build_charts()))
+    assert data["analemma"] is None
+    # The day length chart still gets its dates, from the provider's fallback.
+    assert data["day_length"]["shortest"]["date"] == "2026-12-21"
+
+
+def test_day_length_skips_days_the_sun_does_not_rise_or_set(sample_config):
+    sample_config.location.latitude = 78.2  # Svalbard: polar night and midnight sun
+    service = WebDataService(sample_config, weather=None, theme_mode=lambda: "auto")
+    service._today = lambda: OCT_8
+    day_length = json.loads(json.dumps(service.build_charts()))["day_length"]
+    assert 0 < len(day_length["points"]) < 122
+    assert all(isinstance(hours, float) for _, hours in day_length["points"])
+    assert day_length["shortest"]["hours"] is None
+    assert day_length["longest"]["hours"] is None

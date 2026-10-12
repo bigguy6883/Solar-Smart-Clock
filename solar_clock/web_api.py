@@ -1,4 +1,4 @@
-"""Data for the Solar Clock web page: the JSON behind GET /api/now.
+"""Data for the Solar Clock web page: the JSON behind GET /api/now and /api/charts.
 
 Threading: the page is served by the single-threaded HTTPServer in
 http_server.py, so one request runs at a time. That is what makes this
@@ -14,6 +14,7 @@ from __future__ import annotations
 import dataclasses
 import datetime
 import logging
+import time
 from collections.abc import Callable
 from typing import Any, Optional
 from zoneinfo import ZoneInfo
@@ -28,6 +29,13 @@ logger = logging.getLogger(__name__)
 
 # A runtime alias, so it uses Optional: Python 3.9 can't evaluate X | None.
 Section = Optional[dict[str, Any]]
+
+# The same sampling as the TFT's chart views.
+SUN_PATH_STEP_MINUTES = 30
+DAY_LENGTH_STEP_DAYS = 3
+
+# How long a chart that could not be built is sent as null before trying again.
+CHART_RETRY_SECONDS = 300.0
 
 
 def hex_color(rgb: tuple[int, int, int]) -> str:
@@ -94,6 +102,8 @@ class WebDataService:
             latitude=loc.latitude, longitude=loc.longitude, timezone=loc.timezone
         )
         self._theme = ThemeManager(self._solar)  # not the singleton
+        self._charts: tuple[datetime.date, dict[str, Any]] | None = None
+        self._charts_retry_at = 0.0  # time.monotonic() value; only used after a failure
 
     def build_now(self) -> dict[str, Any]:
         """Everything the phase 1 views need. A failing section becomes None."""
@@ -112,6 +122,35 @@ class WebDataService:
             "air_quality": self._section("air_quality", self._air_quality_section),
             "moon": self._section("moon", self._moon_section),
         }
+
+    def build_charts(self) -> dict[str, Any]:
+        """The curves behind the chart views. Worked out once per local date.
+
+        If a chart could not be built, the answer is still kept, so requests
+        can't make the clock redo the work each time, and it is worked out
+        again once CHART_RETRY_SECONDS have passed.
+        """
+        today = self._today()
+        if self._charts is not None and self._charts[0] == today:
+            charts = self._charts[1]
+            complete = all(value is not None for value in charts.values())
+            if complete or time.monotonic() < self._charts_retry_at:
+                return charts
+        charts = {
+            "date": today.isoformat(),
+            "sun_path": self._section("sun_path", lambda: self._sun_path(today)),
+            "day_length": self._section(
+                "day_length", lambda: self._day_length_chart(today)
+            ),
+            "analemma": self._section("analemma", lambda: self._analemma(today)),
+        }
+        self._charts = (today, charts)
+        self._charts_retry_at = time.monotonic() + CHART_RETRY_SECONDS
+        return charts
+
+    def _today(self) -> datetime.date:
+        """Today's date where the clock is."""
+        return datetime.datetime.now(self._tz).date()
 
     @staticmethod
     def _section(name: str, build: Callable[[], Section]) -> Section:
@@ -218,4 +257,61 @@ class WebDataService:
                     "moonset": iso(times.moonset, self._tz),
                 }
             ),
+        }
+
+    def _sun_path(self, today: datetime.date) -> Section:
+        """Sun elevation every 30 minutes of the day (SunPathView._draw_sun_curve)."""
+        midnight = datetime.datetime.combine(today, datetime.time(), tzinfo=self._tz)
+        elevations: list[float | None] = []
+        for minutes in range(0, 24 * 60, SUN_PATH_STEP_MINUTES):
+            position = self._solar.get_solar_position(
+                midnight + datetime.timedelta(minutes=minutes)
+            )
+            elevations.append(
+                None if position is None else round(position.elevation, 2)
+            )
+        return {"step_minutes": SUN_PATH_STEP_MINUTES, "elevations": elevations}
+
+    def _day_length_chart(self, today: datetime.date) -> Section:
+        """Day length through the year, and its turning points (DayLengthView)."""
+        new_year = datetime.date(today.year, 1, 1)
+        points = []
+        for day in range(0, 365, DAY_LENGTH_STEP_DAYS):
+            hours = self._solar.get_day_length(new_year + datetime.timedelta(days=day))
+            if hours is not None:
+                points.append([day, round(hours, 3)])
+        dates = self._lunar.get_solstice_equinox(today.year)
+        return {
+            "year": today.year,
+            "points": points,
+            "shortest": self._day_on(dates.winter_solstice),
+            "longest": self._day_on(dates.summer_solstice),
+            "events": [
+                {"name": name, "date": date.isoformat()}
+                for name, date in (
+                    ("Vernal", dates.spring_equinox),
+                    ("Summer", dates.summer_solstice),
+                    ("Autumn", dates.fall_equinox),
+                    ("Winter", dates.winter_solstice),
+                )
+            ],
+        }
+
+    def _day_on(self, date: datetime.date) -> dict[str, Any]:
+        return {"date": date.isoformat(), "hours": self._solar.get_day_length(date)}
+
+    def _analemma(self, today: datetime.date) -> Section:
+        """The year's noon sun positions and today's equation of time (AnalemmaView)."""
+        if not self._lunar.available:
+            return None
+        return {
+            "points": [
+                {
+                    "date": point.date.isoformat(),
+                    "elevation": round(point.elevation, 2),
+                    "equation_of_time": round(point.equation_of_time, 2),
+                }
+                for point in self._lunar.get_analemma_data()
+            ],
+            "equation_of_time": self._lunar.get_equation_of_time(today),
         }
