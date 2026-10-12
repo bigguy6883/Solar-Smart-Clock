@@ -6,7 +6,8 @@ import { HOSTILE, NOW, samplePage } from "./fixtures.mjs";
 
 test("views come in TFT order and each has a name, title and render()", () => {
   assert.deepEqual(VIEWS.map((v) => v.name), [
-    "clock", "weather", "airquality", "sunpath", "daylength", "solar", "moon",
+    "clock", "weather", "airquality", "sunpath", "daylength", "solar", "moon", "analemma",
+    "analogclock",
   ]);
   for (const view of VIEWS) {
     assert.equal(typeof view.title, "string");

@@ -47,7 +47,10 @@ body {
   font-size: 14px;
   text-align: center;
 }
-.view { flex: 1; width: 100%; max-width: 760px; margin: 0 auto; touch-action: pan-y; }
+.view {
+  flex: 1; display: flex; flex-direction: column;
+  width: 100%; max-width: 760px; margin: 0 auto; touch-action: pan-y;
+}
 .view-header {
   display: flex; align-items: baseline; justify-content: center; gap: 6px;
   padding: 8px 16px; color: #ffffff;
@@ -149,3 +152,17 @@ body {
 .corners { display: flex; justify-content: space-between; font-size: 14px; }
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .nowrap { font-size: 15px; white-space: nowrap; }
+
+/* Analemma: the diagram sits beside its panels on a wide screen, above them on a phone. */
+.value.big { font-size: 24px; white-space: nowrap; }
+.analemma-chart { max-width: 320px; margin: 0 auto; }
+.analemma-info { display: grid; align-content: start; gap: 10px; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; color: var(--text-secondary); font-size: 12px; }
+.legend-item { display: inline-flex; align-items: center; gap: 4px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* Analog clock: the whole view takes the time-of-day colour. */
+.analog { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 6px 16px 20px; }
+.analog-title { align-self: flex-start; color: var(--text-secondary); }
+.analog-face { width: 100%; max-width: 360px; max-height: 62vh; }
+.analog-date { margin: 0; font-size: 18px; }
