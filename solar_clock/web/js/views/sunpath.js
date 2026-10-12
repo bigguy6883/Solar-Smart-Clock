@@ -77,8 +77,9 @@ function marker(position, now, tz) {
   return `<circle cx="${n(xAt(z.hour * 60 + z.minute))}" cy="${n(yAt(position.elevation))}" r="6" style="fill:var(--accent-sun);stroke:var(--accent-warm)"/>`;
 }
 
+// The next of sunrise, solar noon and sunset; this view skips dawn and dusk.
 function eventPanel(sun, now, tz) {
-  const event = sun?.next_event;
+  const event = sun?.next_main_event;
   if (!event) return `<section class="panel"></section>`;
   const left = countdownHM(event.at, now);
   return `<section class="panel">

@@ -84,6 +84,7 @@ def test_every_view_renders_the_real_api_response(sample_config, weather):
             assert broken not in html, f"{name} shows {broken!r}"
     # The chart views drew their curves from the real charts, not just a frame.
     assert rendered["sunpath"].count('<path d="M') == 2
+    assert 'class="secondary">at ' in rendered["sunpath"]  # its event box is filled
     assert '<path d="M' in rendered["daylength"]
     assert rendered["analemma"].count('r="2"') >= 52  # one dot per weekly sample
     assert 'r="6"' in rendered["analemma"]  # today's dot

@@ -287,3 +287,29 @@ def test_day_length_skips_days_the_sun_does_not_rise_or_set(sample_config):
     assert all(isinstance(hours, float) for _, hours in day_length["points"])
     assert day_length["shortest"]["hours"] is None
     assert day_length["longest"]["hours"] is None
+
+
+# --- the Sun Path view's next event ------------------------------------------
+
+
+def test_sun_section_has_the_next_event_with_and_without_twilight(service):
+    tz = ZoneInfo("America/New_York")
+    dawn = datetime.datetime(2026, 10, 12, 7, 15, tzinfo=tz)
+    sunrise = datetime.datetime(2026, 10, 12, 7, 41, tzinfo=tz)
+    service._solar.get_next_solar_event = lambda include_twilight=True: (
+        ("Dawn", dawn) if include_twilight else ("Sunrise", sunrise)
+    )
+    sun = service.build_now()["sun"]
+    assert sun["next_event"] == {"name": "Dawn", "at": "2026-10-12T07:15:00-04:00"}
+    assert sun["next_main_event"] == {
+        "name": "Sunrise",
+        "at": "2026-10-12T07:41:00-04:00",
+    }
+
+
+def test_the_real_next_main_event_is_never_dawn_or_dusk(service):
+    event = service.build_now()["sun"]["next_main_event"]
+    assert event["name"] in ("Sunrise", "Solar Noon", "Sunset")
+    assert datetime.datetime.fromisoformat(event["at"]) > datetime.datetime.now(
+        ZoneInfo("America/New_York")
+    )

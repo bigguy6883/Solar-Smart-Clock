@@ -59,6 +59,7 @@ const SAMPLE = {
     day_length_hours: 11.5,
     day_length_change_min: -2.13,
     next_event: { name: "Sunset", at: "2026-10-08T18:35:00-04:00" },
+    next_main_event: { name: "Sunset", at: "2026-10-08T18:35:00-04:00" },
   },
   weather: {
     current: {

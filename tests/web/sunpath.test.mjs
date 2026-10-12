@@ -12,16 +12,26 @@ test("sun path view matches the TFT's text", () => {
   ]);
 });
 
-test("the left box counts down to the next event, whichever it is", () => {
-  // Early morning: sunrise comes next, although solar noon is also still ahead.
+test("the left box counts down to the next of sunrise, solar noon and sunset", () => {
+  // Before dawn: the clock's next event is Dawn, but Sun Path skips dawn and dusk.
   const data = samplePage();
-  data.sun.next_event = { name: "Sunrise", at: data.sun.times.sunrise };
-  const html = render(data, new Date("2026-10-08T06:50:00-04:00"));
-  assertShows(html, ["Sunrise", "in 0h 18m", "at 7:08 AM"]);
+  data.sun.next_event = { name: "Dawn", at: data.sun.times.dawn };
+  data.sun.next_main_event = { name: "Sunrise", at: data.sun.times.sunrise };
+  const html = render(data, new Date("2026-10-08T06:30:00-04:00"));
+  assertShows(html, ["Sunrise", "in 0h 38m", "at 7:08 AM"]);
+  assert.ok(!html.includes("Dawn"));
   assert.ok(!html.includes("Solar Noon"));
 
-  data.sun.next_event = { name: "Solar Noon", at: data.sun.times.noon };
+  data.sun.next_main_event = { name: "Solar Noon", at: data.sun.times.noon };
   assertShows(render(data, new Date("2026-10-08T09:00:00-04:00")), ["Solar Noon", "in 3h 52m", "at 12:52 PM"]);
+});
+
+test("without a next event of its own the left box is empty", () => {
+  const data = samplePage();
+  data.sun.next_main_event = null;
+  const html = render(data, NOW);
+  assertShows(html, ["El 31°"]);
+  assert.ok(!html.includes(" in "));
 });
 
 test("the marker sits at the clock's time of day and the sun's height", () => {

@@ -178,6 +178,8 @@ class WebDataService:
         morning, evening = self._solar.get_golden_hour()
         position = self._solar.get_solar_position()
         next_event = self._solar.get_next_solar_event()
+        # The Sun Path view's own next event: dawn and dusk are skipped.
+        next_main_event = self._solar.get_next_solar_event(include_twilight=False)
         return {
             "times": {
                 key: iso(getattr(times, key), self._tz)
@@ -197,12 +199,14 @@ class WebDataService:
             ),
             "day_length_hours": self._solar.get_day_length(),
             "day_length_change_min": self._solar.get_day_length_change(),
-            "next_event": (
-                None
-                if next_event is None
-                else {"name": next_event[0], "at": iso(next_event[1], self._tz)}
-            ),
+            "next_event": self._event(next_event),
+            "next_main_event": self._event(next_main_event),
         }
+
+    def _event(self, event: tuple[str, datetime.datetime] | None) -> Section:
+        if event is None:
+            return None
+        return {"name": event[0], "at": iso(event[1], self._tz)}
 
     def _span(self, span: GoldenHour | None) -> Section:
         if span is None:
