@@ -152,6 +152,7 @@ The clock runs an HTTP server for remote control and screenshots.
 | `GET /health` | Health check (returns "OK") |
 | `GET /` | The web page |
 | `GET /api/now` | JSON behind the web page (read-only) |
+| `GET /api/charts` | Chart curves behind the web page (read-only) |
 
 **Note**: By default, the HTTP server only accepts connections from localhost. Use `--bind-all` flag or set `http_server.bind_address` to `"0.0.0.0"` for network access.
 
@@ -176,7 +177,8 @@ or use the arrow keys to change views. This never changes what the clock's own
 screen shows. Colours follow the clock's day/night theme. Use your browser's
 "Add to Home Screen" (phone) or "Create shortcut" (desktop) for an app icon.
 
-Views: Clock, Weather, Air Quality, Solar Details and Moon Phase.
+It has all nine views: Clock, Weather, Air Quality, Sun Path, Day Length, Solar
+Details, Moon Phase, Analemma and Analog Clock.
 
 ## Hardware Requirements
 
@@ -224,7 +226,7 @@ solar-clock/
 │   ├── display.py           # Framebuffer handling
 │   ├── http_server.py       # HTTP API server
 │   ├── touch_handler.py     # Touch input
-│   ├── web_api.py           # /api/now data for the web page
+│   ├── web_api.py           # /api/now and /api/charts data for the web page
 │   ├── web_static.py        # Serves the web page's files
 │   ├── web/                 # The web page (HTML, CSS, JavaScript modules, icons)
 │   ├── data/

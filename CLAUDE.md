@@ -52,6 +52,7 @@ The clock runs an HTTP server on port 8080 for fast remote screenshots.
 | `/view` | Get current view name and index |
 | `/` | The web page (phone-friendly copy of the views) |
 | `/api/now` | JSON for the web page (read-only) |
+| `/api/charts` | Chart curves for the web page (read-only, worked out once a day) |
 
 ### From Remote Machine
 
@@ -76,7 +77,7 @@ done
 
 `http://clock.local:8080/` serves a browser copy of the views from `solar_clock/web/`.
 
-- The page and `/api/now` must never change clock state: no `ViewManager` calls, never `set_mode` on the clock's ThemeManager.
+- The page, `/api/now` and `/api/charts` must never change clock state: no `ViewManager` calls, never `set_mode` on the clock's ThemeManager.
 - `HTTPServer` must stay single-threaded: `web_api.py` keeps its own SolarProvider/LunarProvider, which are not thread-safe.
 - Each TFT view has a JavaScript twin in `solar_clock/web/js/views/`. When you change a TFT view's text, format or colours, change its twin too and run `node --test tests/web/*.test.mjs`.
 - Preview without a display: `./venv/bin/python -m tools.web_preview --config config.example.json --sample-weather` (port 8091).
