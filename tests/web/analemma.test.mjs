@@ -76,3 +76,32 @@ test("without sun data the Sun path box is empty", () => {
   assertShows(html, ["Sun path", "12.7 min"]);
   assert.ok(!html.includes("° S"));
 });
+
+test("the season labels move out of the way of a figure that reaches them", () => {
+  const data = samplePage();
+  data.charts.analemma.points = [
+    { date: "2026-06-18", elevation: 88, equation_of_time: 0 }, // the tropics: far above the axis
+    { date: "2026-12-24", elevation: 25.9, equation_of_time: 0 }, // 40°N in winter: below it
+  ];
+  assertShows(render(data, NOW), [
+    'viewBox="0 -45 240 268"',
+    '<text x="120" y="-35" text-anchor="middle" style="fill:var(--accent-sun)">Summer</text>',
+    '<text x="120" y="217" text-anchor="middle" style="fill:var(--accent-cool)">winter</text>',
+  ]);
+});
+
+test("a figure that fits leaves the labels where the TFT has them", () => {
+  const fits = [
+    'viewBox="0 0 240 212"',
+    '<text x="120" y="10" text-anchor="middle" style="fill:var(--accent-sun)">Summer</text>',
+    '<text x="120" y="206" text-anchor="middle" style="fill:var(--accent-cool)">winter</text>',
+  ];
+  const data = samplePage();
+  data.charts.analemma.points = [
+    { date: "2026-06-18", elevation: 70, equation_of_time: 0 },
+    { date: "2026-12-24", elevation: 40, equation_of_time: 0 },
+  ];
+  assertShows(render(data, NOW), fits);
+  data.charts = null; // still loading: nothing to dodge
+  assertShows(render(data, NOW), fits);
+});

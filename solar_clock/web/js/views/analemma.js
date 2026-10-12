@@ -45,13 +45,21 @@ export function render(data, now) {
 }
 
 function diagram(charts, today) {
+  const points = charts?.analemma?.points ?? [];
   // No answer yet draws the bare axes; an answer without analemma data says so.
   const body = charts && !charts.analemma
     ? `<text class="chart-message" x="${CX}" y="${CY - 30}" text-anchor="middle">Data unavailable</text>`
-    : dots(charts?.analemma?.points ?? [], today);
-  return `<svg class="chart analemma-chart" viewBox="0 0 240 212" role="img" aria-label="Analemma: the noon sun through the year">
-      <text x="${CX}" y="10" text-anchor="middle" style="fill:var(--accent-sun)">Summer</text>
-      <text x="${CX}" y="206" text-anchor="middle" style="fill:var(--accent-cool)">winter</text>
+    : dots(points, today);
+  // The TFT prints the season labels at fixed heights, where a figure that
+  // reaches them is drawn over them. Here they move clear of it instead, and
+  // the picture grows to fit.
+  const heights = points.map((point) => yAt(point.elevation)).filter(Number.isFinite);
+  const summerY = Math.min(10, Math.floor(Math.min(...heights)) - 10);
+  const winterY = Math.max(206, Math.ceil(Math.max(...heights)) + 16);
+  const top = summerY - 10;
+  return `<svg class="chart analemma-chart" viewBox="0 ${n(top)} 240 ${n(winterY + 6 - top)}" role="img" aria-label="Analemma: the noon sun through the year">
+      <text x="${CX}" y="${n(summerY)}" text-anchor="middle" style="fill:var(--accent-sun)">Summer</text>
+      <text x="${CX}" y="${n(winterY)}" text-anchor="middle" style="fill:var(--accent-cool)">winter</text>
       <text x="5" y="${CY - 4}">Sun</text><text x="5" y="${CY + 16}">early</text>
       <text x="235" y="${CY - 4}" text-anchor="end">Sun</text><text x="235" y="${CY + 16}" text-anchor="end">late</text>
       <line class="axis" x1="${CX}" y1="20" x2="${CX}" y2="190"/>
