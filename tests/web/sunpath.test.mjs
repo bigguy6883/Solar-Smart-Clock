@@ -12,10 +12,16 @@ test("sun path view matches the TFT's text", () => {
   ]);
 });
 
-test("before solar noon it counts down to solar noon, then to the next event", () => {
-  const morning = new Date("2026-10-08T09:00:00-04:00");
-  assertShows(render(samplePage(), morning), ["Solar Noon", "in 3h 52m", "at 12:52 PM"]);
-  assert.ok(!render(samplePage(), NOW).includes("Solar Noon"));
+test("the left box counts down to the next event, whichever it is", () => {
+  // Early morning: sunrise comes next, although solar noon is also still ahead.
+  const data = samplePage();
+  data.sun.next_event = { name: "Sunrise", at: data.sun.times.sunrise };
+  const html = render(data, new Date("2026-10-08T06:50:00-04:00"));
+  assertShows(html, ["Sunrise", "in 0h 18m", "at 7:08 AM"]);
+  assert.ok(!html.includes("Solar Noon"));
+
+  data.sun.next_event = { name: "Solar Noon", at: data.sun.times.noon };
+  assertShows(render(data, new Date("2026-10-08T09:00:00-04:00")), ["Solar Noon", "in 3h 52m", "at 12:52 PM"]);
 });
 
 test("the marker sits at the clock's time of day and the sun's height", () => {

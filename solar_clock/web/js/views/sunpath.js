@@ -77,10 +77,8 @@ function marker(position, now, tz) {
   return `<circle cx="${n(xAt(z.hour * 60 + z.minute))}" cy="${n(yAt(position.elevation))}" r="6" style="fill:var(--accent-sun);stroke:var(--accent-warm)"/>`;
 }
 
-// Solar noon until it has passed, then whatever comes next.
 function eventPanel(sun, now, tz) {
-  let event = sun?.next_event ?? null;
-  if (sun?.times?.noon && new Date(sun.times.noon) > now) event = { name: "Solar Noon", at: sun.times.noon };
+  const event = sun?.next_event;
   if (!event) return `<section class="panel"></section>`;
   const left = countdownHM(event.at, now);
   return `<section class="panel">
