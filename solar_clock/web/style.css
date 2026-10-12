@@ -74,6 +74,7 @@ body {
 .warm { color: var(--accent-warm); }
 .cool { color: var(--accent-cool); }
 .moon { color: var(--accent-moon); }
+.green { color: var(--accent-green); }
 .message { padding: 48px 16px; color: var(--text-secondary); font-size: 18px; text-align: center; }
 .footer { display: flex; justify-content: space-between; gap: 12px; color: var(--text-tertiary); font-size: 14px; }
 
@@ -139,3 +140,12 @@ body {
 .cycle { position: relative; display: block; height: 10px; margin-top: 8px; background: var(--divider); }
 .cycle-fill { position: absolute; top: 0; bottom: 0; left: 0; }
 .cycle-full { position: absolute; top: -2px; bottom: -2px; left: 50%; width: 2px; background: var(--accent-moon); }
+
+/* Charts: Sun Path, Day Length, Analemma. Line widths are SVG attributes. */
+.chart { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { fill: var(--text-tertiary); font-size: 11px; }
+.chart .axis { stroke: var(--text-tertiary); }
+.chart .chart-message { fill: var(--text-secondary); font-size: 14px; }
+.corners { display: flex; justify-content: space-between; font-size: 14px; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.nowrap { font-size: 15px; white-space: nowrap; }

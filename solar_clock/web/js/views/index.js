@@ -2,8 +2,12 @@
 
 import * as airquality from "./airquality.js";
 import * as clock from "./clock.js";
+import * as daylength from "./daylength.js";
 import * as moon from "./moon.js";
 import * as solar from "./solar.js";
+import * as sunpath from "./sunpath.js";
 import * as weather from "./weather.js";
 
-export const VIEWS = [clock, weather, airquality, solar, moon];
+export const VIEWS = [
+  clock, weather, airquality, sunpath, daylength, solar, moon,
+];
