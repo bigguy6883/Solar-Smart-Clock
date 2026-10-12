@@ -7,10 +7,13 @@ export function wrapIndex(index, delta, count) {
   return (((index + delta) % count) + count) % count;
 }
 
-/** View index named by a URL hash such as "#moon"; 0 (Clock) when unknown. */
+/** The view the page opens on when the link names none. */
+export const DEFAULT_VIEW = "sunpath";
+
+/** View index named by a URL hash such as "#moon"; the default view when unknown. */
 export function indexFromHash(hash, names) {
   const index = names.indexOf(hash.replace(/^#/, "").toLowerCase());
-  return index === -1 ? 0 : index;
+  return index === -1 ? Math.max(0, names.indexOf(DEFAULT_VIEW)) : index;
 }
 
 /**

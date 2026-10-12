@@ -9,12 +9,14 @@ test("navigation wraps at both ends", () => {
   assert.equal(wrapIndex(2, 1, 5), 3);
 });
 
-test("the URL hash picks the view, defaulting to Clock", () => {
-  const names = ["clock", "weather", "moon"];
-  assert.equal(indexFromHash("#moon", names), 2);
-  assert.equal(indexFromHash("#MOON", names), 2);
-  assert.equal(indexFromHash("", names), 0);
-  assert.equal(indexFromHash("#nope", names), 0);
+test("the URL hash picks the view; without one the page opens on Sun Path", () => {
+  const names = ["clock", "weather", "sunpath", "moon"];
+  assert.equal(indexFromHash("#moon", names), 3);
+  assert.equal(indexFromHash("#MOON", names), 3);
+  assert.equal(indexFromHash("#clock", names), 0);
+  assert.equal(indexFromHash("", names), 2);
+  assert.equal(indexFromHash("#nope", names), 2);
+  assert.equal(indexFromHash("", ["clock", "weather"]), 0); // no Sun Path: the first view
 });
 
 test("a clear horizontal swipe moves one view; anything else is ignored", () => {

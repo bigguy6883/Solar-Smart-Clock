@@ -8,6 +8,7 @@ import { sampleCharts, sampleNow } from "./fixtures.mjs";
 // Written against the view list, so it holds as views are added.
 const names = VIEWS.map((v) => v.name);
 const nameAt = (i) => names[((i % names.length) + names.length) % names.length];
+const START = names.indexOf("sunpath"); // the view the page opens on
 
 let page;
 afterEach(() => page.restore());
@@ -34,13 +35,13 @@ test("before the first answer the page says it is connecting", async () => {
   assert.equal(page.elements.view.innerHTML, "");
 });
 
-test("the first answer draws the Clock view in the clock's theme", async () => {
+test("the first answer draws the Sun Path view in the clock's theme", async () => {
   page = installDom({ responses: [sampleNow()] });
   await loadApp();
   assert.equal(page.fetchCalls[0].url, "/api/now");
   assert.equal(page.fetchCalls[0].options.cache, "no-store");
   assert.equal(page.elements.banner.hidden, true);
-  assert.match(page.elements.view.innerHTML, /Sunrise/);
+  assert.match(page.elements.view.innerHTML, /Sun Path/);
   assert.equal(page.rootStyle.props["--background"], "#000000");
   assert.equal(page.rootStyle.colorScheme, "dark");
 });
@@ -53,7 +54,7 @@ test("losing the clock keeps the last data and says so, then recovers", async ()
   assert.equal(callsTo("/api/now"), 2);
   assert.equal(page.elements.banner.hidden, false);
   assert.match(page.elements.banner.textContent, /^Can't reach clock · last update \d{1,2}:\d\d [AP]M$/);
-  assert.match(page.elements.view.innerHTML, /Sunrise/);
+  assert.match(page.elements.view.innerHTML, /Sun Path/);
 
   page.responses.push(sampleNow());
   document.dispatch("visibilitychange");
@@ -86,10 +87,10 @@ test("a link to a view opens it; buttons and arrow keys move and wrap", async ()
   assert.equal(page.location.hash, `#${nameAt(last - 1)}`);
 });
 
-test("an unknown link opens Clock", async () => {
+test("an unknown link opens Sun Path", async () => {
   page = installDom({ hash: "#nowhere", responses: [sampleNow()] });
   await loadApp();
-  assert.match(page.elements.view.innerHTML, /Sunrise/);
+  assert.match(page.elements.view.innerHTML, /Sun Path/);
 });
 
 test("a swipe from right to left moves to the next view; a vertical drag does not", async () => {
@@ -102,9 +103,9 @@ test("a swipe from right to left moves to the next view; a vertical drag does no
   swipe({ clientX: 200, clientY: 100 }, { clientX: 190, clientY: 400 });
   assert.equal(page.location.hash, "");
   swipe({ clientX: 300, clientY: 200 }, { clientX: 120, clientY: 210 });
-  assert.equal(page.location.hash, `#${nameAt(1)}`);
+  assert.equal(page.location.hash, `#${nameAt(START + 1)}`);
   swipe({ clientX: 120, clientY: 200 }, { clientX: 300, clientY: 210 });
-  assert.equal(page.location.hash, `#${nameAt(0)}`);
+  assert.equal(page.location.hash, `#${nameAt(START)}`);
 });
 
 test("a view that throws shows a message instead of a blank page", async () => {
@@ -114,7 +115,7 @@ test("a view that throws shows a message instead of a blank page", async () => {
   await loadApp();
   assert.equal(page.elements.view.innerHTML, `<p class="message">Couldn't draw this view</p>`);
   page.elements.next.dispatch("click");
-  assert.equal(page.location.hash, `#${nameAt(1)}`);
+  assert.equal(page.location.hash, `#${nameAt(START + 1)}`);
 });
 
 test("the charts are fetched once the clock answers, and drawn", async () => {
