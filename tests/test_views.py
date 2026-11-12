@@ -12,6 +12,7 @@ from solar_clock.views.airquality import AirQualityView
 from solar_clock.views.analogclock import AnalogClockView
 from solar_clock.views.sunpath import SunPathView
 from solar_clock.views.daylength import DayLengthView
+from solar_clock.views.colors import MOON_YELLOW
 from solar_clock.views.moon import MoonView
 from solar_clock.views.solar import SolarView
 from solar_clock.views.analemma import AnalemmaView
@@ -328,6 +329,44 @@ class TestMoonView:
         assert (
             left > right
         ), f"Waning moon lit on wrong side (L={left:.0f}, R={right:.0f})"
+
+    @staticmethod
+    def _moon_pixels(view, phase):
+        """Render the moon graphic on white; return (image, centre, radius)."""
+        from PIL import Image as PILImage, ImageDraw
+
+        image = PILImage.new("RGB", (480, 320), (255, 255, 255))
+        view._render_moon_graphic(ImageDraw.Draw(image), image, phase, 45)
+        return image, (90, 100), 50
+
+    @pytest.mark.parametrize("phase", [0.1, 0.25, 0.4, 0.6, 0.75, 0.9])
+    def test_moon_shadow_stays_inside_the_disc(self, view, phase):
+        """The shadow must not spill past the moon's outline."""
+        image, (cx, cy), radius = self._moon_pixels(view, phase)
+        spilled = [
+            (x, y)
+            for x in range(cx - radius - 10, cx + radius + 11)
+            for y in range(cy - radius - 10, cy + radius + 11)
+            if (x - cx) ** 2 + (y - cy) ** 2 > (radius + 1) ** 2
+            and image.getpixel((x, y)) == (30, 30, 30)
+        ]
+        assert not spilled, f"{len(spilled)} shadow pixels outside the disc"
+
+    @pytest.mark.parametrize("phase", [0.1, 0.25, 0.4, 0.6, 0.75, 0.9])
+    def test_moon_lit_area_matches_the_phase(self, view, phase):
+        """The lit share of the disc is the phase's illuminated fraction."""
+        import math
+
+        image, (cx, cy), radius = self._moon_pixels(view, phase)
+        inside = [
+            image.getpixel((x, y))
+            for x in range(cx - radius, cx + radius + 1)
+            for y in range(cy - radius, cy + radius + 1)
+            if (x - cx) ** 2 + (y - cy) ** 2 < (radius - 1) ** 2
+        ]
+        lit = sum(pixel == MOON_YELLOW for pixel in inside) / len(inside)
+        expected = (1 - math.cos(2 * math.pi * phase)) / 2
+        assert lit == pytest.approx(expected, abs=0.02)
 
 
 class TestSolarView:

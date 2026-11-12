@@ -1,9 +1,13 @@
 """Moon phase view - lunar cycle visualization."""
 
-from PIL import Image, ImageDraw
+import math
+
+from PIL import Image, ImageChops, ImageDraw
 
 from .base import BaseView, UPDATE_HOURLY, FontSize, Layout, Spacing
 from .colors import PURPLE, MOON_YELLOW
+
+MOON_SHADOW = (30, 30, 30)
 
 
 class MoonView(BaseView):
@@ -59,8 +63,6 @@ class MoonView(BaseView):
 
         # Draw shadow based on phase
         # phase: 0 = new, 0.25 = first quarter, 0.5 = full, 0.75 = last quarter
-
-        # Draw shadow ellipse
         if phase < 0.03 or phase > 0.97:
             # New moon - full shadow
             draw.ellipse(
@@ -68,34 +70,17 @@ class MoonView(BaseView):
                     (center_x - radius, center_y - radius),
                     (center_x + radius, center_y + radius),
                 ],
-                fill=(30, 30, 30),
+                fill=MOON_SHADOW,
             )
         elif 0.47 <= phase <= 0.53:
             # Full moon - no shadow
             pass
         else:
-            # Partial shadow using arc.
-            # Northern hemisphere: waxing is lit on the right, waning on the left.
-            if phase < 0.5:
-                # Waxing - shadow on left side
-                arc_width = int((0.5 - phase) * 2 * radius * 2)
-                draw.ellipse(
-                    [
-                        (center_x - radius, center_y - radius),
-                        (center_x - radius + arc_width, center_y + radius),
-                    ],
-                    fill=(30, 30, 30),
-                )
-            else:
-                # Waning - shadow on right side
-                arc_width = int((phase - 0.5) * 2 * radius * 2)
-                draw.ellipse(
-                    [
-                        (center_x + radius - arc_width, center_y - radius),
-                        (center_x + radius, center_y + radius),
-                    ],
-                    fill=(30, 30, 30),
-                )
+            image.paste(
+                MOON_SHADOW,
+                (center_x - radius, center_y - radius),
+                self._moon_shadow_mask(phase, radius),
+            )
 
         # Moon outline
         draw.ellipse(
@@ -106,6 +91,34 @@ class MoonView(BaseView):
             outline=theme.text_tertiary,
             width=1,
         )
+
+    @staticmethod
+    def _moon_shadow_mask(phase: float, radius: int) -> Image.Image:
+        """Mask of the dark part of a partly lit disc, (2 * radius + 1) square.
+
+        The shadow is the dark side of the terminator, clipped to the disc.
+        Northern hemisphere: waxing is lit on the right, waning on the left.
+        """
+        size = 2 * radius + 1
+        # Build the waxing shape (dark on the left) and mirror it for waning,
+        # so the two halves of the cycle are exact mirror images.
+        waxing = phase < 0.5
+        # > 0: a crescent is lit and the terminator bulges into the lit side.
+        lean = math.cos((phase if waxing else 1 - phase) * 2 * math.pi)
+        steps = 2 * radius
+        terminator = [
+            (
+                radius + lean * radius * math.sin(math.pi * i / steps),
+                radius - radius * math.cos(math.pi * i / steps),
+            )
+            for i in range(steps + 1)
+        ]
+        dark = Image.new("L", (size, size), 0)
+        ImageDraw.Draw(dark).polygon(terminator + [(-1, size), (-1, -1)], fill=255)
+        disc = Image.new("L", (size, size), 0)
+        ImageDraw.Draw(disc).ellipse([(0, 0), (size - 1, size - 1)], fill=255)
+        mask = ImageChops.multiply(dark, disc)
+        return mask if waxing else mask.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
 
     def _render_phase_info(self, draw: ImageDraw.ImageDraw, moon, x: int) -> None:
         """Render phase name and illumination."""
