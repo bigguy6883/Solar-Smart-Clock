@@ -17,11 +17,20 @@ test("without lunar data it shows the TFT message", () => {
   assertShows(render(data, NOW), ["Lunar data unavailable"]);
 });
 
-test("the shadow follows MoonView's rules", () => {
+test("new and full moons keep MoonView's rules", () => {
   assert.match(moonShadow(0.01), /<circle/); // new moon: fully dark
   assert.equal(moonShadow(0.5), ""); // full moon: no shadow
-  // First quarter: a 50-wide shadow on the left half.
-  assert.equal(moonShadow(0.25), '<ellipse cx="30" cy="55" rx="25" ry="50" fill="#1e1e1e"/>');
-  // Waning crescent (0.89): on the right, int(0.39 * 200) = 78 wide.
-  assert.equal(moonShadow(0.89), '<ellipse cx="66" cy="55" rx="39" ry="50" fill="#1e1e1e"/>');
+});
+
+test("the shadow is bounded by the moon's own edge and the terminator", () => {
+  // First quarter: exactly the left half of the disc.
+  assert.equal(moonShadow(0.25), '<path d="M55 5A50 50 0 0 0 55 105A0 50 0 0 0 55 5Z" fill="#1e1e1e"/>');
+  // Waxing crescent: left edge, terminator bulging right, into the lit side.
+  assert.equal(moonShadow(0.1), '<path d="M55 5A50 50 0 0 0 55 105A40.45 50 0 0 0 55 5Z" fill="#1e1e1e"/>');
+  // Waxing gibbous: left edge, terminator bulging left.
+  assert.equal(moonShadow(0.4), '<path d="M55 5A50 50 0 0 0 55 105A40.45 50 0 0 1 55 5Z" fill="#1e1e1e"/>');
+  // Waning gibbous: right edge, terminator bulging right.
+  assert.equal(moonShadow(0.6), '<path d="M55 5A50 50 0 0 1 55 105A40.45 50 0 0 0 55 5Z" fill="#1e1e1e"/>');
+  // Waning crescent: right edge, terminator bulging left.
+  assert.equal(moonShadow(0.9), '<path d="M55 5A50 50 0 0 1 55 105A40.45 50 0 0 1 55 5Z" fill="#1e1e1e"/>');
 });

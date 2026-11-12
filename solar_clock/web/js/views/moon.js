@@ -49,12 +49,21 @@ function moonDisc(phase, colors) {
     </svg>`;
 }
 
-/** Shadow over the disc, drawn the way MoonView._render_moon_graphic draws it. */
+/**
+ * Shadow over the disc: the dark half of the moon's edge, closed by the
+ * terminator. MoonView's rules decide when the moon counts as new or full; the
+ * partial shape is drawn true to the phase rather than as MoonView's ellipse,
+ * which strays outside the disc.
+ */
 export function moonShadow(phase) {
   if (phase < 0.03 || phase > 0.97) return `<circle cx="${C}" cy="${C}" r="${R}" fill="${SHADOW}"/>`;
   if (phase >= 0.47 && phase <= 0.53) return "";
   // Waxing: shadow on the left; waning: on the right (northern hemisphere).
-  const width = Math.trunc(Math.abs(phase - 0.5) * 2 * R * 2);
-  const cx = phase < 0.5 ? C - R + width / 2 : C + R - width / 2;
-  return `<ellipse cx="${cx}" cy="${C}" rx="${width / 2}" ry="${R}" fill="${SHADOW}"/>`;
+  const edge = phase < 0.5 ? 0 : 1; // arc direction, top to bottom along the dark edge
+  const lean = Math.cos(phase * 2 * Math.PI); // > 0: a crescent is lit, < 0: gibbous
+  const rx = Number((R * Math.abs(lean)).toFixed(2));
+  const back = lean > 0 ? edge : 1 - edge; // the terminator bulges into the lit side for a crescent
+  const top = `${C} ${C - R}`;
+  const bottom = `${C} ${C + R}`;
+  return `<path d="M${top}A${R} ${R} 0 0 ${edge} ${bottom}A${rx} ${R} 0 0 ${back} ${top}Z" fill="${SHADOW}"/>`;
 }
