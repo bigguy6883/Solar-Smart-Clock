@@ -26,7 +26,7 @@ setup(
             "web/js/views/*.js",
         ]
     },
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     install_requires=[
         "Pillow>=10.0.0",
         "requests>=2.31.0",
@@ -56,10 +56,10 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: Home Automation",
         "Topic :: Scientific/Engineering :: Astronomy",
     ],

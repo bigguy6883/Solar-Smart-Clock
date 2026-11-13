@@ -3,7 +3,7 @@
 A Raspberry Pi-powered smart clock displaying real-time solar data, weather, moon phases, and time on a Waveshare 3.5" TFT LCD touchscreen.
 
 ![Platform](https://img.shields.io/badge/platform-Raspberry%20Pi-red)
-![Python](https://img.shields.io/badge/python-3.9+-blue)
+![Python](https://img.shields.io/badge/python-3.10+-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 [![Tests](https://github.com/bigguy6883/Solar-Smart-Clock/actions/workflows/test.yml/badge.svg)](https://github.com/bigguy6883/Solar-Smart-Clock/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/bigguy6883/Solar-Smart-Clock/branch/main/graph/badge.svg)](https://codecov.io/gh/bigguy6883/Solar-Smart-Clock)
