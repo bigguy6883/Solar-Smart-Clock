@@ -78,7 +78,7 @@ done
 `http://clock.local:8080/` serves a browser copy of the views from `solar_clock/web/`.
 
 - The page, `/api/now` and `/api/charts` must never change clock state: no `ViewManager` calls, never `set_mode` on the clock's ThemeManager.
-- `HTTPServer` must stay single-threaded: `web_api.py` keeps its own SolarProvider/LunarProvider, which are not thread-safe.
+- Requests must be answered one at a time (`ScreenshotHandler.work_lock` in `http_server.py`; each connection has its own thread so an idle one can't block the page): `web_api.py` keeps its own SolarProvider/LunarProvider, which are not thread-safe.
 - Each TFT view has a JavaScript twin in `solar_clock/web/js/views/`. When you change a TFT view's text, format or colours, change its twin too and run `node --test tests/web/*.test.mjs`.
 - Preview without a display: `./venv/bin/python -m tools.web_preview --config config.example.json --sample-weather` (port 8091).
 

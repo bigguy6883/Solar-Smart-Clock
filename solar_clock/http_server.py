@@ -6,7 +6,7 @@ import logging
 import os
 import threading
 import time
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
@@ -50,6 +50,14 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
     BaseHTTPRequestHandler's design). This means only one server configuration
     can exist at a time.
     """
+
+    # Seconds a connection may stay silent before it is dropped. Browsers open
+    # spare connections and phones leave dead ones behind.
+    timeout = 10
+
+    # Held while a request is answered, so the work still runs one request at
+    # a time (web_api.py relies on that) although each connection has a thread.
+    work_lock = threading.Lock()
 
     # Class-level references (set by create_server)
     clock_instance = None
@@ -173,7 +181,12 @@ class ScreenshotHandler(BaseHTTPRequestHandler):
         self._send_text(200, f"{view} ({index + 1}/{count})")
 
     def do_GET(self) -> None:
-        """Handle GET requests."""
+        """Handle GET requests, one at a time."""
+        with self.work_lock:
+            self._handle_get()
+
+    def _handle_get(self) -> None:
+        """Route one GET request."""
         path = self.path.lower()
         route = path.split("?", 1)[0]  # new web page routes ignore query strings
         static = self.static_site.resolve(path) if self.static_site else None
@@ -308,7 +321,9 @@ def create_server(
 
     # Create server
     bind_address = (config.bind_address, config.port)
-    server = HTTPServer(bind_address, ScreenshotHandler)
+    # One thread per connection, so a silent client cannot hold up everyone
+    # else's page. Requests are still answered one at a time (work_lock).
+    server = ThreadingHTTPServer(bind_address, ScreenshotHandler)
 
     logger.info(f"HTTP server configured on {config.bind_address}:{config.port}")
 

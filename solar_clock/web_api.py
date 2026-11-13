@@ -1,10 +1,10 @@
 """Data for the Solar Clock web page: the JSON behind GET /api/now and /api/charts.
 
-Threading: the page is served by the single-threaded HTTPServer in
-http_server.py, so one request runs at a time. That is what makes this
+Threading: http_server.py gives each connection its own thread but answers
+requests one at a time (ScreenshotHandler.work_lock). That is what makes this
 service's own SolarProvider and LunarProvider safe without locks
-(LunarProvider moves a shared ephem.Observer on every call). Do not switch the
-server to ThreadingHTTPServer without adding locking here. The TFT main loop
+(LunarProvider moves a shared ephem.Observer on every call). Do not remove
+that lock without adding locking here. The TFT main loop
 never touches these instances; the only provider shared with it is
 WeatherProvider, which guards its own fetches.
 """

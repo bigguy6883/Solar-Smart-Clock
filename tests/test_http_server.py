@@ -3,7 +3,10 @@
 import base64
 import json
 import os
+import socket
+import threading
 import time
+import urllib.request
 from io import BytesIO
 from unittest.mock import MagicMock, Mock, patch
 
@@ -428,6 +431,74 @@ class TestServerCreation:
         # Clean up
         server.shutdown()
         thread.join(timeout=1)
+
+    def test_idle_connection_does_not_block_other_requests(self, mock_config):
+        """A client that connects and sends nothing must not stall the page."""
+        server = create_server(mock_config, MagicMock())
+        thread = start_server_thread(server)
+        port = server.server_address[1]
+        idle = socket.create_connection(("127.0.0.1", port), timeout=5)
+        try:
+            url = f"http://127.0.0.1:{port}/health"
+            with urllib.request.urlopen(url, timeout=3) as response:
+                assert response.status == 200
+        finally:
+            idle.close()
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+    def test_idle_connection_is_dropped_after_the_timeout(self, mock_config):
+        """A silent client is disconnected instead of holding a thread forever."""
+        assert ScreenshotHandler.timeout is not None  # a default must be set
+        server = create_server(mock_config, MagicMock())
+        thread = start_server_thread(server)
+        port = server.server_address[1]
+        try:
+            with patch.object(ScreenshotHandler, "timeout", 0.2):
+                idle = socket.create_connection(("127.0.0.1", port), timeout=5)
+                try:
+                    assert idle.recv(1) == b""  # closed by the server
+                finally:
+                    idle.close()
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
+    def test_requests_are_still_answered_one_at_a_time(self, mock_config):
+        """web_api.py is not thread-safe, so two requests must never overlap."""
+        busy = threading.Lock()
+        overlaps = []
+
+        def build_now():
+            overlaps.append(not busy.acquire(blocking=False))
+            time.sleep(0.2)
+            if not overlaps[-1]:
+                busy.release()
+            return {}
+
+        web_service = MagicMock()
+        web_service.build_now.side_effect = build_now
+        server = create_server(mock_config, MagicMock(), web_service=web_service)
+        thread = start_server_thread(server)
+        url = f"http://127.0.0.1:{server.server_address[1]}/api/now"
+        try:
+            clients = [
+                threading.Thread(
+                    target=lambda: urllib.request.urlopen(url, timeout=5).close()
+                )
+                for _ in range(3)
+            ]
+            for client in clients:
+                client.start()
+            for client in clients:
+                client.join(timeout=5)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+        assert overlaps == [False, False, False]
 
 
 def _request(path, request_headers=None):
